@@ -4,7 +4,7 @@ package handler
 import (
 	"context"
 	"strconv"
-	"yomi-admin-backend/apps/server/internal/usecase"
+	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
 	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
@@ -16,18 +16,18 @@ import (
 
 // UserHandler 系统用户路由
 type UserHandler struct {
-	pageUC   *usecase.PageUsersUsecase
-	createUC *usecase.CreateUserUsecase
-	updateUC *usecase.UpdateUserUsecase
-	deleteUC *usecase.DeleteUserUsecase
+	pageUC   *userusecase.PageUsersUsecase
+	createUC *userusecase.CreateUserUsecase
+	updateUC *userusecase.UpdateUserUsecase
+	deleteUC *userusecase.DeleteUserUsecase
 }
 
 // NewUserHandler 创建系统用户 Handler
 func NewUserHandler(
-	pageUC *usecase.PageUsersUsecase,
-	createUC *usecase.CreateUserUsecase,
-	updateUC *usecase.UpdateUserUsecase,
-	deleteUC *usecase.DeleteUserUsecase,
+	pageUC *userusecase.PageUsersUsecase,
+	createUC *userusecase.CreateUserUsecase,
+	updateUC *userusecase.UpdateUserUsecase,
+	deleteUC *userusecase.DeleteUserUsecase,
 ) *UserHandler {
 	return &UserHandler{pageUC: pageUC, createUC: createUC, updateUC: updateUC, deleteUC: deleteUC}
 }
@@ -44,11 +44,11 @@ func (h *UserHandler) page(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 
-	in := &usecase.PageUsersInput{
+	in := &userusecase.PageUsersInput{
 		PageInput: dto.PageInput{Page: page, PageSize: pageSize},
 		Keyword:   c.Query("keyword"),
 	}
-	corehandler.HandlePage(c, func(ctx context.Context) (*dto.PageOutput[usecase.UserItem], error) {
+	corehandler.HandlePage(c, func(ctx context.Context) (*dto.PageOutput[userusecase.UserItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }
@@ -63,7 +63,7 @@ func (h *UserHandler) update(c *gin.Context) {
 		return
 	}
 
-	var in usecase.UpdateUserInput
+	var in userusecase.UpdateUserInput
 	if !corehandler.BindJSON(c, &in) {
 		return
 	}

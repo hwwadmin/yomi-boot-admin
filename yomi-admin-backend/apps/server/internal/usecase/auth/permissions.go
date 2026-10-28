@@ -1,5 +1,5 @@
-// Package usecase 认证相关编排
-package usecase
+// Package auth 认证相关编排
+package auth
 
 // builtinAdminUsername 是 P0 的内置管理员账号。
 // P0 没有 RBAC，此账号在登录/资料接口中返回全量权限占位。

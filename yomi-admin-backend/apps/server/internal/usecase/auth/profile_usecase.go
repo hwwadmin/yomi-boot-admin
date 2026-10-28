@@ -1,5 +1,5 @@
-// Package usecase 当前用户编排用例
-package usecase
+// Package auth 认证相关编排
+package auth
 
 import (
 	"context"

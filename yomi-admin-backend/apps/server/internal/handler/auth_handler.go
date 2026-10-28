@@ -2,7 +2,7 @@
 package handler
 
 import (
-	"yomi-admin-backend/apps/server/internal/usecase"
+	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 
 	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
 
@@ -11,13 +11,13 @@ import (
 
 // AuthHandler 认证相关路由
 type AuthHandler struct {
-	loginUC   *usecase.LoginUsecase
-	profileUC *usecase.ProfileUsecase
-	logoutUC  *usecase.LogoutUsecase
+	loginUC   *authusecase.LoginUsecase
+	profileUC *authusecase.ProfileUsecase
+	logoutUC  *authusecase.LogoutUsecase
 }
 
 // NewAuthHandler 创建认证 Handler
-func NewAuthHandler(loginUC *usecase.LoginUsecase, profileUC *usecase.ProfileUsecase, logoutUC *usecase.LogoutUsecase) *AuthHandler {
+func NewAuthHandler(loginUC *authusecase.LoginUsecase, profileUC *authusecase.ProfileUsecase, logoutUC *authusecase.LogoutUsecase) *AuthHandler {
 	return &AuthHandler{loginUC: loginUC, profileUC: profileUC, logoutUC: logoutUC}
 }
 

@@ -14,11 +14,13 @@ Yomi 管理后台后端（P0）：基于 Go 1.26 + [yomi-boot](https://gitee.com
 ## 目录
 
 ```text
-apps/server/        编排层：cmd、config、bootstrap、handler、usecase、test
+apps/server/        编排层：cmd、config、bootstrap、handler、usecase/{auth,user}、test
 domains/user/       用户域：entity/input/output、contract、provider、model/repo/service
 script/sql/         建库与建表脚本
 script/dev/         格式、vet、lint、测试脚本
 ```
+
+usecase 按 handler 分组（`auth` / `user`），文件名统一为 `<action>_usecase.go`。
 
 依赖方向：`handler → usecase → service_contract`；`provider → internal/service → repo_contract → repo + model`。
 `model` 不出域，写路径由 usecase 通过 `tx.Executor` 开启事务。

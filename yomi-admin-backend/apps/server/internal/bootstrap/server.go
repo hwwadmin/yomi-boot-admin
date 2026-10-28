@@ -3,7 +3,8 @@ package bootstrap
 
 import (
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
-	"yomi-admin-backend/apps/server/internal/usecase"
+	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
+	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 	userprovider "yomi-admin-backend/domains/user/provider"
 
 	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
@@ -36,15 +37,15 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	return []router.Registrar{
 		corehandler.NewHealthHandler("/v1/health", "/v1/health/ops", appCtxPlugin.AppCtx()),
 		apphandler.NewAuthHandler(
-			usecase.NewLoginUsecase(users.Users, tokenPlugin.Service()),
-			usecase.NewProfileUsecase(users.Users),
-			usecase.NewLogoutUsecase(tokenPlugin.Service()),
+			authusecase.NewLoginUsecase(users.Users, tokenPlugin.Service()),
+			authusecase.NewProfileUsecase(users.Users),
+			authusecase.NewLogoutUsecase(tokenPlugin.Service()),
 		),
 		apphandler.NewUserHandler(
-			usecase.NewPageUsersUsecase(users.Users),
-			usecase.NewCreateUserUsecase(users.Users, txPlugin.Executor()),
-			usecase.NewUpdateUserUsecase(users.Users, txPlugin.Executor(), tokenPlugin.Service()),
-			usecase.NewDeleteUserUsecase(users.Users, txPlugin.Executor(), tokenPlugin.Service()),
+			userusecase.NewPageUsersUsecase(users.Users),
+			userusecase.NewCreateUserUsecase(users.Users, txPlugin.Executor()),
+			userusecase.NewUpdateUserUsecase(users.Users, txPlugin.Executor(), tokenPlugin.Service()),
+			userusecase.NewDeleteUserUsecase(users.Users, txPlugin.Executor(), tokenPlugin.Service()),
 		),
 	}
 }
