@@ -8,7 +8,7 @@ Yomi 管理后台前端：基于 Vite + Vue 3 + TypeScript 的现代化后台脚
 
 ```bash
 pnpm install      # 安装依赖
-pnpm dev          # 开发服务器 http://localhost:5173（内置 mock，账号 admin / admin123）
+pnpm dev          # 开发服务器 http://localhost:25101（内置 mock，账号 admin / admin123）
 pnpm build        # 类型检查 + 生产构建（产物 dist/）
 pnpm lint         # oxlint + eslint（自动修复）
 pnpm format       # prettier 格式化
