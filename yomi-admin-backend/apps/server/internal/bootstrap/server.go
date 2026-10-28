@@ -16,6 +16,7 @@ import (
 	rbacprovider "yomi-admin-backend/domains/rbac/provider"
 	userprovider "yomi-admin-backend/domains/user/provider"
 
+	"gitee.com/hq_project/yomi-boot/boot"
 	"gitee.com/hq_project/yomi-boot/boot/server"
 	"gitee.com/hq_project/yomi-boot/component/common/db/tx"
 	"gitee.com/hq_project/yomi-boot/component/common/token"
@@ -31,6 +32,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+// envPrefix 是配置环境变量前缀
+const envPrefix = "YOMI_ADMIN"
+
+// Options 返回启动选项：自定义插件与中间件链统一在组合根登记
+func Options() boot.Options {
+	var pluginOpts plugin.PluginOptions
+	pluginOpts.AddCustomPlugin(NewHttpRecordConsumerPlugin())
+
+	return boot.Options{
+		EnvPrefix:   envPrefix,
+		Plugin:      pluginOpts,
+		Middlewares: Middlewares,
+	}
+}
 
 // container 保存 Wire 与 Middlewares 共用的装配结果
 type container struct {

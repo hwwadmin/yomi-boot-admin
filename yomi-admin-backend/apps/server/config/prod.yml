@@ -14,7 +14,6 @@ http:
   shutdown_timeout_seconds: 10
   max_request_body_bytes: 1048576
 
-# 统一脱敏：日志与访问记录共用同一套规则，避免密码、令牌原文落盘
 masking:
   placeholder: "***"
   match: contains
