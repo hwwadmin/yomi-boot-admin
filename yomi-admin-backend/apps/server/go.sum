@@ -2,8 +2,8 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
-gitee.com/hq_project/yomi-boot v1.2.0 h1:Yro9CzTWrGOsHpgow03F1ImF7z41e7Bl3TFNDzdZ06o=
-gitee.com/hq_project/yomi-boot v1.2.0/go.mod h1:zfeNP0aFdQJMvNUAlLwLdJhrvZVu+UFCT77rPSq4/Y0=
+gitee.com/hq_project/yomi-boot v1.2.1-0.20261028113112-1a7295dd465e h1:E2a7TY60sRHOt+jC9k4RTqlgvAW6tufv+7Jzaa3tSF0=
+gitee.com/hq_project/yomi-boot v1.2.1-0.20261028113112-1a7295dd465e/go.mod h1:zfeNP0aFdQJMvNUAlLwLdJhrvZVu+UFCT77rPSq4/Y0=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/toml v1.2.0 h1:Rt8g24XnyGTyglgET/PRUNlrUeu9F5L+7FilkXfZgs0=
 github.com/BurntSushi/toml v1.2.0/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=

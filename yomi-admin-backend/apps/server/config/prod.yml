@@ -98,6 +98,7 @@ http_record:
   memory:
     queue_size: 2048
     workers: 4
-  consumer: # kafka / redis_stream 时生效；memory 由本进程直接消费
+  consumer: # kafka / redis_stream 生效；memory 恒消费，enabled 只影响其余两种 provider
     enabled: true
-    group_id: yomi-admin-httprecord
+    group_id: yomi-admin-httprecord # 留空时按 app.name + "-httprecord" 派生
+    max_retry: 3 # kafka：同一记录最大重试次数，超限直接丢弃；0 表示不重试

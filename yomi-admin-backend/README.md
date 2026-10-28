@@ -1,6 +1,6 @@
 # yomi-admin-backend
 
-Yomi 管理后台后端：基于 Go 1.26 + [yomi-boot](https://gitee.com/hq_project/yomi-boot) v1.2.0，
+Yomi 管理后台后端：基于 Go 1.26 + [yomi-boot](https://gitee.com/hq_project/yomi-boot) v1.2.0.1，
 分层参考 `yomi-boot-template/module-mono` 的清洁架构 + DDD-light。
 
 ## 当前范围
@@ -59,8 +59,10 @@ usecase 按模块分组（`auth` / `user` / `rbac` / `httprecord`），文件名
 ## 依赖
 
 ```go
-require gitee.com/hq_project/yomi-boot v1.2.0
+require gitee.com/hq_project/yomi-boot v1.2.1-0.20261028113112-1a7295dd465e
 ```
+
+Gitee tag `v1.2.0.1` 不是三段式 semver，Go 会把它解析为上面的伪版本（commit `1a7295dd465e`）。
 
 `go.work` 固定 `go 1.26.0`（yomi-boot 的 go.mod 要求 `>= 1.26.0`），工作区包含
 `apps/server`、`domains/user`、`domains/rbac`、`domains/httprecord`。
@@ -68,13 +70,17 @@ require gitee.com/hq_project/yomi-boot v1.2.0
 ## 访问记录
 
 - 采集：yomi-boot `http_record` 中间件，配置在 `config/*.yml` 的 `http_record` 段；`provider: memory`
-  表示记录先入进程内队列，由 `internal/bootstrap/http_record_consumer_plugin.go` 启动的消费者落库。
+  表示记录先入进程内队列，由 httprecord 插件在 `OnReady` 阶段启动内存消费者。
+- 消费：业务在 `Wire` 中通过 `httprecordplugin.From(slot).MustRegisterHandler(...)` 注入落库处理函数
+  （见 `internal/bootstrap/http_record_handler.go`）；`memory` 恒消费，`consumer.enabled` 只对
+  `kafka` / `redis_stream` 生效。Kafka 可用 `consumer.max_retry` 控制同一记录的重试次数（默认 3，超限丢弃）；
+  `consumer.group_id` 留空时按 `app.name + "-httprecord"` 派生。
 - 落库：`t_http_record`；`record_request_body` / `record_response_body` 控制是否采集正文，
   正文与请求头统一经 `masking` 段脱敏（密码、令牌等不会明文落库）。
 - 查询：`GET /api/system/http-records`（`keyword` / `method` / `statusClass` / `userId` /
   `startTime` / `endTime` 过滤）与 `GET /api/system/http-records/:id`；菜单权限 `system:http-record`。
 - 如需跨进程可靠投递，可把 `http_record.provider` 切到 `kafka` 或 `redis_stream`，同时启用对应插件；
-  消费者支持三种 provider，无需改业务代码。
+  消费者由 httprecord 插件统一托管，无需改业务代码。
 
 ## 本地启动
 

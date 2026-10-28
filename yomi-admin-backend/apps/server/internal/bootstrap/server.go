@@ -36,14 +36,10 @@ import (
 // envPrefix 是配置环境变量前缀
 const envPrefix = "YOMI_ADMIN"
 
-// Options 返回启动选项：自定义插件与中间件链统一在组合根登记
+// Options 返回启动选项：中间件链统一在组合根登记
 func Options() boot.Options {
-	var pluginOpts plugin.PluginOptions
-	pluginOpts.AddCustomPlugin(NewHttpRecordConsumerPlugin())
-
 	return boot.Options{
 		EnvPrefix:   envPrefix,
-		Plugin:      pluginOpts,
 		Middlewares: Middlewares,
 	}
 }
@@ -103,6 +99,7 @@ func load(slot *plugin.PluginSlot) container {
 // Wire 根据插件插槽装配 HTTP 服务
 func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	c := load(slot)
+	registerHttpRecordHandler(slot, c.records.Records)
 	guard := superadmin.New(c.users.Users, c.rbac.Admin)
 
 	return []router.Registrar{
