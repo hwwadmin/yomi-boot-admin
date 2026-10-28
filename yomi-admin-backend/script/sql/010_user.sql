@@ -5,7 +5,7 @@ USE yomi_admin;
 SET time_zone = '+00:00';
 
 CREATE TABLE IF NOT EXISTS sys_user (
-    id            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    id            BIGINT       NOT NULL COMMENT '主键（雪花ID）',
     username      VARCHAR(64)  NOT NULL COMMENT '登录名',
     password_hash VARCHAR(255) NOT NULL COMMENT 'bcrypt 哈希',
     nickname      VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '昵称',
@@ -24,6 +24,6 @@ CREATE TABLE IF NOT EXISTS sys_user (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户';
 
 -- 内置管理员 admin / admin123（bcrypt cost 10）
-INSERT INTO sys_user (username, password_hash, nickname, status, create_time, update_time)
-VALUES ('admin', '$2a$10$3cgxANk0gaQbx.Sz7QlF6uNxREYPJIXV1zz8GahaLOIRfUkhqwiUy', '超级管理员', 1, NOW(), NOW()) AS seed
+INSERT INTO sys_user (id, username, password_hash, nickname, status, create_time, update_time)
+VALUES (100000000000000001, 'admin', '$2a$10$3cgxANk0gaQbx.Sz7QlF6uNxREYPJIXV1zz8GahaLOIRfUkhqwiUy', '超级管理员', 1, NOW(), NOW()) AS seed
 ON DUPLICATE KEY UPDATE nickname = seed.nickname;

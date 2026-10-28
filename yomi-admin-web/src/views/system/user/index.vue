@@ -39,7 +39,7 @@ onMounted(fetchList)
 // ———————— 新增 / 编辑 ————————
 const dialogVisible = ref(false)
 const submitting = ref(false)
-const editingId = ref<number | null>(null)
+const editingId = ref<string | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive({ username: '', password: '', nickname: '', email: '', phone: '', status: 1 as UserStatus })
 

@@ -66,8 +66,6 @@ func (r *fakeUserRepo) Page(_ context.Context, keyword string, page, pageSize in
 }
 
 func (r *fakeUserRepo) Create(_ context.Context, user *entity.User, passwordHash string, operatorID int64) error {
-	user.ID = r.nextID
-	r.nextID++
 	user.CreatedAt = time.Now()
 	r.users[user.ID] = user
 	r.credentials[user.Username] = repo_contract.UserCredential{User: user, PasswordHash: passwordHash}
@@ -83,6 +81,19 @@ func (r *fakeUserRepo) Update(_ context.Context, user *entity.User, operatorID i
 func (r *fakeUserRepo) SoftDelete(_ context.Context, id int64, operatorID int64) error {
 	delete(r.users, id)
 	return nil
+}
+
+type seqIDGenerator struct {
+	next int64
+}
+
+func (g *seqIDGenerator) NextID() (int64, error) {
+	g.next++
+	return g.next, nil
+}
+
+func newTestUserService(repo *fakeUserRepo) *UserService {
+	return NewUserService(repo, &seqIDGenerator{next: 1000})
 }
 
 func seedUser(t *testing.T, repo *fakeUserRepo, username, password string, status enums.UserStatus) *entity.User {
@@ -110,7 +121,7 @@ func TestAuthenticate(t *testing.T) {
 	repo := newFakeUserRepo()
 	seedUser(t, repo, "admin", "admin123", enums.UserStatusEnabled)
 	seedUser(t, repo, "disabled", "admin123", enums.UserStatusDisabled)
-	svc := NewUserService(repo)
+	svc := newTestUserService(repo)
 
 	out, err := svc.Authenticate(ctx, &input.AuthenticateInput{Username: "admin", Password: "admin123"})
 	if err != nil {
@@ -134,7 +145,7 @@ func TestAuthenticate(t *testing.T) {
 func TestCreateUser(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
-	svc := NewUserService(repo)
+	svc := newTestUserService(repo)
 
 	created, err := svc.Create(ctx, &input.CreateUserInput{
 		Username:   "test_user",
@@ -202,7 +213,7 @@ func TestUpdateAndDeleteProtectSelf(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	admin := seedUser(t, repo, "admin", "admin123", enums.UserStatusEnabled)
-	svc := NewUserService(repo)
+	svc := newTestUserService(repo)
 
 	err := svc.Update(ctx, &input.UpdateUserInput{
 		ID:         admin.ID,

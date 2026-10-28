@@ -11,7 +11,7 @@ import (
 )
 
 type userItem struct {
-	ID        int64  `json:"id"`
+	ID        string `json:"id"`
 	Username  string `json:"username"`
 	Nickname  string `json:"nickname"`
 	Email     string `json:"email"`
@@ -97,7 +97,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 		"phone":    "13900139000",
 		"status":   1,
 	}
-	body, ok = testclient.Put(API(fmt.Sprintf("/system/users/%d", userID)), token, updateReq)
+	body, ok = testclient.Put(API(fmt.Sprintf("/system/users/%s", userID)), token, updateReq)
 	if !ok {
 		t.Fatalf("更新用户接口不可达: %s", body)
 	}
@@ -116,7 +116,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	}
 
 	// 删除用户
-	body, ok = testclient.Delete(API(fmt.Sprintf("/system/users/%d", userID)), token)
+	body, ok = testclient.Delete(API(fmt.Sprintf("/system/users/%s", userID)), token)
 	if !ok {
 		t.Fatalf("删除用户接口不可达: %s", body)
 	}
@@ -160,7 +160,7 @@ func TestDisableUserRevokesToken(t *testing.T) {
 
 	userID := findUserID(t, adminToken, username)
 
-	body, ok = testclient.Put(API(fmt.Sprintf("/system/users/%d", userID)), adminToken, map[string]any{
+	body, ok = testclient.Put(API(fmt.Sprintf("/system/users/%s", userID)), adminToken, map[string]any{
 		"nickname": "待禁用用户",
 		"email":    "",
 		"phone":    "",
@@ -177,7 +177,7 @@ func TestDisableUserRevokesToken(t *testing.T) {
 	}
 	assertFailure(t, body)
 
-	body, ok = testclient.Delete(API(fmt.Sprintf("/system/users/%d", userID)), adminToken)
+	body, ok = testclient.Delete(API(fmt.Sprintf("/system/users/%s", userID)), adminToken)
 	if !ok {
 		t.Fatalf("删除用户接口不可达: %s", body)
 	}
@@ -202,7 +202,7 @@ func TestLogoutInvalidatesToken(t *testing.T) {
 }
 
 // findUserID 通过用户名搜索用户 ID
-func findUserID(t *testing.T, token, username string) int64 {
+func findUserID(t *testing.T, token, username string) string {
 	t.Helper()
 
 	query := url.Values{}

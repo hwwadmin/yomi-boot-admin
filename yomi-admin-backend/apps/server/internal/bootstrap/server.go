@@ -11,6 +11,7 @@ import (
 	"gitee.com/hq_project/yomi-boot/plugin"
 	appctxplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/appctx"
 	dbplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/db"
+	snowflakeplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/snowflake"
 	tokenplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/token"
 )
 
@@ -19,15 +20,17 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	db := dbplugin.FromDB(slot)
 	txPlugin := dbplugin.FromTx(slot)
 	tokenPlugin := tokenplugin.From(slot)
+	snowflakePlugin := snowflakeplugin.From(slot)
 	appCtxPlugin := appctxplugin.From(slot)
 
-	if db.DB() == nil || txPlugin.Executor() == nil || tokenPlugin.Service() == nil || appCtxPlugin.AppCtx() == nil {
-		panic("yomi-admin: 需要启用 db、redis、token 插件")
+	if db.DB() == nil || txPlugin.Executor() == nil || tokenPlugin.Service() == nil || snowflakePlugin.Generator() == nil || appCtxPlugin.AppCtx() == nil {
+		panic("yomi-admin: 需要启用 db、redis、token、snowflake 插件")
 	}
 
 	users := userprovider.Provide(userprovider.Deps{
-		DB:     db.DB(),
-		DBType: db.Type(),
+		DB:          db.DB(),
+		DBType:      db.Type(),
+		IDGenerator: snowflakePlugin.Generator(),
 	})
 
 	return []router.Registrar{

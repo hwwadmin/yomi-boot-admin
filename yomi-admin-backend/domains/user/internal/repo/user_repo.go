@@ -101,7 +101,7 @@ func (r *UserRepo) Page(ctx context.Context, keyword string, page, pageSize int)
 	return items, total, nil
 }
 
-// Create 创建用户并回填自增 ID
+// Create 创建用户（主键为雪花 ID，由领域服务生成）
 func (r *UserRepo) Create(ctx context.Context, user *entity.User, passwordHash string, operatorID int64) error {
 	row := &model.User{
 		Username:     user.Username,
@@ -111,6 +111,7 @@ func (r *UserRepo) Create(ctx context.Context, user *entity.User, passwordHash s
 		Phone:        user.Phone,
 		Status:       int8(user.Status),
 	}
+	row.ID = user.ID
 	row.CreateBy = ptrutil.PtrFromInt64(operatorID)
 	row.UpdateBy = ptrutil.PtrFromInt64(operatorID)
 
@@ -121,7 +122,6 @@ func (r *UserRepo) Create(ctx context.Context, user *entity.User, passwordHash s
 		return err
 	}
 
-	user.ID = row.ID
 	user.CreatedAt = row.CreateTime
 	return nil
 }

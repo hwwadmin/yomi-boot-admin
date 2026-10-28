@@ -23,7 +23,7 @@ type PageUsersInput struct {
 
 // UserItem 用户列表项
 type UserItem struct {
-	ID        int64  `json:"id"`
+	ID        int64  `json:"id,string"`
 	Username  string `json:"username"`
 	Nickname  string `json:"nickname"`
 	Email     string `json:"email"`

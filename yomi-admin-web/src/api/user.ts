@@ -21,11 +21,11 @@ export function createUser(data: CreateUserPayload) {
 }
 
 /** 编辑用户 */
-export function updateUser(id: number, data: Partial<UserPayload>) {
+export function updateUser(id: string, data: Partial<UserPayload>) {
   return request<null>({ url: `/system/users/${id}`, method: 'put', data })
 }
 
 /** 删除用户 */
-export function deleteUser(id: number) {
+export function deleteUser(id: string) {
   return request<null>({ url: `/system/users/${id}`, method: 'delete' })
 }

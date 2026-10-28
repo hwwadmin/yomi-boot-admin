@@ -21,6 +21,7 @@ func TestUserRepoCRUD(t *testing.T) {
 	ctx := context.Background()
 
 	user := &entity.User{
+		ID:       100000000000000001,
 		Username: "admin",
 		Nickname: "管理员",
 		Email:    "admin@example.com",
@@ -30,8 +31,8 @@ func TestUserRepoCRUD(t *testing.T) {
 	if err := repo.Create(ctx, user, "hash", 100); err != nil {
 		t.Fatalf("创建用户失败: %v", err)
 	}
-	if user.ID == 0 {
-		t.Fatal("创建后未回填自增 ID")
+	if user.ID != 100000000000000001 {
+		t.Fatalf("雪花 ID 未写入: %d", user.ID)
 	}
 	if user.CreatedAt.IsZero() {
 		t.Fatal("创建后未回填创建时间")
@@ -74,7 +75,7 @@ func TestUserRepoCRUD(t *testing.T) {
 		t.Fatalf("更新未生效: %+v", updated)
 	}
 
-	duplicate := &entity.User{Username: "admin", Nickname: "重复", Status: enums.UserStatusEnabled}
+	duplicate := &entity.User{ID: 100000000000000002, Username: "admin", Nickname: "重复", Status: enums.UserStatusEnabled}
 	err = repo.Create(ctx, duplicate, "hash", 100)
 	if !errors.Is(err, repo_contract.ErrDuplicatedKey) {
 		t.Fatalf("重复用户名期望 ErrDuplicatedKey，实际 %v", err)

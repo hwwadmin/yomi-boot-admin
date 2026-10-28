@@ -42,7 +42,8 @@ export interface UserInfo {
 export type UserStatus = 0 | 1
 
 export interface UserItem {
-  id: number
+  /** 雪花 ID，后端以字符串返回，避免 JS 精度丢失 */
+  id: string
   username: string
   nickname: string
   email: string

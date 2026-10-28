@@ -13,6 +13,7 @@ import (
 	"yomi-admin-backend/domains/user/pkg/shared/output"
 	"yomi-admin-backend/domains/user/service_contract"
 
+	"gitee.com/hq_project/yomi-boot/component/common/snowflake"
 	"gitee.com/hq_project/yomi-boot/component/core/bc/passwd"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
 	"gitee.com/hq_project/yomi-boot/component/core/shared"
@@ -28,14 +29,15 @@ var usernamePattern = regexp.MustCompile(`^[a-zA-Z0-9_]{4,32}$`)
 
 // UserService 用户领域服务实现
 type UserService struct {
-	users repo_contract.UserRepo
+	users       repo_contract.UserRepo
+	idGenerator snowflake.Generator
 }
 
 var _ service_contract.UserService = (*UserService)(nil)
 
 // NewUserService 创建用户领域服务
-func NewUserService(users repo_contract.UserRepo) *UserService {
-	return &UserService{users: users}
+func NewUserService(users repo_contract.UserRepo, idGenerator snowflake.Generator) *UserService {
+	return &UserService{users: users, idGenerator: idGenerator}
 }
 
 // Authenticate 校验账号密码
@@ -139,7 +141,13 @@ func (s *UserService) Create(ctx context.Context, in *input.CreateUserInput) (*e
 		return nil, errors.Wrap(err, "生成密码哈希失败")
 	}
 
+	id, err := s.idGenerator.NextID()
+	if err != nil {
+		return nil, errors.Wrap(err, "生成用户 ID 失败")
+	}
+
 	user := &entity.User{
+		ID:       id,
 		Username: username,
 		Nickname: nickname,
 		Email:    email,

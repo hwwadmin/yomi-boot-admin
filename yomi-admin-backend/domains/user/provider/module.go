@@ -6,6 +6,7 @@ import (
 	"yomi-admin-backend/domains/user/internal/service"
 	"yomi-admin-backend/domains/user/service_contract"
 
+	"gitee.com/hq_project/yomi-boot/component/common/snowflake"
 	"gitee.com/hq_project/yomi-boot/component/core/shared/enums"
 
 	"gorm.io/gorm"
@@ -13,8 +14,9 @@ import (
 
 // Deps 装配依赖
 type Deps struct {
-	DB     *gorm.DB
-	DBType enums.DbType
+	DB          *gorm.DB
+	DBType      enums.DbType
+	IDGenerator snowflake.Generator
 }
 
 // Module 导出本域能力（均为 service_contract 接口）
@@ -26,6 +28,6 @@ type Module struct {
 func Provide(deps Deps) Module {
 	userRepo := repo.NewUserRepo(deps.DB, deps.DBType)
 	return Module{
-		Users: service.NewUserService(userRepo),
+		Users: service.NewUserService(userRepo, deps.IDGenerator),
 	}
 }
