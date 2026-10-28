@@ -132,3 +132,55 @@ export interface UserRoleBinding {
   roles: RoleItem[]
   roleIds: string[]
 }
+
+/** 访问记录可筛选的 HTTP 方法 */
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+
+/** HTTP 状态码分段 */
+export type HttpStatusClass = '2xx' | '3xx' | '4xx' | '5xx'
+
+/** 访问记录查询参数 */
+export interface HttpRecordQuery extends PageQuery {
+  keyword?: string
+  method?: HttpMethod | ''
+  statusClass?: HttpStatusClass | ''
+  /** Unix 毫秒时间戳 */
+  startTime?: number
+  /** Unix 毫秒时间戳 */
+  endTime?: number
+}
+
+/** 访问记录列表项 */
+export interface HttpRecordItem {
+  /** 雪花 ID，后端以字符串返回 */
+  id: string
+  serviceType: string
+  serviceVersion: string
+  traceId: string
+  /** Unix 毫秒时间戳 */
+  requestAt: number
+  durationMs: number
+  method: string
+  path: string
+  route: string
+  clientIp: string
+  /** 当前登录用户 ID，未登录为 '0' */
+  userId: string
+  clientType: string
+  statusCode: number
+  bizCode: string
+  bizMsg: string
+}
+
+/** 访问记录详情（含正文与请求头） */
+export interface HttpRecordDetail extends HttpRecordItem {
+  query: string
+  userAgent: string
+  /** 已脱敏的请求头 JSON 字符串 */
+  requestHeaders: string
+  requestBody: string
+  requestBodyTruncated: boolean
+  responseBody: string
+  responseBodyTruncated: boolean
+  createTime: number
+}

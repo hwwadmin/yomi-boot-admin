@@ -27,6 +27,7 @@ func TestRBACRouteCatalogCoverage(t *testing.T) {
 	(&AuthHandler{}).Routes(group)
 	(&UserHandler{}).Routes(group)
 	(&RbacHandler{}).Routes(group)
+	(&HttpRecordHandler{}).Routes(group)
 
 	registered := make(map[string]struct{})
 	for _, route := range engine.Routes() {

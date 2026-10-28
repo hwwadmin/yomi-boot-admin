@@ -53,7 +53,7 @@ pnpm format       # prettier 格式化
 ├── mock/index.ts            # 本地 mock（vite 中间件，仅开发环境，含 RBAC 接口）
 ├── .env.development         # 接口地址 / 代理目标 / mock 开关
 └── src/
-    ├── api/                 # 接口层（user / auth / rbac，类型集中 types.ts）
+    ├── api/                 # 接口层（user / auth / rbac / httpRecord，类型集中 types.ts）
     ├── utils/request.ts     # axios 封装（token、统一响应、401 处理）
     ├── stores/              # user / app / permission（菜单过滤与访问判定）
     ├── router/              # routes.ts 静态路由 + guard.ts 登录与权限守卫
@@ -61,5 +61,5 @@ pnpm format       # prettier 格式化
     ├── directives/          # v-permission 按钮级权限
     ├── styles/              # 全局基础样式
     ├── types/               # 路由 meta 扩展、自动导入声明
-    └── views/               # login / dashboard / system/{user,role,permission} / error
+    └── views/               # login / dashboard / system/{user,role,permission,http-record} / error
 ```

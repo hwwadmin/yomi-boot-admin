@@ -4,6 +4,7 @@
 
 WORKSPACE_MODULES=(
   "apps/server"
+  "domains/httprecord"
   "domains/rbac"
   "domains/user"
 )

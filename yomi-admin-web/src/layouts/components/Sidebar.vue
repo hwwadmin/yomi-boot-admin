@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { Avatar, Key, Odometer, User } from '@element-plus/icons-vue'
+import { Avatar, Key, Odometer, Tickets, User } from '@element-plus/icons-vue'
 
 import { useAppStore } from '@/stores/app'
 import { usePermissionStore } from '@/stores/permission'
 
 // 菜单图标映射：路由 meta.icon 为 @element-plus/icons-vue 的组件名
-const iconMap: Record<string, Component> = { Odometer, User, Avatar, Key }
+const iconMap: Record<string, Component> = { Odometer, User, Avatar, Key, Tickets }
 
 function resolveIcon(name?: string): Component | undefined {
   return name ? iconMap[name] : undefined

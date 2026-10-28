@@ -14,6 +14,20 @@ http:
   shutdown_timeout_seconds: 10
   max_request_body_bytes: 1048576
 
+# 统一脱敏：日志与访问记录共用同一套规则，避免密码、令牌原文落盘
+masking:
+  placeholder: "***"
+  match: contains
+  rules:
+    - keys: [password, passwd, old_password, new_password, token, access_token, refresh_token, secret, api_key]
+      strategy: redact
+    - keys: [authorization, cookie, set-cookie]
+      strategy: redact
+    - keys: [phone, mobile]
+      strategy: phone
+    - keys: [email]
+      strategy: email
+
 log:
   dir: logs
   level: info
@@ -69,3 +83,22 @@ token:
 
 snowflake:
   worker_id: 1
+
+# HTTP 访问记录：中间件采集 + 进程内消费者落库，供后台「访问记录」页面查询
+http_record:
+  enabled: true
+  provider: memory
+  skip_paths:
+    - /api/v1/health
+    - /api/v1/health/ops
+  max_request_body_size: 4096
+  max_response_body_size: 8192
+  record_request_body: true
+  record_response_body: true
+  mask_sensitive: true
+  memory:
+    queue_size: 2048
+    workers: 4
+  consumer: # kafka / redis_stream 时生效；memory 由本进程直接消费
+    enabled: true
+    group_id: yomi-admin-httprecord

@@ -40,3 +40,12 @@ func queryInt(c *gin.Context, key string, defaultValue int) int {
 	}
 	return value
 }
+
+// queryInt64 读取 64 位整数查询参数，非法或缺省时使用默认值
+func queryInt64(c *gin.Context, key string, defaultValue int64) int64 {
+	value, err := strconv.ParseInt(c.DefaultQuery(key, strconv.FormatInt(defaultValue, 10)), 10, 64)
+	if err != nil {
+		return defaultValue
+	}
+	return value
+}

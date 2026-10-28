@@ -9,6 +9,7 @@ Yomi 管理后台后端：基于 Go 1.26 + [yomi-boot](https://gitee.com/hq_proj
 - 系统用户分页、新增、编辑、删除
 - RBAC：角色管理、权限目录、角色绑权限、用户绑角色
 - 菜单与按钮权限下发，接口级鉴权中间件
+- HTTP 访问记录：yomi-boot `http_record` 采集、进程内消费者落库、分页与详情查询
 - 统一使用 yomi-boot 默认响应协议
 
 暂不包含：动态路由、登录/操作日志、部门、字典、密码重置。
@@ -19,11 +20,12 @@ Yomi 管理后台后端：基于 Go 1.26 + [yomi-boot](https://gitee.com/hq_proj
 apps/server/        编排层：cmd、config、bootstrap、handler、middleware、usecase、support、test
 domains/user/       用户域：entity/input/output、contract、provider、repo/model/mapper/service
 domains/rbac/       角色权限域：enums/entity/input/output、contract、provider、repo/model/mapper/service
-script/sql/         建库、用户表、RBAC 表与种子
+domains/httprecord/ 访问记录域：entity/enums/input/output、contract、provider、repo/model/mapper/service
+script/sql/         建库、用户表、RBAC 表、访问记录表与种子
 script/dev/         格式、vet、lint、测试脚本
 ```
 
-usecase 按模块分组（`auth` / `user` / `rbac`），文件名统一为 `<action>_usecase.go`，一个文件一个用例。
+usecase 按模块分组（`auth` / `user` / `rbac` / `httprecord`），文件名统一为 `<action>_usecase.go`，一个文件一个用例。
 依赖方向：`handler → usecase → service_contract`；`provider → internal/service → repo_contract → repo + model/mapper`。
 `model` 包内私有，只出现在 repo 层；写路径由 usecase 通过 `tx.Executor` 开启事务。
 
@@ -33,6 +35,8 @@ usecase 按模块分组（`auth` / `user` / `rbac`），文件名统一为 `<act
 - 状态、类型等闭集字段使用 `varchar` + 大写枚举值（`ENABLED` / `DISABLED`、`MENU` / `API`）。
 - 所有表包含统一审计字段；角色和权限不做软删除，用状态停用；关系表物理删除。
 - Entity 时间字段为 Unix 毫秒时间戳，HTTP 出入参 ID 使用 `dto.JSONInt64`（序列化为字符串）。
+- 访问记录表 `t_http_record` 以 `trace_id + request_at` 去重，保证消费重投幂等；记录会持续增长，
+  生产环境请按需定期归档或清理历史数据。
 
 ## 权限模型
 
@@ -53,7 +57,18 @@ require gitee.com/hq_project/yomi-boot v1.2.0
 ```
 
 `go.work` 固定 `go 1.26.0`（yomi-boot 的 go.mod 要求 `>= 1.26.0`），工作区包含
-`apps/server`、`domains/user`、`domains/rbac`。
+`apps/server`、`domains/user`、`domains/rbac`、`domains/httprecord`。
+
+## 访问记录
+
+- 采集：yomi-boot `http_record` 中间件，配置在 `config/*.yml` 的 `http_record` 段；`provider: memory`
+  表示记录先入进程内队列，由 `internal/bootstrap/http_record_consumer_plugin.go` 启动的消费者落库。
+- 落库：`t_http_record`；`record_request_body` / `record_response_body` 控制是否采集正文，
+  正文与请求头统一经 `masking` 段脱敏（密码、令牌等不会明文落库）。
+- 查询：`GET /api/system/http-records`（`keyword` / `method` / `statusClass` / `userId` /
+  `startTime` / `endTime` 过滤）与 `GET /api/system/http-records/:id`；菜单权限 `system:http-record`。
+- 如需跨进程可靠投递，可把 `http_record.provider` 切到 `kafka` 或 `redis_stream`，同时启用对应插件；
+  消费者支持三种 provider，无需改业务代码。
 
 ## 本地启动
 
@@ -63,9 +78,11 @@ require gitee.com/hq_project/yomi-boot v1.2.0
 mysql -uroot -p < script/sql/001_init.sql
 mysql -uroot -p < script/sql/010_user.sql
 mysql -uroot -p < script/sql/020_rbac.sql
+mysql -uroot -p < script/sql/030_http_record.sql
 ```
 
 `020_rbac.sql` 会创建 RBAC 四张表、写入权限目录种子，并把 `admin` 绑定为内置超管。
+`030_http_record.sql` 创建访问记录表；升级已有环境时重跑 `020` + `030` 即可（种子使用 `INSERT IGNORE`）。
 `010_user.sql` 会在建好 `t_user` 后删除旧版 `sys_user` 表。
 **必须先执行 SQL 再启动服务**：鉴权中间件依赖角色关系，缺表会导致受保护接口报错。
 

@@ -9,8 +9,10 @@ import (
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
 
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
+	httprecoreusecase "yomi-admin-backend/apps/server/internal/usecase/httprecord"
 	rbacusecase "yomi-admin-backend/apps/server/internal/usecase/rbac"
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
+	httprecordprovider "yomi-admin-backend/domains/httprecord/provider"
 	rbacprovider "yomi-admin-backend/domains/rbac/provider"
 	userprovider "yomi-admin-backend/domains/user/provider"
 
@@ -32,11 +34,12 @@ import (
 
 // container 保存 Wire 与 Middlewares 共用的装配结果
 type container struct {
-	users  userprovider.Module
-	rbac   rbacprovider.Module
-	tx     tx.Executor
-	token  token.TokenService
-	appCtx appctx.AppCtx
+	users   userprovider.Module
+	rbac    rbacprovider.Module
+	records httprecordprovider.Module
+	tx      tx.Executor
+	token   token.TokenService
+	appCtx  appctx.AppCtx
 }
 
 var (
@@ -67,6 +70,10 @@ func load(slot *plugin.PluginSlot) container {
 			rbac: rbacprovider.Provide(rbacprovider.Deps{
 				DB:          db.DB(),
 				DBType:      db.Type(),
+				IDGenerator: snowflakePlugin.Generator(),
+			}),
+			records: httprecordprovider.Provide(httprecordprovider.Deps{
+				DB:          db.DB(),
 				IDGenerator: snowflakePlugin.Generator(),
 			}),
 			tx:     txPlugin.Executor(),
@@ -105,6 +112,10 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 			rbacusecase.NewSetPermissionStatusUsecase(c.rbac.Admin),
 			rbacusecase.NewGetUserRolesUsecase(c.users.Users, c.rbac.Admin),
 			rbacusecase.NewBindUserRolesUsecase(c.rbac.Admin, guard, c.tx),
+		),
+		apphandler.NewHttpRecordHandler(
+			httprecoreusecase.NewPageRecordsUsecase(c.records.Records),
+			httprecoreusecase.NewGetRecordUsecase(c.records.Records),
 		),
 	}
 }

@@ -87,6 +87,8 @@ INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`,
 VALUES (100000000000001002, 'system:role', '角色管理', 'MENU', '/system/role', NULL, NULL, 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001003, 'system:permission', '权限管理', 'MENU', '/system/permission', NULL, NULL, 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001004, 'system:http-record', '访问记录', 'MENU', '/system/http-record', NULL, NULL, 'ENABLED');
 
 -- 用户接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
@@ -121,6 +123,12 @@ INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`,
 VALUES (100000000000001041, 'system:user:role:list', '用户角色查询', 'API', NULL, 'GET', '/api/system/user/:id/role', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001042, 'system:user:role:bind', '用户角色绑定', 'API', NULL, 'PUT', '/api/system/user/:id/role', 'ENABLED');
+
+-- 访问记录接口权限
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001051, 'system:http-record:list', '访问记录列表', 'API', NULL, 'GET', '/api/system/http-records', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001052, 'system:http-record:detail', '访问记录详情', 'API', NULL, 'GET', '/api/system/http-records/:id', 'ENABLED');
 
 -- 内置管理员绑定超管角色
 INSERT IGNORE INTO `t_rbac_user_role_rel` (`id`, `user_id`, `role_id`, `create_by`, `update_by`)

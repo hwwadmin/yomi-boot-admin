@@ -56,6 +56,32 @@ interface MockUser {
   createdAt: number
 }
 
+interface MockHttpRecord {
+  id: string
+  serviceType: string
+  serviceVersion: string
+  traceId: string
+  requestAt: number
+  durationMs: number
+  method: string
+  path: string
+  route: string
+  query: string
+  clientIp: string
+  userAgent: string
+  requestHeaders: string
+  requestBody: string
+  requestBodyTruncated: boolean
+  userId: string
+  clientType: string
+  statusCode: number
+  responseBody: string
+  responseBodyTruncated: boolean
+  bizCode: string
+  bizMsg: string
+  createTime: number
+}
+
 const ok = <T>(data: T, total?: number): MockResponse<T> => ({
   code: 'OK',
   msg: 'success',
@@ -77,6 +103,7 @@ const permissions: MockPermission[] = [
   { id: 'p1', code: 'system:user', name: '系统用户', type: 'MENU', uiPath: '/system/user', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p2', code: 'system:role', name: '角色管理', type: 'MENU', uiPath: '/system/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p3', code: 'system:permission', name: '权限管理', type: 'MENU', uiPath: '/system/permission', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p4', code: 'system:http-record', name: '访问记录', type: 'MENU', uiPath: '/system/http-record', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p11', code: 'system:user:list', name: '用户列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/users', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p12', code: 'system:user:create', name: '创建用户', type: 'API', httpMethod: 'POST', httpPath: '/api/system/users', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p13', code: 'system:user:update', name: '更新用户', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/users/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
@@ -90,6 +117,8 @@ const permissions: MockPermission[] = [
   { id: 'p32', code: 'system:permission:status', name: '权限启停', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/permission/:id/status', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p41', code: 'system:user:role:list', name: '用户角色查询', type: 'API', httpMethod: 'GET', httpPath: '/api/system/user/:id/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p42', code: 'system:user:role:bind', name: '用户角色绑定', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/user/:id/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p51', code: 'system:http-record:list', name: '访问记录列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/http-records', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p52', code: 'system:http-record:detail', name: '访问记录详情', type: 'API', httpMethod: 'GET', httpPath: '/api/system/http-records/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
 ]
 
 // ———————— 角色 ————————
@@ -136,6 +165,53 @@ const users: MockUser[] = Array.from({ length: 28 }, (_, index) => {
   }
 })
 let nextUserId = users.length + 1
+
+// ———————— 访问记录 ————————
+const httpRecordSeeds = [
+  { method: 'GET', path: '/api/system/users', statusCode: 200, bizCode: 'OK' },
+  { method: 'GET', path: '/api/auth/profile', statusCode: 200, bizCode: 'OK' },
+  { method: 'POST', path: '/api/system/users', statusCode: 200, bizCode: 'ADMIN_USERNAME_EXISTS' },
+  { method: 'PUT', path: '/api/system/role/:id', statusCode: 200, bizCode: 'OK' },
+  { method: 'DELETE', path: '/api/system/users/:id', statusCode: 200, bizCode: 'OK' },
+  { method: 'GET', path: '/api/system/permission', statusCode: 404, bizCode: 'NOT_FOUND' },
+  { method: 'GET', path: '/api/system/http-records', statusCode: 200, bizCode: 'OK' },
+  { method: 'POST', path: '/api/auth/login', statusCode: 200, bizCode: 'OK' },
+  { method: 'GET', path: '/api/system/http-records/:id', statusCode: 500, bizCode: 'INTERNAL_ERROR' },
+  { method: 'GET', path: '/api/v1/health', statusCode: 200, bizCode: '' },
+]
+
+const httpRecords: MockHttpRecord[] = httpRecordSeeds.map((seed, index) => {
+  const requestAt = now() - index * 60_000
+  return {
+    id: String(100000000000010000n + BigInt(index + 1)),
+    serviceType: 'yomi-admin-backend',
+    serviceVersion: 'v0.1.0',
+    traceId: `mock-trace-${index + 1}`,
+    requestAt,
+    durationMs: 8 + index * 3,
+    method: seed.method,
+    path: seed.path,
+    route: seed.path,
+    query: seed.method === 'GET' ? 'page=1&pageSize=10' : '',
+    clientIp: '127.0.0.1',
+    userAgent: 'Mozilla/5.0 (mock)',
+    requestHeaders: JSON.stringify({ Authorization: '***', 'Content-Type': 'application/json' }),
+    requestBody:
+      seed.method === 'GET' ? '' : JSON.stringify({ username: 'admin', password: '***' }, null, 2),
+    requestBodyTruncated: false,
+    userId: index === 7 ? '0' : '100000000000000001',
+    clientType: 'admin',
+    statusCode: seed.statusCode,
+    responseBody:
+      seed.statusCode === 200
+        ? JSON.stringify({ code: seed.bizCode, msg: 'success', data: {} }, null, 2)
+        : '',
+    responseBodyTruncated: false,
+    bizCode: seed.bizCode,
+    bizMsg: seed.statusCode === 200 ? 'success' : 'mock error',
+    createTime: requestAt,
+  }
+})
 
 const tokenToUsername = new Map<string, string>()
 
@@ -473,6 +549,42 @@ const routes: MockRoute[] = [
       permission.status = body.status === 'DISABLED' ? 'DISABLED' : 'ENABLED'
       permission.updateTime = now()
       sendJson(res, ok(null))
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/system\/http-records$/,
+    handler: async ({ req, res, query }) => {
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const keyword = (query.get('keyword') ?? '').trim().toLowerCase()
+      const method = query.get('method') ?? ''
+      const statusClass = query.get('statusClass') ?? ''
+      const startTime = Number(query.get('startTime')) || 0
+      const endTime = Number(query.get('endTime')) || 0
+
+      const filtered = httpRecords.filter((record) => {
+        const matchKeyword =
+          !keyword ||
+          record.path.toLowerCase().includes(keyword) ||
+          record.traceId.toLowerCase().includes(keyword) ||
+          record.clientIp.toLowerCase().includes(keyword)
+        const matchStatusClass =
+          !statusClass || String(Math.floor(record.statusCode / 100)) === statusClass.charAt(0)
+        const matchTime =
+          (!startTime || record.requestAt >= startTime) && (!endTime || record.requestAt <= endTime)
+        return matchKeyword && (!method || record.method === method) && matchStatusClass && matchTime
+      })
+      sendJson(res, paginate(filtered, query))
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/system\/http-records\/([^/]+)$/,
+    handler: async ({ req, res, params }) => {
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const record = httpRecords.find((item) => item.id === params[0])
+      if (!record) return sendJson(res, fail('访问记录不存在', 'ADMIN_HTTP_RECORD_NOT_FOUND'))
+      sendJson(res, ok(record))
     },
   },
   {
