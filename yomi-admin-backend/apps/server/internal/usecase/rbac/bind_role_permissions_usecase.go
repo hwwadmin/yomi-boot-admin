@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"context"
+
 	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
@@ -13,16 +14,6 @@ import (
 type BindRolePermissionsInput struct {
 	PermissionIDs dto.JSONInt64Slice `json:"permissionIds"`
 	OperatorID    int64              `json:"-"`
-}
-
-// Validate 校验入参
-func (i *BindRolePermissionsInput) Validate() error {
-	for _, id := range i.PermissionIDs {
-		if id.Int64() <= 0 {
-			return errors.Sentinel(rbaccontract.ErrInvalidInput)
-		}
-	}
-	return nil
 }
 
 // BindRolePermissionsUsecase 角色权限绑定编排
@@ -39,9 +30,6 @@ func NewBindRolePermissionsUsecase(rbac rbaccontract.RbacAdminService) *BindRole
 func (uc *BindRolePermissionsUsecase) Execute(ctx context.Context, roleID int64, in *BindRolePermissionsInput) error {
 	if roleID <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
-	}
-	if err := in.Validate(); err != nil {
-		return err
 	}
 	return uc.rbac.BindRolePermissions(ctx, &rbacinput.BindRolePermissionsInput{
 		RoleID:        roleID,

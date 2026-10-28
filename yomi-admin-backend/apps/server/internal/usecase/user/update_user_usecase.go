@@ -2,13 +2,15 @@ package user
 
 import (
 	"context"
-	"yomi-admin-backend/apps/server/internal/support/superadmin"
+	"yomi-admin-backend/apps/server/internal/support"
 	"yomi-admin-backend/domains/user/pkg/shared/enums"
-	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 	"yomi-admin-backend/domains/user/service_contract"
+
+	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 
 	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
 	"gitee.com/hq_project/yomi-boot/component/common/token"
+	"gitee.com/hq_project/yomi-boot/component/core/errors"
 	"gitee.com/hq_project/yomi-boot/component/core/logger"
 )
 
@@ -24,18 +26,25 @@ type UpdateUserInput struct {
 // UpdateUserUsecase 更新用户编排
 type UpdateUserUsecase struct {
 	users service_contract.UserService
-	guard *superadmin.Guard
+	guard lastSuperGuard
 	tx    dbtx.Executor
 	token token.TokenService
 }
 
 // NewUpdateUserUsecase 创建更新用户用例
-func NewUpdateUserUsecase(users service_contract.UserService, guard *superadmin.Guard, tx dbtx.Executor, tokenService token.TokenService) *UpdateUserUsecase {
+func NewUpdateUserUsecase(users service_contract.UserService, guard lastSuperGuard, tx dbtx.Executor, tokenService token.TokenService) *UpdateUserUsecase {
 	return &UpdateUserUsecase{users: users, guard: guard, tx: tx, token: tokenService}
 }
 
 // Execute 更新用户；状态改为禁用后撤销该用户全部 Token
 func (uc *UpdateUserUsecase) Execute(ctx context.Context, id int64, in *UpdateUserInput) error {
+	if id <= 0 {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+	if id == in.OperatorID && in.Status == enums.UserStatusDisabled {
+		return support.ErrCannotOperateSelf
+	}
+
 	if err := uc.tx.Run(ctx, func(txCtx context.Context) error {
 		if in.Status == enums.UserStatusDisabled {
 			if err := uc.guard.EnsureNotLastSuper(txCtx, id); err != nil {

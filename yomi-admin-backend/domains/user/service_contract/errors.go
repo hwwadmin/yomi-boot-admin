@@ -14,6 +14,4 @@ var (
 	ErrUsernameExists = errors.NewBiz("ADMIN_USERNAME_EXISTS", "用户名已存在")
 	// ErrInvalidInput 用户参数不合法
 	ErrInvalidInput = errors.NewBiz("ADMIN_INVALID_INPUT", "用户参数不合法")
-	// ErrCannotOperateSelf 不能操作当前登录账号
-	ErrCannotOperateSelf = errors.NewBiz("ADMIN_CANNOT_OPERATE_SELF", "不能操作当前登录账号")
 )

@@ -1,4 +1,7 @@
 # golangci-lint：yomi-admin-backend（在各 go.mod 根目录执行，files 相对当前 module）
+#
+# depguard 的 files 使用 gobwas/glob，路径按 `/` 分隔、匹配绝对路径。
+# 目录级规则统一用 `**/<目录>/**`，可同时覆盖直接文件与子目录文件。
 version: "2"
 
 run:
@@ -16,102 +19,311 @@ linters:
   settings:
     depguard:
       rules:
+        # cmd 只做启动：装配与路由全部由 bootstrap 负责
         cmd-entry:
           list-mode: lax
           files:
-            - "**/cmd/**/*.go"
+            - "**/cmd/**"
           deny:
             - pkg: yomi-admin-backend/apps/server/internal/handler
               desc: cmd 仅负责启动，禁止直接依赖 handler
             - pkg: yomi-admin-backend/apps/server/internal/usecase
               desc: cmd 仅负责启动，禁止直接依赖 usecase
+            - pkg: yomi-admin-backend/apps/server/internal/policy
+              desc: cmd 仅负责启动，禁止直接依赖 policy
+            - pkg: yomi-admin-backend/apps/server/internal/support
+              desc: cmd 仅负责启动，禁止直接依赖 support
             - pkg: yomi-admin-backend/domains
               desc: cmd 仅负责启动，禁止直接依赖 domains
 
+        # 组合根：只允许经 provider 装配领域，禁止越过公开面
+        server-bootstrap:
+          list-mode: lax
+          files:
+            - "**/internal/bootstrap/**"
+          deny:
+            - pkg: yomi-admin-backend/domains/user/internal
+              desc: bootstrap 只经 provider 装配，禁止依赖 user 域内部
+            - pkg: yomi-admin-backend/domains/rbac/internal
+              desc: bootstrap 只经 provider 装配，禁止依赖 rbac 域内部
+            - pkg: yomi-admin-backend/domains/httprecord/internal
+              desc: bootstrap 只经 provider 装配，禁止依赖 httprecord 域内部
+
+        # Handler 极薄：只绑定、取路径参数、调 usecase
         server-handler:
           list-mode: lax
           files:
-            - "**/internal/handler/**/*.go"
+            - "**/internal/handler/**"
           deny:
+            - pkg: yomi-admin-backend/apps/server/internal/bootstrap
+              desc: handler 禁止依赖组合根
             - pkg: yomi-admin-backend/domains/user/provider
+              desc: handler 禁止依赖 domain provider
+            - pkg: yomi-admin-backend/domains/rbac/provider
+              desc: handler 禁止依赖 domain provider
+            - pkg: yomi-admin-backend/domains/httprecord/provider
               desc: handler 禁止依赖 domain provider
             - pkg: yomi-admin-backend/domains/user/internal
               desc: handler 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/rbac/internal
+              desc: handler 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/httprecord/internal
+              desc: handler 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/user/service_contract
-              desc: handler 禁止跳过 usecase 直接依赖 service_contract
+              desc: handler 禁止跳过 usecase 直接依赖契约
+            - pkg: yomi-admin-backend/domains/rbac/service_contract
+              desc: handler 禁止跳过 usecase 直接依赖契约
+            - pkg: yomi-admin-backend/domains/httprecord/service_contract
+              desc: handler 禁止跳过 usecase 直接依赖契约
 
+        # UseCase 编排：可依赖公开契约，禁止碰领域内部与装配层
         server-usecase:
           list-mode: lax
           files:
-            - "**/internal/usecase/**/*.go"
+            - "**/internal/usecase/**"
           deny:
+            - pkg: yomi-admin-backend/apps/server/internal/bootstrap
+              desc: usecase 禁止依赖组合根
             - pkg: yomi-admin-backend/apps/server/internal/handler
               desc: usecase 禁止依赖 handler
             - pkg: yomi-admin-backend/domains/user/provider
               desc: usecase 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/rbac/provider
+              desc: usecase 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/httprecord/provider
+              desc: usecase 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/user/internal
               desc: usecase 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/rbac/internal
+              desc: usecase 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/httprecord/internal
+              desc: usecase 禁止依赖 domain internal
+            - pkg: github.com/gin-gonic/gin
+              desc: usecase 禁止依赖 gin
 
+        # 跨域编排策略：只组合多个公开契约，不承载协议与存储
+        server-policy:
+          list-mode: lax
+          files:
+            - "**/internal/policy/**"
+          deny:
+            - pkg: yomi-admin-backend/apps/server/internal/bootstrap
+              desc: policy 禁止依赖组合根
+            - pkg: yomi-admin-backend/apps/server/internal/handler
+              desc: policy 禁止依赖 handler
+            - pkg: yomi-admin-backend/apps/server/internal/usecase
+              desc: policy 禁止依赖 usecase
+            - pkg: yomi-admin-backend/domains/user/provider
+              desc: policy 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/rbac/provider
+              desc: policy 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/httprecord/provider
+              desc: policy 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/user/internal
+              desc: policy 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/rbac/internal
+              desc: policy 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/httprecord/internal
+              desc: policy 禁止依赖 domain internal
+            - pkg: github.com/gin-gonic/gin
+              desc: policy 禁止依赖 gin
+
+        # 入口 support：只放浅层错误，禁止承载业务或依赖领域
+        server-support:
+          list-mode: lax
+          files:
+            - "**/internal/support/**"
+          deny:
+            - pkg: yomi-admin-backend/apps/server/internal/bootstrap
+              desc: support 禁止依赖组合根
+            - pkg: yomi-admin-backend/apps/server/internal/handler
+              desc: support 禁止依赖 handler
+            - pkg: yomi-admin-backend/apps/server/internal/usecase
+              desc: support 禁止依赖 usecase
+            - pkg: yomi-admin-backend/apps/server/internal/policy
+              desc: support 禁止依赖 policy
+            - pkg: yomi-admin-backend/domains
+              desc: support 只放浅层错误，禁止依赖 domains
+
+        # 中间件：可依赖公开契约，禁止碰领域内部
+        server-middleware:
+          list-mode: lax
+          files:
+            - "**/internal/middleware/**"
+          deny:
+            - pkg: yomi-admin-backend/apps/server/internal/bootstrap
+              desc: middleware 禁止依赖组合根
+            - pkg: yomi-admin-backend/domains/user/provider
+              desc: middleware 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/rbac/provider
+              desc: middleware 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/httprecord/provider
+              desc: middleware 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/user/internal
+              desc: middleware 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/rbac/internal
+              desc: middleware 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/httprecord/internal
+              desc: middleware 禁止依赖 domain internal
+
+        # 对外契约：无传输、无 ORM、无内部实现
         domain-contract:
           list-mode: lax
           files:
-            - "**/service_contract/**/*.go"
+            - "**/service_contract/**"
           deny:
             - pkg: github.com/gin-gonic/gin
               desc: service_contract 禁止依赖 gin
-            - pkg: gorm.io/gorm
+            - pkg: gorm.io
               desc: service_contract 禁止依赖 gorm
             - pkg: yomi-admin-backend/apps
               desc: service_contract 禁止依赖 apps
             - pkg: yomi-admin-backend/domains/user/internal
               desc: service_contract 禁止依赖 internal
+            - pkg: yomi-admin-backend/domains/rbac/internal
+              desc: service_contract 禁止依赖 internal
+            - pkg: yomi-admin-backend/domains/httprecord/internal
+              desc: service_contract 禁止依赖 internal
 
+        # 领域服务：只依赖本域 repo_contract、公开类型与其他域契约
         domain-service:
           list-mode: lax
           files:
-            - "**/internal/service/**/*.go"
+            - "**/internal/service/**"
+          # repo 是 repo_contract 的前缀，lax 模式下用更长前缀放行端口包
+          allow:
+            - yomi-admin-backend/domains/user/internal/repo_contract
+            - yomi-admin-backend/domains/rbac/internal/repo_contract
+            - yomi-admin-backend/domains/httprecord/internal/repo_contract
           deny:
             - pkg: yomi-admin-backend/apps
               desc: domain service 禁止依赖 apps
-            - pkg: yomi-admin-backend/domains/user/internal/repo
-              desc: service 只依赖 repo_contract，禁止直接依赖 repo 实现
             - pkg: github.com/gin-gonic/gin
               desc: domain service 禁止依赖 gin
+            - pkg: gorm.io
+              desc: domain service 禁止依赖 gorm
+            - pkg: yomi-admin-backend/domains/user/internal/repo
+              desc: service 只依赖 repo_contract，禁止直接依赖 repo 实现
+            - pkg: yomi-admin-backend/domains/rbac/internal/repo
+              desc: service 只依赖 repo_contract，禁止直接依赖 repo 实现
+            - pkg: yomi-admin-backend/domains/httprecord/internal/repo
+              desc: service 只依赖 repo_contract，禁止直接依赖 repo 实现
+            - pkg: yomi-admin-backend/domains/user/provider
+              desc: service 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/rbac/provider
+              desc: service 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/httprecord/provider
+              desc: service 禁止依赖 provider
 
+        # 仓储契约：只放端口定义
+        domain-repo-contract:
+          list-mode: lax
+          files:
+            - "**/internal/repo_contract/**"
+          deny:
+            - pkg: yomi-admin-backend/apps
+              desc: repo_contract 禁止依赖 apps
+            - pkg: github.com/gin-gonic/gin
+              desc: repo_contract 禁止依赖 gin
+            - pkg: gorm.io
+              desc: repo_contract 禁止依赖 gorm
+            - pkg: yomi-admin-backend/domains/user/internal/repo
+              desc: repo_contract 禁止依赖 repo 实现
+            - pkg: yomi-admin-backend/domains/rbac/internal/repo
+              desc: repo_contract 禁止依赖 repo 实现
+            - pkg: yomi-admin-backend/domains/httprecord/internal/repo
+              desc: repo_contract 禁止依赖 repo 实现
+            - pkg: yomi-admin-backend/domains/user/internal/service
+              desc: repo_contract 禁止依赖 service
+            - pkg: yomi-admin-backend/domains/rbac/internal/service
+              desc: repo_contract 禁止依赖 service
+            - pkg: yomi-admin-backend/domains/httprecord/internal/service
+              desc: repo_contract 禁止依赖 service
+
+        # 仓储实现：只做持久化适配，禁止反向依赖编排或领域服务
+        domain-repo:
+          list-mode: lax
+          files:
+            - "**/internal/repo/**"
+          deny:
+            - pkg: yomi-admin-backend/apps
+              desc: domain repo 禁止依赖 apps
+            - pkg: github.com/gin-gonic/gin
+              desc: domain repo 禁止依赖 gin
+            - pkg: yomi-admin-backend/domains/user/internal/service
+              desc: domain repo 禁止依赖 service
+            - pkg: yomi-admin-backend/domains/rbac/internal/service
+              desc: domain repo 禁止依赖 service
+            - pkg: yomi-admin-backend/domains/httprecord/internal/service
+              desc: domain repo 禁止依赖 service
+            - pkg: yomi-admin-backend/domains/user/provider
+              desc: domain repo 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/rbac/provider
+              desc: domain repo 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/httprecord/provider
+              desc: domain repo 禁止依赖 provider
+
+        # 本域公开类型：无传输、无 ORM、无内部实现
         shared-types:
           list-mode: lax
           files:
-            - "**/pkg/shared/**/*.go"
+            - "**/pkg/shared/**"
           deny:
             - pkg: yomi-admin-backend/apps
-              desc: 本域 pkg/shared 禁止依赖 apps
+              desc: pkg/shared 禁止依赖 apps
             - pkg: yomi-admin-backend/domains/user/internal
+              desc: pkg/shared 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/rbac/internal
+              desc: pkg/shared 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/httprecord/internal
               desc: pkg/shared 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/user/provider
               desc: pkg/shared 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/rbac/provider
+              desc: pkg/shared 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/httprecord/provider
+              desc: pkg/shared 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/user/service_contract
               desc: pkg/shared 禁止依赖 service_contract
+            - pkg: yomi-admin-backend/domains/rbac/service_contract
+              desc: pkg/shared 禁止依赖 service_contract
+            - pkg: yomi-admin-backend/domains/httprecord/service_contract
+              desc: pkg/shared 禁止依赖 service_contract
             - pkg: github.com/gin-gonic/gin
-              desc: shared 禁止依赖 gin
+              desc: pkg/shared 禁止依赖 gin
             - pkg: gorm.io
-              desc: shared 禁止依赖 gorm
+              desc: pkg/shared 禁止依赖 gorm
+
+        # 领域装配入口：只允许公开面与基础设施
+        domain-provider:
+          list-mode: lax
+          files:
+            - "**/provider/**"
+          deny:
+            - pkg: yomi-admin-backend/apps
+              desc: provider 禁止依赖 apps
+            - pkg: github.com/gin-gonic/gin
+              desc: provider 禁止依赖 gin
 
         default-production:
           list-mode: lax
           files:
             - "$all"
             - "!$test"
-            - "!**/cmd/**/*.go"
-            - "!**/internal/bootstrap/**/*.go"
-            - "!**/internal/handler/**/*.go"
-            - "!**/internal/usecase/**/*.go"
-            - "!**/service_contract/**/*.go"
-            - "!**/provider/**/*.go"
-            - "!**/internal/service/**/*.go"
-            - "!**/internal/repo_contract/**/*.go"
-            - "!**/internal/repo/**/*.go"
-            - "!**/internal/model/**/*.go"
-            - "!**/pkg/shared/**/*.go"
+            - "!**/cmd/**"
+            - "!**/internal/bootstrap/**"
+            - "!**/internal/handler/**"
+            - "!**/internal/usecase/**"
+            - "!**/internal/policy/**"
+            - "!**/internal/support/**"
+            - "!**/internal/middleware/**"
+            - "!**/service_contract/**"
+            - "!**/provider/**"
+            - "!**/internal/service/**"
+            - "!**/internal/repo_contract/**"
+            - "!**/internal/repo/**"
+            - "!**/internal/model/**"
+            - "!**/pkg/shared/**"
           allow:
             - $gostd
             - github.com

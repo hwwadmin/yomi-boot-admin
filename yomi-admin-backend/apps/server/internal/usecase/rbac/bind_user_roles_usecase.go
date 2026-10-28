@@ -2,7 +2,7 @@ package rbac
 
 import (
 	"context"
-	"yomi-admin-backend/apps/server/internal/support/superadmin"
+
 	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
@@ -17,25 +17,20 @@ type BindUserRolesInput struct {
 	OperatorID int64              `json:"-"`
 }
 
-// Validate 校验入参
-func (i *BindUserRolesInput) Validate() error {
-	for _, id := range i.RoleIDs {
-		if id.Int64() <= 0 {
-			return errors.Sentinel(rbaccontract.ErrInvalidInput)
-		}
-	}
-	return nil
+// superAdminPolicy 超管相关编排策略
+type superAdminPolicy interface {
+	EnsureCanBindRoles(ctx context.Context, operatorID, targetUserID int64, roleIDs []int64) error
 }
 
 // BindUserRolesUsecase 用户角色绑定编排
 type BindUserRolesUsecase struct {
 	rbac  rbaccontract.RbacAdminService
-	guard *superadmin.Guard
+	guard superAdminPolicy
 	tx    dbtx.Executor
 }
 
 // NewBindUserRolesUsecase 创建用户角色绑定用例
-func NewBindUserRolesUsecase(rbac rbaccontract.RbacAdminService, guard *superadmin.Guard, tx dbtx.Executor) *BindUserRolesUsecase {
+func NewBindUserRolesUsecase(rbac rbaccontract.RbacAdminService, guard superAdminPolicy, tx dbtx.Executor) *BindUserRolesUsecase {
 	return &BindUserRolesUsecase{rbac: rbac, guard: guard, tx: tx}
 }
 
@@ -44,13 +39,10 @@ func (uc *BindUserRolesUsecase) Execute(ctx context.Context, userID int64, in *B
 	if userID <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
 	}
-	if err := in.Validate(); err != nil {
-		return err
-	}
 
 	roleIDs := in.RoleIDs.Int64Slice()
 	return uc.tx.Run(ctx, func(txCtx context.Context) error {
-		if err := uc.guard.EnsureAfterBind(txCtx, userID, roleIDs); err != nil {
+		if err := uc.guard.EnsureCanBindRoles(txCtx, in.OperatorID, userID, roleIDs); err != nil {
 			return err
 		}
 		return uc.rbac.BindUserRoles(txCtx, &rbacinput.BindUserRolesInput{

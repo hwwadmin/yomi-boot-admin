@@ -21,8 +21,8 @@ func NewRbacAuthService(repo repo_contract.RbacRepo) *RbacAuthService {
 	return &RbacAuthService{repo: repo}
 }
 
-// CanAccessRoute 判断用户能否访问指定 HTTP 方法与 gin 路由模板
-func (s *RbacAuthService) CanAccessRoute(ctx context.Context, userID int64, method, route string) (bool, error) {
+// CanAccessAPI 判断用户能否访问指定 HTTP 方法与接口路径模板
+func (s *RbacAuthService) CanAccessAPI(ctx context.Context, userID int64, method, path string) (bool, error) {
 	if userID <= 0 {
 		return false, nil
 	}
@@ -36,11 +36,11 @@ func (s *RbacAuthService) CanAccessRoute(ctx context.Context, userID int64, meth
 	}
 
 	method = strings.ToUpper(strings.TrimSpace(method))
-	route = strings.TrimSpace(route)
-	if method == "" || route == "" {
+	path = strings.TrimSpace(path)
+	if method == "" || path == "" {
 		return false, nil
 	}
-	return s.repo.ExistsRouteAccess(ctx, userID, method, route)
+	return s.repo.ExistsRouteAccess(ctx, userID, method, path)
 }
 
 // ListMenus 列出用户可见的启用菜单；超管返回全部启用菜单

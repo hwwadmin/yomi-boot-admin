@@ -51,17 +51,21 @@
 ```text
 repo/
 ├── apps/              # 编排入口（可多入口）
+│   └── <entry>/internal/
+│       ├── bootstrap/ handler/ usecase/
+│       ├── policy/    # 跨域编排策略（可组合多个领域契约）
+│       └── support/   # 浅层错误等入口工具（非业务类型）
 ├── domains/           # 有界上下文（类型与契约同模块）
-├── pkg/support/       # 仅编排层工具（非业务类型）
 ├── script/            # 构建 / 迁移等（按需）
 └── ui/                # 客户端经网络调编排，不直连领域
 ```
 
 | 层 | 职责 |
 | -- | ---- |
-| `apps/*` | 启动、接口适配、UseCase 编排、依赖装配 |
+| `apps/*` | 启动、接口适配、UseCase 编排、跨域策略、依赖装配 |
+| `apps/*/internal/policy` | 跨域编排策略：需要组合多个领域契约的授权/一致性判断 |
+| `apps/*/internal/support` | 会话 / 错误投影等浅层入口工具；非业务类型，不依赖领域 |
 | `domains/*` | 规则、持久化、契约、本域 `pkg/shared` |
-| `pkg/support` | 会话 / 错误投影等编排边界工具 |
 
 多入口时：**差异在路由、权限与用例组合，不在领域规则复制。**
 
@@ -98,11 +102,12 @@ apps ──► 领域公开面（契约 + pkg/shared + provider）
 
 | From | 可以 | 禁止 |
 | ---- | ---- | ---- |
-| 编排 | 领域公开面、`pkg/support`、基础设施 | 任意域 `internal/**` |
-| 领域 | 基础设施抽象；其他域的**契约与 `pkg/shared`**（按需） | `apps/*`、`pkg/support`、外域 `internal` |
-| `pkg/support` | 应用边界公共能力 | `domains/*` |
+| 编排（handler / usecase / policy / middleware） | 领域公开面、入口 support、基础设施 | 任意域 `internal/**` |
+| 领域 | 基础设施抽象；其他域的**契约与 `pkg/shared`**（按需） | `apps/*`、入口 support / policy、外域 `internal` |
+| 入口 `policy` | 多个领域**契约与 `pkg/shared`** | 任意域 `internal/**`、handler / usecase 实现 |
+| 入口 `support` | 浅层错误投影、协议边界工具 | `domains/*`、handler / usecase / policy 实现 |
 
-**口诀**：领域依赖了编排或外域私有实现 → 打回。
+**口诀**：领域依赖了编排或外域私有实现 → 打回；support 依赖了领域 → 打回。
 
 ---
 
@@ -119,7 +124,10 @@ domains/<context>/
 │   └── enums/
 ├── provider/              # 唯一公开装配入口
 ├── service_contract/      # 对外接口 + 领域错误
-├── internal/              # model / repo / service（私有）
+├── internal/              # 私有
+│   ├── repo_contract/     # 仓储端口（仅供本域 service 使用）
+│   ├── repo/              # 仓储实现 + 非导出持久化模型 + mapper
+│   └── service/           # 领域服务实现
 ├── event/                 # 可选
 └── <algo>/                # 可选：编排必须直接引用的策略
 ```
@@ -129,6 +137,7 @@ domains/<context>/
 | `pkg/shared/*` | 公开 | 跨边界类型；拆模块时一并带走 |
 | `service_contract` | 公开 | 能力接口 + 业务错误 |
 | `provider` | 公开 | 组装并对外给出 Module |
+| `internal/repo_contract` | 私有 | 仓储端口；service 只依赖它，不依赖实现 |
 | `internal/*` | 私有 | 禁止跨模块引用 |
 
 默认实现放 `internal/`。仅当编排或 provider 必须引用类型时，才把策略包提到域根。
@@ -141,13 +150,13 @@ domains/<context>/
 跨域需要对方类型 → 依赖对方模块的 `pkg/shared`。  
 两域争改同一结构体 → 先怀疑边界或做防腐，而不是再抽「公共模型」。
 
-与 `pkg/support` 不同：前者是业务类型，后者是编排工具；领域不得依赖 support。
+入口 `support` 只放浅层错误与协议边界工具，不是业务类型库；领域不得依赖 support。
 
 ### 4.3 双实体
 
 | | 领域实体 | 持久化模型 |
 | - | -------- | ---------- |
-| 位置 | `pkg/shared/entity` | `internal/model` |
+| 位置 | `pkg/shared/entity` | `internal/repo`（非导出类型；跨仓储复用时才提为 `internal/model`） |
 | 用途 | 跨边界传递、表达业务含义 | 对接存储 |
 | 转换 | 仅在仓储适配内完成 | |
 
@@ -163,6 +172,7 @@ apps/<entry>/
     ├── bootstrap/     # 初始化 + 领域装配 + 挂路由
     ├── handler/       # 薄适配
     ├── usecase/       # 编排
+    ├── policy/        # 跨域编排策略
     ├── middleware/
     └── support/       # 本入口浅层错误等
 ```
@@ -171,6 +181,8 @@ apps/<entry>/
 | ---- | -- | ---- |
 | Handler | 路由、绑定、调用 `Execute` | 业务分支、多域组合 |
 | UseCase | 身份上下文、浅校验、映射、调契约；写路径包一致性边界 | 复制领域规则 |
+| Policy | 跨域授权、最后一名超管等需组合多域的策略 | 协议解析、存储细节、单域不变量 |
+| Support | 浅层错误投影、会话/协议边界工具 | 业务规则、依赖领域 |
 
 **两类 Input**：协议 Input 在 usecase；领域 Input 在本域 `pkg/shared/input`。UseCase 负责转换。
 
@@ -180,24 +192,26 @@ apps/<entry>/
 
 | 问题 | 放哪 |
 | ---- | ---- |
-| 聚合完整性、状态机、唯一性等 | Domain |
+| 聚合完整性、状态机、唯一性、字段格式等 | Domain |
 | 换入口仍成立的规则 | Domain |
 | 跨域步骤编排 | UseCase |
 | 会话 / 幂等 / 事务边界 | UseCase |
+| 跨域授权、最后一名超管、操作者相关不变量 | UseCase 或入口 `policy` |
 | 协议空值、分页默认 | UseCase（浅层，不替代领域规则） |
 
-**口诀**：换入口仍成立 → Domain；依赖本次会话 / 幂等 / 多域组合 → UseCase。
+**口诀**：换入口仍成立 → Domain；依赖本次会话 / 幂等 / 多域组合 → UseCase / policy。
 
 ```text
 新逻辑 → 仅单域规则？ → Domain
        → 跨域 / 会话 / 协议横切？ → UseCase
+       → 需组合多个领域契约的授权/一致性策略？ → policy
 ```
 
 ---
 
 ## 7. 跨域与装配
 
-**允许**：UseCase 组合多个契约；装配期注入其他域契约；按需事件。  
+**允许**：UseCase / policy 组合多个契约；装配期注入其他域契约；按需事件。  
 **禁止**：碰外域 `internal`；复制外域持久化模型；新建仓级业务类型库。
 
 **归属三问**
@@ -218,7 +232,7 @@ Handler → UseCase →（幂等 / 事务等一致性边界）→ DomainService
 ```
 
 领域错误在契约中定义稳定语义；编排只处理编排失败，不改写业务含义。  
-浅层协议错误放在入口 support。
+跨域策略错误定义在入口 `policy` 包；浅层协议 / 会话错误放在入口 `support`。
 
 ---
 
@@ -367,6 +381,7 @@ Handler → UseCase →（幂等 / 事务等一致性边界）→ DomainService
 
 1. 规则归领域，还是先补契约？  
 2. UseCase（写路径接一致性边界）+ 薄 Handler + 装配  
+3. 跨域授权 / 操作者相关不变量放 `policy`，不要塞回领域  
 
 ### 禁止
 
@@ -375,8 +390,9 @@ Handler → UseCase →（幂等 / 事务等一致性边界）→ DomainService
 3. UseCase 复制领域校验  
 4. 跨域引用 `internal`  
 5. 仓级业务类型库，或把编排塞进 `pkg/shared`  
-6. Domain 依赖 `pkg/support`  
+6. Domain 依赖入口 `support` / `policy` 或 `apps/*`  
 7. 领域私自接管全局事务 / 幂等  
+8. `support` 依赖 `domains/*`，或把业务规则放进 `support`
 
 ---
 

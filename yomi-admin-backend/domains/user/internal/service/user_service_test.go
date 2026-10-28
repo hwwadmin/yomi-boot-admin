@@ -209,26 +209,11 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 
-func TestUpdateAndDeleteProtectSelf(t *testing.T) {
+func TestUpdateAndDeleteUser(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	admin := seedUser(t, repo, "admin", "admin123", enums.UserStatusEnabled)
 	svc := newTestUserService(repo)
-
-	err := svc.Update(ctx, &input.UpdateUserInput{
-		ID:         admin.ID,
-		Nickname:   "新昵称",
-		Status:     enums.UserStatusDisabled,
-		OperatorID: admin.ID,
-	})
-	if !errors.Is(err, service_contract.ErrCannotOperateSelf) {
-		t.Fatalf("禁用自己期望 ErrCannotOperateSelf，实际 %v", err)
-	}
-
-	err = svc.Delete(ctx, &input.DeleteUserInput{ID: admin.ID, OperatorID: admin.ID})
-	if !errors.Is(err, service_contract.ErrCannotOperateSelf) {
-		t.Fatalf("删除自己期望 ErrCannotOperateSelf，实际 %v", err)
-	}
 
 	if err := svc.Update(ctx, &input.UpdateUserInput{
 		ID:         admin.ID,
@@ -244,8 +229,15 @@ func TestUpdateAndDeleteProtectSelf(t *testing.T) {
 		t.Fatalf("更新未生效: %+v", admin)
 	}
 
-	err = svc.Update(ctx, &input.UpdateUserInput{ID: 999, Nickname: "x", Status: enums.UserStatusEnabled, OperatorID: 1})
+	err := svc.Update(ctx, &input.UpdateUserInput{ID: 999, Nickname: "x", Status: enums.UserStatusEnabled, OperatorID: 1})
 	if !errors.Is(err, service_contract.ErrUserNotFound) {
 		t.Fatalf("更新不存在用户期望 ErrUserNotFound，实际 %v", err)
+	}
+
+	if err := svc.Delete(ctx, &input.DeleteUserInput{ID: admin.ID, OperatorID: 999}); err != nil {
+		t.Fatalf("删除用户失败: %v", err)
+	}
+	if _, ok := repo.users[admin.ID]; ok {
+		t.Fatal("用户未被删除")
 	}
 }

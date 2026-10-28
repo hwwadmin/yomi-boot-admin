@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RBAC 按 gin 路由模板校验接口权限；skip 中的路径与 OPTIONS 请求直接放行
+// RBAC 按接口路径模板校验接口权限；skip 中的路径与 OPTIONS 请求直接放行
 func RBAC(auth rbaccontract.RbacAuthService, skip map[string]struct{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if _, ok := skip[c.Request.URL.Path]; ok {
@@ -25,8 +25,8 @@ func RBAC(auth rbaccontract.RbacAuthService, skip map[string]struct{}) gin.Handl
 			return
 		}
 
-		route := c.FullPath()
-		if route == "" {
+		path := c.FullPath()
+		if path == "" {
 			c.Next()
 			return
 		}
@@ -38,7 +38,7 @@ func RBAC(auth rbaccontract.RbacAuthService, skip map[string]struct{}) gin.Handl
 			return
 		}
 
-		allowed, err := auth.CanAccessRoute(c.Request.Context(), userID, strings.ToUpper(c.Request.Method), route)
+		allowed, err := auth.CanAccessAPI(c.Request.Context(), userID, strings.ToUpper(c.Request.Method), path)
 		if err != nil {
 			corehandler.WriteBusinessError(c, err)
 			c.Abort()

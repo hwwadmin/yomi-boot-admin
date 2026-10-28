@@ -18,7 +18,7 @@ func TestAuthServiceSuperAdmin(t *testing.T) {
 	repo.rolePermissions[1] = []int64{10, 11}
 	svc := NewRbacAuthService(repo)
 
-	allowed, err := svc.CanAccessRoute(ctx, 1, "get", "/api/system/users")
+	allowed, err := svc.CanAccessAPI(ctx, 1, "get", "/api/system/users")
 	if err != nil || !allowed {
 		t.Fatalf("超管应放行任意路由: allowed=%v err=%v", allowed, err)
 	}
@@ -52,15 +52,15 @@ func TestAuthServiceNormalUser(t *testing.T) {
 	repo.rolePermissions[2] = []int64{12}
 	svc := NewRbacAuthService(repo)
 
-	allowed, err := svc.CanAccessRoute(ctx, 2, "GET", "/api/system/users")
+	allowed, err := svc.CanAccessAPI(ctx, 2, "GET", "/api/system/users")
 	if err != nil || !allowed {
 		t.Fatalf("授权接口应放行: allowed=%v err=%v", allowed, err)
 	}
-	allowed, _ = svc.CanAccessRoute(ctx, 2, "POST", "/api/system/users")
+	allowed, _ = svc.CanAccessAPI(ctx, 2, "POST", "/api/system/users")
 	if allowed {
 		t.Fatal("未授权方法不应放行")
 	}
-	allowed, _ = svc.CanAccessRoute(ctx, 3, "GET", "/api/system/users")
+	allowed, _ = svc.CanAccessAPI(ctx, 3, "GET", "/api/system/users")
 	if allowed {
 		t.Fatal("禁用角色不应放行")
 	}
@@ -77,7 +77,7 @@ func TestAuthServiceNormalUser(t *testing.T) {
 		t.Fatalf("禁用角色用户不应有菜单: %+v", menus)
 	}
 
-	allowed, _ = svc.CanAccessRoute(ctx, 0, "GET", "/api/system/users")
+	allowed, _ = svc.CanAccessAPI(ctx, 0, "GET", "/api/system/users")
 	if allowed {
 		t.Fatal("非法用户不应放行")
 	}

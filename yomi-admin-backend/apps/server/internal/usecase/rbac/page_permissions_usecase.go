@@ -2,11 +2,11 @@ package rbac
 
 import (
 	"context"
+
 	rbacenums "yomi-admin-backend/domains/rbac/pkg/shared/enums"
 	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
 	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
@@ -16,18 +16,6 @@ type PagePermissionsInput struct {
 	Keyword string                   `json:"keyword"`
 	Type    rbacenums.PermissionType `json:"type"`
 	Status  rbacenums.Status         `json:"status"`
-}
-
-// Validate 校验入参
-func (i *PagePermissionsInput) Validate() error {
-	i.ValiPage()
-	if i.Type != "" && !rbacenums.IsValidPermissionType(i.Type) {
-		return errors.Sentinel(rbaccontract.ErrInvalidInput)
-	}
-	if i.Status != "" && !rbacenums.IsValidStatus(i.Status) {
-		return errors.Sentinel(rbaccontract.ErrInvalidInput)
-	}
-	return nil
 }
 
 // PermissionItem 权限列表项
@@ -57,9 +45,7 @@ func NewPagePermissionsUsecase(rbac rbaccontract.RbacAdminService) *PagePermissi
 
 // Execute 分页查询权限目录
 func (uc *PagePermissionsUsecase) Execute(ctx context.Context, in *PagePermissionsInput) (*dto.PageOutput[PermissionItem], error) {
-	if err := in.Validate(); err != nil {
-		return nil, err
-	}
+	in.ValiPage()
 
 	out, err := uc.rbac.PagePermissions(ctx, &rbacinput.PagePermissionsInput{
 		Keyword:  in.Keyword,

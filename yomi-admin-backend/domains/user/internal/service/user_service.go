@@ -16,7 +16,6 @@ import (
 	"gitee.com/hq_project/yomi-boot/component/common/snowflake"
 	"gitee.com/hq_project/yomi-boot/component/core/bc/passwd"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/shared"
 	"gitee.com/hq_project/yomi-boot/component/core/utils/validateutil"
 )
 
@@ -87,9 +86,7 @@ func (s *UserService) GetByID(ctx context.Context, id int64) (*entity.User, erro
 
 // Page 分页查询用户
 func (s *UserService) Page(ctx context.Context, in *input.PageUsersInput) (*output.PageUsersOutput, error) {
-	page, pageSize := normalizePage(in.Page, in.PageSize)
-
-	items, total, err := s.users.Page(ctx, in.Keyword, page, pageSize)
+	items, total, err := s.users.Page(ctx, in.Keyword, in.Page, in.PageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -171,9 +168,6 @@ func (s *UserService) Update(ctx context.Context, in *input.UpdateUserInput) err
 	if !enums.IsValidUserStatus(in.Status) {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
-	if in.ID == in.OperatorID && in.Status == enums.UserStatusDisabled {
-		return errors.Sentinel(service_contract.ErrCannotOperateSelf)
-	}
 
 	nickname := strings.TrimSpace(in.Nickname)
 	if nickname == "" || utf8.RuneCountInString(nickname) > maxNicknameRunes {
@@ -210,9 +204,6 @@ func (s *UserService) Delete(ctx context.Context, in *input.DeleteUserInput) err
 	if in.ID <= 0 {
 		return errors.Sentinel(service_contract.ErrUserNotFound)
 	}
-	if in.ID == in.OperatorID {
-		return errors.Sentinel(service_contract.ErrCannotOperateSelf)
-	}
 
 	_, found, err := s.users.FindByID(ctx, in.ID)
 	if err != nil {
@@ -222,18 +213,4 @@ func (s *UserService) Delete(ctx context.Context, in *input.DeleteUserInput) err
 		return errors.Sentinel(service_contract.ErrUserNotFound)
 	}
 	return s.users.SoftDelete(ctx, in.ID, in.OperatorID)
-}
-
-// normalizePage 填充分页默认值并限制每页上限
-func normalizePage(page, pageSize int) (int, int) {
-	if page <= 0 {
-		page = shared.DefaultPage
-	}
-	if pageSize <= 0 {
-		pageSize = shared.DefaultPageSize
-	}
-	if pageSize > shared.MaxPageSize {
-		pageSize = shared.MaxPageSize
-	}
-	return page, pageSize
 }

@@ -166,9 +166,6 @@ func TestRecordServicePageNormalizesFilter(t *testing.T) {
 	if filter.Method != "GET" || filter.StatusClass != "4xx" {
 		t.Fatalf("filter = %+v", filter)
 	}
-	if filter.Page != 1 || filter.PageSize != 10 {
-		t.Fatalf("page = %d/%d, want 1/10", filter.Page, filter.PageSize)
-	}
 }
 
 func TestRecordServiceGetNotFound(t *testing.T) {

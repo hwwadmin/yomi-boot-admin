@@ -6,8 +6,8 @@
 
 | 目录 | 说明 |
 |---|---|
-| `yomi-admin-backend/` | 后端，Go + [yomi-boot](https://gitee.com/hq_project/yomi-boot)，提供接口、数据、登录校验与 RBAC 鉴权 |
-| `yomi-admin-web/` | 前端，Vue 3 + TypeScript，登录页、菜单布局、用户/角色/权限管理作为 CRUD 模板 |
+| `yomi-admin-backend/` | 后端，Go + [yomi-boot](https://gitee.com/hq_project/yomi-boot) |
+| `yomi-admin-web/` | 前端，Vue 3 + TypeScript |
 
 
 更细的说明看 [后端 README](yomi-admin-backend/README.md) 和 [前端 README](yomi-admin-web/README.md)。

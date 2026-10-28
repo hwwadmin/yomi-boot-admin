@@ -32,6 +32,8 @@ type RbacAdminService interface {
 	BindUserRoles(ctx context.Context, in *input.BindUserRolesInput) error
 	// ListRolesByUserIDs 按用户批量查询已绑角色
 	ListRolesByUserIDs(ctx context.Context, userIDs []int64) (map[int64][]*entity.Role, error)
+	// ListRolesByIDs 按主键批量查询角色
+	ListRolesByIDs(ctx context.Context, ids []int64) ([]*entity.Role, error)
 	// ListUserIDsWithEnabledSuperAdmin 列出拥有启用态超管角色的用户 ID
 	ListUserIDsWithEnabledSuperAdmin(ctx context.Context) ([]int64, error)
 }

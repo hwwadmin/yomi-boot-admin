@@ -17,7 +17,7 @@ Yomi 管理后台后端：基于 Go 1.26 + [yomi-boot](https://gitee.com/hq_proj
 ## 目录
 
 ```text
-apps/server/        编排层：cmd、config、bootstrap、handler、middleware、usecase、support、test
+apps/server/        编排层：cmd、config、bootstrap、handler、middleware、usecase、policy、support、test
 domains/user/       用户域：entity/input/output、contract、provider、repo/model/mapper/service
 domains/rbac/       角色权限域：enums/entity/input/output、contract、provider、repo/model/mapper/service
 domains/httprecord/ 访问记录域：entity/enums/input/output、contract、provider、repo/model/mapper/service
@@ -26,8 +26,11 @@ script/dev/         格式、vet、lint、测试脚本
 ```
 
 usecase 按模块分组（`auth` / `user` / `rbac` / `httprecord`），文件名统一为 `<action>_usecase.go`，一个文件一个用例。
-依赖方向：`handler → usecase → service_contract`；`provider → internal/service → repo_contract → repo + model/mapper`。
-`model` 包内私有，只出现在 repo 层；写路径由 usecase 通过 `tx.Executor` 开启事务。
+依赖方向：`handler → usecase → service_contract`；`usecase → policy（跨域授权）`；
+`bootstrap → provider + policy`；`provider → internal/service → repo_contract → repo + model/mapper`。
+`policy` 承载需要组合多个领域契约的策略（超管授予/回收、最后一名启用超管保护），
+`support` 只放入口浅层错误。`repo` 包内的持久化模型为非导出类型，只出现在仓储层；
+写路径由 usecase 通过 `tx.Executor` 开启事务。
 
 ## 数据约定
 
@@ -48,7 +51,8 @@ usecase 按模块分组（`auth` / `user` / `rbac` / `httprecord`），文件名
 - 权限目录由 SQL 种子维护，管理端只读；新增路由必须同时补 `020_rbac.sql` 与权限编码，否则
   `rbac_route_catalog_test.go` 会失败。
 - 保护规则：内置角色不可变更；只有超管能授予或回收超管角色；不能解绑自己的超管角色；
-  不能禁用/删除最后一名启用状态的超管。
+  不能禁用/删除最后一名启用状态的超管。这些跨域授权策略位于
+  `apps/server/internal/policy/superadmin`，角色/权限自身的格式、状态与关联完整性校验位于 rbac 领域服务。
 
 ## 依赖
 

@@ -15,7 +15,6 @@ import (
 
 	"gitee.com/hq_project/yomi-boot/component/common/snowflake"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/shared"
 	"gitee.com/hq_project/yomi-boot/component/core/utils/utf8util"
 )
 
@@ -121,7 +120,6 @@ func (s *RecordService) Page(ctx context.Context, in *input.PageRecordsInput) (*
 		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 
-	page, pageSize := normalizePage(in.Page, in.PageSize)
 	items, total, err := s.records.Page(ctx, &repo_contract.RecordFilter{
 		Keyword:     in.Keyword,
 		Method:      method,
@@ -129,8 +127,8 @@ func (s *RecordService) Page(ctx context.Context, in *input.PageRecordsInput) (*
 		UserID:      in.UserID,
 		StartTime:   in.StartTime,
 		EndTime:     in.EndTime,
-		Page:        page,
-		PageSize:    pageSize,
+		Page:        in.Page,
+		PageSize:    in.PageSize,
 	})
 	if err != nil {
 		return nil, err
@@ -164,20 +162,6 @@ func marshalHeaders(headers map[string]string) (string, error) {
 		return "", errors.Wrap(err, "序列化请求头失败")
 	}
 	return cutString(string(payload), maxRequestHeadersBytes), nil
-}
-
-// normalizePage 填充分页默认值并限制每页上限
-func normalizePage(page, pageSize int) (int, int) {
-	if page <= 0 {
-		page = shared.DefaultPage
-	}
-	if pageSize <= 0 {
-		pageSize = shared.DefaultPageSize
-	}
-	if pageSize > shared.MaxPageSize {
-		pageSize = shared.MaxPageSize
-	}
-	return page, pageSize
 }
 
 // cutString 按字节上限截断字符串并保证 UTF-8 合法
