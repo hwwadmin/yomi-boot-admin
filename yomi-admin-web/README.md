@@ -4,14 +4,14 @@ Yomi 管理后台前端：基于 Vite + Vue 3 + TypeScript 的现代化后台脚
 
 ## 快速开始
 
-要求 Node.js ≥ 22.18（或 ≥ 24.12）。
+要求 Node.js ≥ 22.18（或 ≥ 24.12），包管理器使用 pnpm 10。
 
 ```bash
-npm install       # 安装依赖
-npm run dev       # 开发服务器 http://localhost:5173（内置 mock，账号 admin / admin123）
-npm run build     # 类型检查 + 生产构建（产物 dist/）
-npm run lint      # oxlint + eslint（自动修复）
-npm run format    # prettier 格式化
+pnpm install      # 安装依赖
+pnpm dev          # 开发服务器 http://localhost:5173（内置 mock，账号 admin / admin123）
+pnpm build        # 类型检查 + 生产构建（产物 dist/）
+pnpm lint         # oxlint + eslint（自动修复）
+pnpm format       # prettier 格式化
 ```
 
 ## 技术栈
