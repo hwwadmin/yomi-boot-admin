@@ -30,7 +30,7 @@ usecase 按模块分组（`auth` / `user` / `rbac` / `httprecord`），文件名
 `bootstrap → provider + policy`；`provider → internal/service → repo_contract → repo + model/mapper`。
 `policy` 承载需要组合多个领域契约的策略（超管授予/回收、最后一名启用超管保护），
 `support` 只放入口浅层错误。`repo` 包内的持久化模型为非导出类型，只出现在仓储层；
-写路径由 usecase 通过 `tx.Executor` 开启事务。
+多语句写路径由 usecase 通过 `tx.Executor` 开启事务。
 `policy` 属于 `apps/server` 入口私有；新增入口默认只复用领域，若涉及同样的超管不变量，
 需要复用或实现同等策略，不能静默绕过。
 

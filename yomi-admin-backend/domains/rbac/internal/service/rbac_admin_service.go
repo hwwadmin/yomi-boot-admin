@@ -256,7 +256,7 @@ func (s *RbacAdminService) ListUserRoles(ctx context.Context, userID int64) (*ou
 	return &output.UserRolesOutput{Roles: roles, RoleIDs: roleIDs}, nil
 }
 
-// BindUserRoles 覆盖用户角色；超管相关授权规则由编排层策略负责
+// BindUserRoles 覆盖用户角色；超管授予/回收、自解绑与最后一名超管校验由编排层策略负责
 func (s *RbacAdminService) BindUserRoles(ctx context.Context, in *input.BindUserRolesInput) error {
 	if in == nil || in.UserID <= 0 {
 		return errors.Sentinel(service_contract.ErrInvalidInput)

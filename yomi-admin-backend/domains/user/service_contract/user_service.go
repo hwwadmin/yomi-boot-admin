@@ -18,8 +18,8 @@ type UserService interface {
 	Page(ctx context.Context, in *input.PageUsersInput) (*output.PageUsersOutput, error)
 	// Create 创建用户
 	Create(ctx context.Context, in *input.CreateUserInput) (*entity.User, error)
-	// Update 更新用户资料与状态
+	// Update 更新用户资料与状态；调用方负责最后一名超管与自操作校验
 	Update(ctx context.Context, in *input.UpdateUserInput) error
-	// Delete 软删除用户
+	// Delete 软删除用户；调用方负责最后一名超管与自操作校验
 	Delete(ctx context.Context, in *input.DeleteUserInput) error
 }

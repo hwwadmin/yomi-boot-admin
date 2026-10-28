@@ -123,7 +123,7 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 			rbacusecase.NewGetRoleUsecase(c.rbac.Admin),
 			rbacusecase.NewCreateRoleUsecase(c.rbac.Admin),
 			rbacusecase.NewUpdateRoleUsecase(c.rbac.Admin),
-			rbacusecase.NewBindRolePermissionsUsecase(c.rbac.Admin),
+			rbacusecase.NewBindRolePermissionsUsecase(c.rbac.Admin, c.tx),
 			rbacusecase.NewPagePermissionsUsecase(c.rbac.Admin),
 			rbacusecase.NewSetPermissionStatusUsecase(c.rbac.Admin),
 			rbacusecase.NewGetUserRolesUsecase(c.users.Users, c.rbac.Admin),

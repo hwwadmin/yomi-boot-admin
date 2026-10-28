@@ -6,6 +6,7 @@ import (
 	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
+	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
 	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
@@ -19,21 +20,24 @@ type BindRolePermissionsInput struct {
 // BindRolePermissionsUsecase 角色权限绑定编排
 type BindRolePermissionsUsecase struct {
 	rbac rbaccontract.RbacAdminService
+	tx   dbtx.Executor
 }
 
 // NewBindRolePermissionsUsecase 创建角色权限绑定用例
-func NewBindRolePermissionsUsecase(rbac rbaccontract.RbacAdminService) *BindRolePermissionsUsecase {
-	return &BindRolePermissionsUsecase{rbac: rbac}
+func NewBindRolePermissionsUsecase(rbac rbaccontract.RbacAdminService, tx dbtx.Executor) *BindRolePermissionsUsecase {
+	return &BindRolePermissionsUsecase{rbac: rbac, tx: tx}
 }
 
-// Execute 覆盖角色权限
+// Execute 在事务中覆盖角色权限
 func (uc *BindRolePermissionsUsecase) Execute(ctx context.Context, roleID int64, in *BindRolePermissionsInput) error {
 	if roleID <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
 	}
-	return uc.rbac.BindRolePermissions(ctx, &rbacinput.BindRolePermissionsInput{
-		RoleID:        roleID,
-		PermissionIDs: in.PermissionIDs.Int64Slice(),
-		OperatorID:    in.OperatorID,
+	return uc.tx.Run(ctx, func(txCtx context.Context) error {
+		return uc.rbac.BindRolePermissions(txCtx, &rbacinput.BindRolePermissionsInput{
+			RoleID:        roleID,
+			PermissionIDs: in.PermissionIDs.Int64Slice(),
+			OperatorID:    in.OperatorID,
+		})
 	})
 }

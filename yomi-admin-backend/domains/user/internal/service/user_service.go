@@ -160,7 +160,7 @@ func (s *UserService) Create(ctx context.Context, in *input.CreateUserInput) (*e
 	return user, nil
 }
 
-// Update 更新用户资料与状态
+// Update 更新用户资料与状态；调用方负责最后一名超管与自操作校验
 func (s *UserService) Update(ctx context.Context, in *input.UpdateUserInput) error {
 	if in.ID <= 0 {
 		return errors.Sentinel(service_contract.ErrUserNotFound)
@@ -199,7 +199,7 @@ func (s *UserService) Update(ctx context.Context, in *input.UpdateUserInput) err
 	return s.users.Update(ctx, user, in.OperatorID)
 }
 
-// Delete 软删除用户
+// Delete 软删除用户；调用方负责最后一名超管与自操作校验
 func (s *UserService) Delete(ctx context.Context, in *input.DeleteUserInput) error {
 	if in.ID <= 0 {
 		return errors.Sentinel(service_contract.ErrUserNotFound)

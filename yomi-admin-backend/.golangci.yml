@@ -318,7 +318,7 @@ linters:
               desc: provider 禁止依赖 gin
 
         default-production:
-          list-mode: lax
+          list-mode: strict
           files:
             - "$all"
             - "!$test"
@@ -345,7 +345,7 @@ linters:
             - yomi-admin-backend
 
         tests:
-          list-mode: lax
+          list-mode: strict
           files:
             - "$test"
           allow:

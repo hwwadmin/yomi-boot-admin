@@ -28,7 +28,7 @@ type RbacAdminService interface {
 
 	// ListUserRoles 查询用户角色绑定视图
 	ListUserRoles(ctx context.Context, userID int64) (*output.UserRolesOutput, error)
-	// BindUserRoles 覆盖用户角色
+	// BindUserRoles 覆盖用户角色；调用方负责超管授予/回收、自解绑与最后一名超管校验
 	BindUserRoles(ctx context.Context, in *input.BindUserRolesInput) error
 	// ListRolesByUserIDs 按用户批量查询已绑角色
 	ListRolesByUserIDs(ctx context.Context, userIDs []int64) (map[int64][]*entity.Role, error)
