@@ -1,0 +1,42 @@
+// Package handler HTTP 适配层
+package handler
+
+import (
+	"strconv"
+
+	"gitee.com/hq_project/yomi-boot/component/common/token"
+	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
+	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
+
+	"github.com/gin-gonic/gin"
+)
+
+// operatorID 从令牌会话读取当前操作者 ID
+func operatorID(c *gin.Context) (int64, bool) {
+	id, err := token.OperatorID(c.Request.Context())
+	if err != nil {
+		corehandler.WriteBusinessError(c, err)
+		return 0, false
+	}
+	return id, true
+}
+
+// parsePathID 解析路径参数中的雪花 ID
+func parsePathID(c *gin.Context, name string) (int64, bool) {
+	id, err := strconv.ParseInt(c.Param(name), 10, 64)
+	if err != nil || id <= 0 {
+		corehandler.WriteBusinessError(c, errors.Sentinel(sharederr.ErrInvalidInput))
+		return 0, false
+	}
+	return id, true
+}
+
+// queryInt 读取整数查询参数，非法或缺省时使用默认值
+func queryInt(c *gin.Context, key string, defaultValue int) int {
+	value, err := strconv.Atoi(c.DefaultQuery(key, strconv.Itoa(defaultValue)))
+	if err != nil {
+		return defaultValue
+	}
+	return value
+}

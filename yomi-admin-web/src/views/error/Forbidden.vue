@@ -1,0 +1,38 @@
+<script setup lang="ts">
+defineOptions({ name: 'ForbiddenPage' })
+
+const router = useRouter()
+</script>
+
+<template>
+  <div class="forbidden">
+    <div class="code">403</div>
+    <div class="text">抱歉，您没有访问该页面的权限</div>
+    <el-button type="primary" @click="router.replace('/dashboard')">返回首页</el-button>
+  </div>
+</template>
+
+<style scoped>
+.forbidden {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 12px;
+  background-color: var(--el-bg-color-page);
+}
+
+.code {
+  color: var(--el-text-color-secondary);
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.text {
+  margin-bottom: 8px;
+  color: var(--el-text-color-regular);
+  font-size: 15px;
+}
+</style>

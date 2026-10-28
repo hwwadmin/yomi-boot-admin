@@ -33,10 +33,9 @@ export function setupRouterGuards(router: Router) {
       }
     }
 
-    // 预留：接入后端菜单后，在此调用 permissionStore.generateRoutes()，
-    // 将返回的动态路由逐个 router.addRoute()，然后 return to.fullPath 重新进入本次导航
-    void usePermissionStore()
-
-    return true
+    // 后端菜单不覆盖当前路径时进入 403；/dashboard、/403 隐式放行
+    const permissionStore = usePermissionStore()
+    if (permissionStore.canAccess(to.path)) return true
+    return { path: '/403' }
   })
 }

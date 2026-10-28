@@ -7,17 +7,17 @@ import (
 	"yomi-admin-backend/domains/user/service_contract"
 
 	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
-	"gitee.com/hq_project/yomi-boot/component/common/token"
 )
 
 // CreateUserInput HTTP 创建用户入参
 type CreateUserInput struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Nickname string `json:"nickname"`
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-	Status   int8   `json:"status"`
+	Username   string           `json:"username"`
+	Password   string           `json:"password"`
+	Nickname   string           `json:"nickname"`
+	Email      string           `json:"email"`
+	Phone      string           `json:"phone"`
+	Status     enums.UserStatus `json:"status"`
+	OperatorID int64            `json:"-"`
 }
 
 // CreateUserUsecase 创建用户编排
@@ -33,11 +33,6 @@ func NewCreateUserUsecase(users service_contract.UserService, tx dbtx.Executor) 
 
 // Execute 在事务中创建用户
 func (uc *CreateUserUsecase) Execute(ctx context.Context, in *CreateUserInput) error {
-	operatorID, err := token.OperatorID(ctx)
-	if err != nil {
-		return err
-	}
-
 	return uc.tx.Run(ctx, func(txCtx context.Context) error {
 		_, err := uc.users.Create(txCtx, &userinput.CreateUserInput{
 			Username:   in.Username,
@@ -45,8 +40,8 @@ func (uc *CreateUserUsecase) Execute(ctx context.Context, in *CreateUserInput) e
 			Nickname:   in.Nickname,
 			Email:      in.Email,
 			Phone:      in.Phone,
-			Status:     enums.UserStatus(in.Status),
-			OperatorID: operatorID,
+			Status:     in.Status,
+			OperatorID: in.OperatorID,
 		})
 		return err
 	})

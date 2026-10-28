@@ -11,13 +11,18 @@ import (
 )
 
 type userItem struct {
-	ID        string `json:"id"`
-	Username  string `json:"username"`
-	Nickname  string `json:"nickname"`
-	Email     string `json:"email"`
-	Phone     string `json:"phone"`
-	Status    int8   `json:"status"`
-	CreatedAt int64  `json:"createdAt"`
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Nickname string `json:"nickname"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	Status   string `json:"status"`
+	Roles    []struct {
+		ID   string `json:"id"`
+		Code string `json:"code"`
+		Name string `json:"name"`
+	} `json:"roles"`
+	CreatedAt int64 `json:"createdAt"`
 }
 
 func TestProfileAndUserCRUD(t *testing.T) {
@@ -34,11 +39,16 @@ func TestProfileAndUserCRUD(t *testing.T) {
 		Username    string   `json:"username"`
 		Nickname    string   `json:"nickname"`
 		Permissions []string `json:"permissions"`
+		Menus       []struct {
+			Code   string `json:"code"`
+			Name   string `json:"name"`
+			UIPath string `json:"uiPath"`
+		} `json:"menus"`
 	}
 	if err := json.Unmarshal(profile.Data, &profileData); err != nil {
 		t.Fatalf("解析 profile 失败: %v body=%s", err, body)
 	}
-	if profileData.Username != adminUsername || len(profileData.Permissions) == 0 {
+	if profileData.Username != adminUsername || len(profileData.Permissions) == 0 || len(profileData.Menus) == 0 {
 		t.Fatalf("profile 内容不符合预期: %+v", profileData)
 	}
 
@@ -60,7 +70,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 		"nickname": "测试用户",
 		"email":    "test@example.com",
 		"phone":    "13800138000",
-		"status":   1,
+		"status":   "ENABLED",
 	}
 	body, ok = testclient.Post(API("/system/users"), token, createReq)
 	if !ok {
@@ -95,7 +105,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 		"nickname": "更新后的昵称",
 		"email":    "updated@example.com",
 		"phone":    "13900139000",
-		"status":   1,
+		"status":   "ENABLED",
 	}
 	body, ok = testclient.Put(API(fmt.Sprintf("/system/users/%s", userID)), token, updateReq)
 	if !ok {
@@ -143,7 +153,7 @@ func TestDisableUserRevokesToken(t *testing.T) {
 		"nickname": "待禁用用户",
 		"email":    "",
 		"phone":    "",
-		"status":   1,
+		"status":   "ENABLED",
 	}
 	body, ok := testclient.Post(API("/system/users"), adminToken, createReq)
 	if !ok {
@@ -164,7 +174,7 @@ func TestDisableUserRevokesToken(t *testing.T) {
 		"nickname": "待禁用用户",
 		"email":    "",
 		"phone":    "",
-		"status":   0,
+		"status":   "DISABLED",
 	})
 	if !ok {
 		t.Fatalf("禁用用户接口不可达: %s", body)

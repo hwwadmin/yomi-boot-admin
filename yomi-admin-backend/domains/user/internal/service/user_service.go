@@ -121,7 +121,7 @@ func (s *UserService) Create(ctx context.Context, in *input.CreateUserInput) (*e
 		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 
-	if !in.Status.Valid() {
+	if !enums.IsValidUserStatus(in.Status) {
 		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 
@@ -168,7 +168,7 @@ func (s *UserService) Update(ctx context.Context, in *input.UpdateUserInput) err
 	if in.ID <= 0 {
 		return errors.Sentinel(service_contract.ErrUserNotFound)
 	}
-	if !in.Status.Valid() {
+	if !enums.IsValidUserStatus(in.Status) {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 	if in.ID == in.OperatorID && in.Status == enums.UserStatusDisabled {

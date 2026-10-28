@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import type { RouteRecordRaw } from 'vue-router'
-import { Odometer, User } from '@element-plus/icons-vue'
+import { Avatar, Key, Odometer, User } from '@element-plus/icons-vue'
 
 import { useAppStore } from '@/stores/app'
+import { usePermissionStore } from '@/stores/permission'
 
 // 菜单图标映射：路由 meta.icon 为 @element-plus/icons-vue 的组件名
-const iconMap: Record<string, Component> = { Odometer, User }
+const iconMap: Record<string, Component> = { Odometer, User, Avatar, Key }
 
 function resolveIcon(name?: string): Component | undefined {
   return name ? iconMap[name] : undefined
 }
 
 const appStore = useAppStore()
-const router = useRouter()
+const permissionStore = usePermissionStore()
 const route = useRoute()
 
-// 取根路由 `/` 下需要展示在菜单里的子路由；接入动态路由后与 permission store 合并
-const menus = computed<RouteRecordRaw[]>(() => {
-  const root = router.options.routes.find((item) => item.path === '/')
-  return (root?.children ?? []).filter((item) => item.meta?.title && !item.meta?.hidden)
-})
+const menus = computed(() =>
+  permissionStore.menus.map((item) => ({
+    path: item.path.startsWith('/') ? item.path : `/${item.path}`,
+    title: item.meta?.title ?? '',
+    icon: item.meta?.icon,
+  })),
+)
 </script>
 
 <template>
@@ -32,30 +34,12 @@ const menus = computed<RouteRecordRaw[]>(() => {
       :collapse="appStore.sidebarCollapsed"
       :collapse-transition="false"
     >
-      <template v-for="item in menus" :key="item.path">
-        <!-- 预留二级菜单：子路由有标题时渲染为 el-sub-menu -->
-        <el-sub-menu v-if="item.children?.some((child) => child.meta?.title)" :index="item.path">
-          <template #title>
-            <el-icon v-if="resolveIcon(item.meta?.icon)">
-              <component :is="resolveIcon(item.meta?.icon)" />
-            </el-icon>
-            <span>{{ item.meta?.title }}</span>
-          </template>
-          <el-menu-item
-            v-for="child in item.children"
-            :key="child.path"
-            :index="`${item.path}/${child.path}`"
-          >
-            {{ child.meta?.title }}
-          </el-menu-item>
-        </el-sub-menu>
-        <el-menu-item v-else :index="item.path">
-          <el-icon v-if="resolveIcon(item.meta?.icon)">
-            <component :is="resolveIcon(item.meta?.icon)" />
-          </el-icon>
-          <template #title>{{ item.meta?.title }}</template>
-        </el-menu-item>
-      </template>
+      <el-menu-item v-for="item in menus" :key="item.path" :index="item.path">
+        <el-icon v-if="resolveIcon(item.icon)">
+          <component :is="resolveIcon(item.icon)" />
+        </el-icon>
+        <template #title>{{ item.title }}</template>
+      </el-menu-item>
     </el-menu>
   </el-scrollbar>
 </template>

@@ -5,11 +5,8 @@ import (
 	"context"
 	"strings"
 	"time"
-	"yomi-admin-backend/domains/user/internal/model"
 	"yomi-admin-backend/domains/user/internal/repo_contract"
 	"yomi-admin-backend/domains/user/pkg/shared/entity"
-
-	userenums "yomi-admin-backend/domains/user/pkg/shared/enums"
 
 	yomidb "gitee.com/hq_project/yomi-boot/component/common/db"
 	"gitee.com/hq_project/yomi-boot/component/common/db/orm"
@@ -39,7 +36,7 @@ func NewUserRepo(d *gorm.DB, dbType sharedenums.DbType) *UserRepo {
 
 // FindByID 按主键查询
 func (r *UserRepo) FindByID(ctx context.Context, id int64) (*entity.User, bool, error) {
-	var row model.User
+	var row userModel
 	found, err := r.FirstByID(ctx, id, &row)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "按主键查询用户失败")
@@ -47,12 +44,12 @@ func (r *UserRepo) FindByID(ctx context.Context, id int64) (*entity.User, bool, 
 	if !found {
 		return nil, false, nil
 	}
-	return toEntity(&row), true, nil
+	return toUserEntity(&row), true, nil
 }
 
 // FindCredentialByUsername 按登录名查询验密凭证
 func (r *UserRepo) FindCredentialByUsername(ctx context.Context, username string) (*repo_contract.UserCredential, bool, error) {
-	var row model.User
+	var row userModel
 	found, err := r.FirstByField(ctx, "username", username, &row)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "按登录名查询用户失败")
@@ -61,7 +58,7 @@ func (r *UserRepo) FindCredentialByUsername(ctx context.Context, username string
 		return nil, false, nil
 	}
 	return &repo_contract.UserCredential{
-		User:         toEntity(&row),
+		User:         toUserEntity(&row),
 		PasswordHash: row.PasswordHash,
 	}, true, nil
 }
@@ -71,7 +68,7 @@ func (r *UserRepo) ExistsByUsername(ctx context.Context, username string) (bool,
 	var count int64
 	err := tx.Exec(ctx, r.DB).
 		Unscoped().
-		Model(&model.User{}).
+		Model(&userModel{}).
 		Where("username = ?", username).
 		Count(&count).Error
 	if err != nil {
@@ -82,13 +79,13 @@ func (r *UserRepo) ExistsByUsername(ctx context.Context, username string) (bool,
 
 // Page 分页查询用户
 func (r *UserRepo) Page(ctx context.Context, keyword string, page, pageSize int) ([]*entity.User, int64, error) {
-	query := tx.Exec(ctx, r.DB).Model(&model.User{})
+	query := tx.Exec(ctx, r.DB).Model(&userModel{})
 	if keyword = strings.TrimSpace(keyword); keyword != "" {
 		like := orm.LikeFull(keyword)
 		query = query.Where("username LIKE ? OR nickname LIKE ?", like, like)
 	}
 
-	var rows []*model.User
+	var rows []*userModel
 	total, err := r.CountPage(ctx, query, page, pageSize, &rows, orm.OrderDesc("id"))
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "分页查询用户失败")
@@ -96,25 +93,14 @@ func (r *UserRepo) Page(ctx context.Context, keyword string, page, pageSize int)
 
 	items := make([]*entity.User, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, toEntity(row))
+		items = append(items, toUserEntity(row))
 	}
 	return items, total, nil
 }
 
 // Create 创建用户（主键为雪花 ID，由领域服务生成）
 func (r *UserRepo) Create(ctx context.Context, user *entity.User, passwordHash string, operatorID int64) error {
-	row := &model.User{
-		Username:     user.Username,
-		PasswordHash: passwordHash,
-		Nickname:     user.Nickname,
-		Email:        user.Email,
-		Phone:        user.Phone,
-		Status:       int8(user.Status),
-	}
-	row.ID = user.ID
-	row.CreateBy = ptrutil.PtrFromInt64(operatorID)
-	row.UpdateBy = ptrutil.PtrFromInt64(operatorID)
-
+	row := toUserModel(user, passwordHash, operatorID)
 	if err := r.BaseRepository.Create(ctx, row); err != nil {
 		if yomidb.IsDuplicateKey(err, r.dbType) {
 			return errors.Sentinel(repo_contract.ErrDuplicatedKey)
@@ -122,7 +108,8 @@ func (r *UserRepo) Create(ctx context.Context, user *entity.User, passwordHash s
 		return err
 	}
 
-	user.CreatedAt = row.CreateTime
+	user.CreateTime = row.CreateTime.UnixMilli()
+	user.UpdateTime = row.UpdateTime.UnixMilli()
 	return nil
 }
 
@@ -132,10 +119,10 @@ func (r *UserRepo) Update(ctx context.Context, user *entity.User, operatorID int
 		"nickname":  user.Nickname,
 		"email":     user.Email,
 		"phone":     user.Phone,
-		"status":    int8(user.Status),
+		"status":    user.Status,
 		"update_by": ptrutil.PtrFromInt64(operatorID),
 	}
-	if err := r.UpdateByID(ctx, user.ID, &model.User{}, updates); err != nil {
+	if err := r.UpdateByID(ctx, user.ID, &userModel{}, updates); err != nil {
 		return errors.Wrap(err, "更新用户失败")
 	}
 	return nil
@@ -147,21 +134,8 @@ func (r *UserRepo) SoftDelete(ctx context.Context, id int64, operatorID int64) e
 		"delete_time": time.Now(),
 		"delete_by":   ptrutil.PtrFromInt64(operatorID),
 	}
-	if err := r.UpdateByID(ctx, id, &model.User{}, updates); err != nil {
+	if err := r.UpdateByID(ctx, id, &userModel{}, updates); err != nil {
 		return errors.Wrap(err, "删除用户失败")
 	}
 	return nil
-}
-
-// toEntity 将持久化模型转换为领域实体
-func toEntity(row *model.User) *entity.User {
-	return &entity.User{
-		ID:        row.ID,
-		Username:  row.Username,
-		Nickname:  row.Nickname,
-		Email:     row.Email,
-		Phone:     row.Phone,
-		Status:    userenums.UserStatus(row.Status),
-		CreatedAt: row.CreateTime,
-	}
 }

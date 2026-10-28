@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"testing"
-	"yomi-admin-backend/domains/user/internal/model"
 	"yomi-admin-backend/domains/user/internal/repo_contract"
 	"yomi-admin-backend/domains/user/pkg/shared/entity"
 	"yomi-admin-backend/domains/user/pkg/shared/enums"
@@ -14,7 +13,7 @@ import (
 )
 
 func TestUserRepoCRUD(t *testing.T) {
-	gormDB, cleanup := dbtest.New(t, dbtest.WithTables(&model.User{}))
+	gormDB, cleanup := dbtest.New(t, dbtest.WithTables(&userModel{}))
 	defer cleanup()
 
 	repo := NewUserRepo(gormDB, sharedenums.MySQL)
@@ -34,7 +33,7 @@ func TestUserRepoCRUD(t *testing.T) {
 	if user.ID != 100000000000000001 {
 		t.Fatalf("雪花 ID 未写入: %d", user.ID)
 	}
-	if user.CreatedAt.IsZero() {
+	if user.CreateTime == 0 {
 		t.Fatal("创建后未回填创建时间")
 	}
 

@@ -66,7 +66,7 @@ func (r *fakeUserRepo) Page(_ context.Context, keyword string, page, pageSize in
 }
 
 func (r *fakeUserRepo) Create(_ context.Context, user *entity.User, passwordHash string, operatorID int64) error {
-	user.CreatedAt = time.Now()
+	user.CreateTime = time.Now().UnixMilli()
 	r.users[user.ID] = user
 	r.credentials[user.Username] = repo_contract.UserCredential{User: user, PasswordHash: passwordHash}
 	return nil
@@ -104,11 +104,11 @@ func seedUser(t *testing.T, repo *fakeUserRepo, username, password string, statu
 		t.Fatalf("生成密码哈希失败: %v", err)
 	}
 	user := &entity.User{
-		ID:        repo.nextID,
-		Username:  username,
-		Nickname:  username,
-		Status:    status,
-		CreatedAt: time.Now(),
+		ID:         repo.nextID,
+		Username:   username,
+		Nickname:   username,
+		Status:     status,
+		CreateTime: time.Now().UnixMilli(),
 	}
 	repo.nextID++
 	repo.users[user.ID] = user
@@ -195,7 +195,7 @@ func TestCreateUser(t *testing.T) {
 		},
 		{
 			name: "非法状态",
-			in:   &input.CreateUserInput{Username: "new_user", Password: "test1234", Nickname: "x", Status: enums.UserStatus(9)},
+			in:   &input.CreateUserInput{Username: "new_user", Password: "test1234", Nickname: "x", Status: enums.UserStatus("UNKNOWN")},
 			want: service_contract.ErrInvalidInput,
 		},
 	}

@@ -3,6 +3,7 @@ package auth
 
 import (
 	"context"
+	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 	"yomi-admin-backend/domains/user/service_contract"
 
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
@@ -11,15 +12,16 @@ import (
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
 )
 
-// LoginUsecase 登录编排：领域鉴权 + 签发 Token
+// LoginUsecase 登录编排：领域鉴权 + 聚合权限 + 签发 Token
 type LoginUsecase struct {
 	users service_contract.UserService
+	auth  rbaccontract.RbacAuthService
 	token token.TokenService
 }
 
 // NewLoginUsecase 创建登录用例
-func NewLoginUsecase(users service_contract.UserService, tokenService token.TokenService) *LoginUsecase {
-	return &LoginUsecase{users: users, token: tokenService}
+func NewLoginUsecase(users service_contract.UserService, auth rbaccontract.RbacAuthService, tokenService token.TokenService) *LoginUsecase {
+	return &LoginUsecase{users: users, auth: auth, token: tokenService}
 }
 
 // LoginInput HTTP 登录入参
@@ -28,17 +30,10 @@ type LoginInput struct {
 	Password string `json:"password"`
 }
 
-// LoginUser 登录返回的用户信息
-type LoginUser struct {
-	Username    string   `json:"username"`
-	Nickname    string   `json:"nickname"`
-	Permissions []string `json:"permissions"`
-}
-
 // LoginOutput HTTP 登录出参
 type LoginOutput struct {
-	Token string    `json:"token"`
-	User  LoginUser `json:"user"`
+	Token string        `json:"token"`
+	User  *IdentityView `json:"user"`
 }
 
 // Execute 编排登录
@@ -47,6 +42,11 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput) (*LoginOutp
 		Username: in.Username,
 		Password: in.Password,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	identity, err := buildIdentityView(ctx, out.User, uc.auth)
 	if err != nil {
 		return nil, err
 	}
@@ -63,12 +63,5 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput) (*LoginOutp
 		return nil, errors.Wrap(err, "签发令牌失败")
 	}
 
-	return &LoginOutput{
-		Token: tokenValue,
-		User: LoginUser{
-			Username:    out.User.Username,
-			Nickname:    out.User.Nickname,
-			Permissions: permissionsOf(out.User.Username),
-		},
-	}, nil
+	return &LoginOutput{Token: tokenValue, User: identity}, nil
 }

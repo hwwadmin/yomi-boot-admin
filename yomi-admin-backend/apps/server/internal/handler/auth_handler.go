@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"context"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 
 	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
@@ -33,7 +34,13 @@ func (h *AuthHandler) login(c *gin.Context) {
 }
 
 func (h *AuthHandler) profile(c *gin.Context) {
-	corehandler.Handle(c, h.profileUC.Execute)
+	userID, ok := operatorID(c)
+	if !ok {
+		return
+	}
+	corehandler.Handle(c, func(ctx context.Context) (*authusecase.IdentityView, error) {
+		return h.profileUC.Execute(ctx, userID)
+	})
 }
 
 func (h *AuthHandler) logout(c *gin.Context) {

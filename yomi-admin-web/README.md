@@ -1,6 +1,6 @@
 # yomi-admin-web
 
-Yomi 管理后台前端：基于 Vite + Vue 3 + TypeScript 的现代化后台脚手架，内置登录鉴权、动态菜单、暗黑模式与本地 mock，可直接作为业务模块的开发起点。
+Yomi 管理后台前端：基于 Vite + Vue 3 + TypeScript 的现代化后台脚手架，内置登录鉴权、RBAC 菜单与按钮权限、暗黑模式与本地 mock，可直接作为业务模块的开发起点。
 
 ## 快速开始
 
@@ -8,7 +8,7 @@ Yomi 管理后台前端：基于 Vite + Vue 3 + TypeScript 的现代化后台脚
 
 ```bash
 pnpm install      # 安装依赖
-pnpm dev          # 开发服务器 http://localhost:25101（内置 mock，账号 admin / admin123）
+pnpm dev          # 开发服务器 http://localhost:25101（mock 开关见 .env.development）
 pnpm build        # 类型检查 + 生产构建（产物 dist/）
 pnpm lint         # oxlint + eslint（自动修复）
 pnpm format       # prettier 格式化
@@ -29,19 +29,37 @@ pnpm format       # prettier 格式化
 
 工程化：ESLint 10 + oxlint + Prettier。
 
+## 权限模型
+
+后端在登录与 profile 接口返回：
+
+```json
+{
+  "username": "admin",
+  "nickname": "超级管理员",
+  "permissions": ["*"],
+  "menus": [{ "code": "system:user", "name": "系统用户", "uiPath": "/system/user" }]
+}
+```
+
+- `menus`：可见菜单的 `uiPath`，前端用它过滤静态路由和侧栏；页面是否存在仍由 `router/routes.ts` 决定。
+- `permissions`：权限编码集合，`*` 表示全部；用于 `v-permission` 按钮级控制。
+- 路由守卫在用户信息加载后判断 `canAccess(path)`，无权限跳 `/403`。
+- 新增页面要同时补 `router/routes.ts` 的静态路由和后端权限目录种子。
+
 ## 目录结构
 
 ```
-├── mock/index.ts            # 本地 mock（vite 中间件，仅开发环境）
+├── mock/index.ts            # 本地 mock（vite 中间件，仅开发环境，含 RBAC 接口）
 ├── .env.development         # 接口地址 / 代理目标 / mock 开关
 └── src/
-    ├── api/                 # 接口层（按模块组织，类型集中 types.ts）
+    ├── api/                 # 接口层（user / auth / rbac，类型集中 types.ts）
     ├── utils/request.ts     # axios 封装（token、统一响应、401 处理）
-    ├── stores/              # user / app / permission（动态路由预留）
-    ├── router/              # 静态路由 + 守卫（标题、登录校验）
+    ├── stores/              # user / app / permission（菜单过滤与访问判定）
+    ├── router/              # routes.ts 静态路由 + guard.ts 登录与权限守卫
     ├── layouts/             # AdminLayout + Sidebar / Navbar / Breadcrumb
     ├── directives/          # v-permission 按钮级权限
     ├── styles/              # 全局基础样式
     ├── types/               # 路由 meta 扩展、自动导入声明
-    └── views/               # login / dashboard / system/user(CRUD 模板) / error
+    └── views/               # login / dashboard / system/{user,role,permission} / error
 ```

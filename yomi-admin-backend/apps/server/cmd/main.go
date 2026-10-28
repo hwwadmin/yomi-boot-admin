@@ -11,5 +11,8 @@ import (
 const envPrefix = "YOMI_ADMIN"
 
 func main() {
-	boot.Run(envPrefix, bootstrap.Wire)
+	boot.RunWithOptions(boot.Options{
+		EnvPrefix:   envPrefix,
+		Middlewares: bootstrap.Middlewares,
+	}, bootstrap.Wire)
 }

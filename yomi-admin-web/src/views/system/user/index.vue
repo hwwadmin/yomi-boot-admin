@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 
+import { bindUserRoles, getUserRoles } from '@/api/rbac'
 import { createUser, deleteUser, getUserPage, updateUser } from '@/api/user'
-import type { UserItem, UserStatus } from '@/api/types'
+import type { RoleItem, UserItem, UserStatus } from '@/api/types'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemUserPage' })
@@ -41,7 +42,14 @@ const dialogVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<string | null>(null)
 const formRef = ref<FormInstance>()
-const form = reactive({ username: '', password: '', nickname: '', email: '', phone: '', status: 1 as UserStatus })
+const form = reactive({
+  username: '',
+  password: '',
+  nickname: '',
+  email: '',
+  phone: '',
+  status: 'ENABLED' as UserStatus,
+})
 
 const rules: FormRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
@@ -56,7 +64,14 @@ const rules: FormRules = {
 
 function openCreate() {
   editingId.value = null
-  Object.assign(form, { username: '', password: '', nickname: '', email: '', phone: '', status: 1 })
+  Object.assign(form, {
+    username: '',
+    password: '',
+    nickname: '',
+    email: '',
+    phone: '',
+    status: 'ENABLED',
+  })
   dialogVisible.value = true
 }
 
@@ -99,6 +114,40 @@ async function handleSubmit() {
   }
 }
 
+// ———————— 分配角色 ————————
+const roleDialogVisible = ref(false)
+const roleDialogLoading = ref(false)
+const roleDialogSaving = ref(false)
+const roleTarget = ref<UserItem | null>(null)
+const roleOptions = ref<RoleItem[]>([])
+const selectedRoleIds = ref<string[]>([])
+
+async function openRoleDialog(row: UserItem) {
+  roleTarget.value = row
+  roleDialogVisible.value = true
+  roleDialogLoading.value = true
+  try {
+    const binding = await getUserRoles(row.id)
+    roleOptions.value = binding.roles
+    selectedRoleIds.value = binding.roleIds
+  } finally {
+    roleDialogLoading.value = false
+  }
+}
+
+async function saveRoles() {
+  if (!roleTarget.value) return
+  roleDialogSaving.value = true
+  try {
+    await bindUserRoles(roleTarget.value.id, selectedRoleIds.value)
+    ElMessage.success('角色已保存')
+    roleDialogVisible.value = false
+    fetchList()
+  } finally {
+    roleDialogSaving.value = false
+  }
+}
+
 // ———————— 删除 ————————
 async function handleDelete(row: UserItem) {
   try {
@@ -135,10 +184,10 @@ async function handleDelete(row: UserItem) {
         <el-button type="primary" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
         <el-button
+          v-permission="'system:user:create'"
           type="primary"
           plain
           class="toolbar-add"
-          v-permission="'system:user:add'"
           @click="openCreate"
         >
           新增用户
@@ -146,29 +195,57 @@ async function handleDelete(row: UserItem) {
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="username" label="用户名" min-width="120" />
-        <el-table-column prop="nickname" label="昵称" min-width="120" />
-        <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="phone" label="手机号" min-width="130" />
-        <el-table-column label="状态" width="90" align="center">
+        <el-table-column prop="username" label="用户名" min-width="100" />
+        <el-table-column prop="nickname" label="昵称" min-width="100" />
+        <el-table-column label="角色" min-width="120">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
-              {{ row.status === 1 ? '正常' : '禁用' }}
+            <el-tag
+              v-for="role in (row as UserItem).roles"
+              :key="role.id"
+              class="role-tag"
+              :type="role.status === 'ENABLED' ? 'success' : 'info'"
+            >
+              {{ role.name }}
+            </el-tag>
+            <span v-if="!(row as UserItem).roles?.length">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="email" label="邮箱" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="phone" label="手机号" min-width="110" />
+        <el-table-column label="状态" width="72" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
+              {{ row.status === 'ENABLED' ? '正常' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="180">
+        <el-table-column label="创建时间" width="160">
           <template #default="{ row }">
             {{ formatDateTime((row as UserItem).createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="130" fixed="right" align="center">
+        <el-table-column label="操作" width="190" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row as UserItem)">编辑</el-button>
             <el-button
+              v-permission="'system:user:update'"
+              link
+              type="primary"
+              @click="openEdit(row as UserItem)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-permission="'system:user:role:bind'"
+              link
+              type="primary"
+              @click="openRoleDialog(row as UserItem)"
+            >
+              分配角色
+            </el-button>
+            <el-button
+              v-permission="'system:user:delete'"
               link
               type="danger"
-              v-permission="'system:user:delete'"
               @click="handleDelete(row as UserItem)"
             >
               删除
@@ -225,14 +302,44 @@ async function handleDelete(row: UserItem) {
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio :value="1">正常</el-radio>
-            <el-radio :value="0">禁用</el-radio>
+            <el-radio value="ENABLED">正常</el-radio>
+            <el-radio value="DISABLED">禁用</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="roleDialogVisible" title="分配角色" width="460px">
+      <div v-loading="roleDialogLoading">
+        <div class="role-target">
+          用户：<strong>{{ roleTarget?.nickname }}</strong>
+          <span class="role-username">{{ roleTarget?.username }}</span>
+        </div>
+        <el-select
+          v-model="selectedRoleIds"
+          class="role-select"
+          multiple
+          filterable
+          placeholder="请选择角色"
+        >
+          <el-option
+            v-for="role in roleOptions"
+            :key="role.id"
+            :label="role.name"
+            :value="role.id"
+            :disabled="role.status === 'DISABLED'"
+          >
+            {{ role.name }} ({{ role.code }})
+          </el-option>
+        </el-select>
+      </div>
+      <template #footer>
+        <el-button @click="roleDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="roleDialogSaving" @click="saveRoles">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -254,8 +361,27 @@ async function handleDelete(row: UserItem) {
   margin-left: auto;
 }
 
+.role-tag {
+  margin: 2px 6px 2px 0;
+}
+
 .page-pagination {
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+.role-target {
+  margin-bottom: 12px;
+  color: var(--el-text-color-regular);
+}
+
+.role-username {
+  margin-left: 8px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.role-select {
+  width: 100%;
 }
 </style>

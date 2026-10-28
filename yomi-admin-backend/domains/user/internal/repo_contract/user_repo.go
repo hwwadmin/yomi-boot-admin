@@ -22,7 +22,7 @@ type UserRepo interface {
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
 	// Page 分页查询用户
 	Page(ctx context.Context, keyword string, page, pageSize int) ([]*entity.User, int64, error)
-	// Create 创建用户并回填自增 ID
+	// Create 创建用户（主键由领域服务生成雪花 ID）
 	Create(ctx context.Context, user *entity.User, passwordHash string, operatorID int64) error
 	// Update 更新用户资料与状态
 	Update(ctx context.Context, user *entity.User, operatorID int64) error
