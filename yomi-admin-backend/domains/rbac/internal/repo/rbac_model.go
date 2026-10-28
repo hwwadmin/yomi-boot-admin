@@ -9,13 +9,13 @@ import (
 
 // 表名常量
 const (
-	tableRole              = "t_role"
-	tablePermission        = "t_permission"
-	tableUserRoleRel       = "t_user_role_rel"
-	tableRolePermissionRel = "t_role_permission_rel"
+	tableRole              = "t_rbac_role"
+	tablePermission        = "t_rbac_permission"
+	tableUserRoleRel       = "t_rbac_user_role_rel"
+	tableRolePermissionRel = "t_rbac_role_permission_rel"
 )
 
-// roleModel 是 t_role 的持久化模型
+// roleModel 是 t_rbac_role 的持久化模型
 type roleModel struct {
 	Code    string       `gorm:"column:code;size:64;uniqueIndex:uk_code"`
 	Name    string       `gorm:"column:name;size:64"`
@@ -30,7 +30,7 @@ func (roleModel) TableName() string {
 	return tableRole
 }
 
-// permissionModel 是 t_permission 的持久化模型
+// permissionModel 是 t_rbac_permission 的持久化模型
 type permissionModel struct {
 	Code           string               `gorm:"column:code;size:96;uniqueIndex:uk_code"`
 	Name           string               `gorm:"column:name;size:64"`
@@ -48,7 +48,7 @@ func (permissionModel) TableName() string {
 	return tablePermission
 }
 
-// userRoleRelModel 是 t_user_role_rel 的持久化模型
+// userRoleRelModel 是 t_rbac_user_role_rel 的持久化模型
 type userRoleRelModel struct {
 	UserID int64 `gorm:"column:user_id;uniqueIndex:uk_user_role"`
 	RoleID int64 `gorm:"column:role_id;uniqueIndex:uk_user_role"`
@@ -60,7 +60,7 @@ func (userRoleRelModel) TableName() string {
 	return tableUserRoleRel
 }
 
-// rolePermissionRelModel 是 t_role_permission_rel 的持久化模型
+// rolePermissionRelModel 是 t_rbac_role_permission_rel 的持久化模型
 type rolePermissionRelModel struct {
 	RoleID       int64 `gorm:"column:role_id;uniqueIndex:uk_role_permission"`
 	PermissionID int64 `gorm:"column:permission_id;uniqueIndex:uk_role_permission"`

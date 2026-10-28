@@ -36,9 +36,9 @@ usecase 按模块分组（`auth` / `user` / `rbac`），文件名统一为 `<act
 
 ## 权限模型
 
-- 角色：`t_role`，内置 `super_admin` 不可禁用、不可绑定权限，判定时短路放行。
-- 权限目录：`t_permission`，`MENU` 行对应前端路由路径，`API` 行对应 gin 路由模板（如 `/api/system/users/:id`）。
-- 关系：`t_user_role_rel`、`t_role_permission_rel`。
+- 角色：`t_rbac_role`，内置 `super_admin` 不可禁用、不可绑定权限，判定时短路放行。
+- 权限目录：`t_rbac_permission`，`MENU` 行对应前端路由路径，`API` 行对应 gin 路由模板（如 `/api/system/users/:id`）。
+- 关系：`t_rbac_user_role_rel`、`t_rbac_role_permission_rel`。
 - 鉴权：请求进入后按 `HTTP method + c.FullPath()` 精确匹配 API 权限；超管直接放行。
 - 菜单：登录 / profile 返回用户可见菜单，前端用它过滤静态路由与侧栏。
 - 权限目录由 SQL 种子维护，管理端只读；新增路由必须同时补 `020_rbac.sql` 与权限编码，否则
@@ -66,9 +66,11 @@ mysql -uroot -p < script/sql/020_rbac.sql
 ```
 
 `020_rbac.sql` 会创建 RBAC 四张表、写入权限目录种子，并把 `admin` 绑定为内置超管。
+`010_user.sql` 会在建好 `t_user` 后删除旧版 `sys_user` 表。
 **必须先执行 SQL 再启动服务**：鉴权中间件依赖角色关系，缺表会导致受保护接口报错。
 
-> 旧版本遗留的 `sys_user` 表已不再被代码和 SQL 引用；确认数据无需保留后可手动 `DROP TABLE sys_user`。
+> 脚本内已加 `SET NAMES utf8mb4`；如果之前用非 utf8mb4 客户端导入过，表/字段注释会乱码，
+> 需要先 `DROP` 对应表再重新执行脚本（数据行可以通过接口或种子重建）。
 
 2. `dev.yml` 直接连接本地 Docker 提供的 MySQL / Redis（`127.0.0.1:3306` / `127.0.0.1:6379`），账号密码已写在配置里，dev 不需要设置任何环境变量。应用保留 `YOMI_ADMIN` 环境变量前缀；`prod.yml` 使用 `${YOMI_ADMIN_DB_PASSWORD}` / `${YOMI_ADMIN_REDIS_PASSWORD}` 占位。
 

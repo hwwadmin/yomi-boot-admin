@@ -23,26 +23,26 @@ const (
 	// sqlUserHasEnabledSuperAdmin 判断用户是否拥有启用态超管角色
 	sqlUserHasEnabledSuperAdmin = `
 SELECT 1
-FROM t_user_role_rel ur
-JOIN t_role r ON r.id = ur.role_id AND r.delete_time IS NULL
+FROM t_rbac_user_role_rel ur
+JOIN t_rbac_role r ON r.id = ur.role_id AND r.delete_time IS NULL
 WHERE ur.user_id = ? AND r.code = ? AND r.status = ?
 LIMIT 1`
 
 	// sqlListSuperAdminUserIDs 列出拥有启用态超管角色的用户 ID
 	sqlListSuperAdminUserIDs = `
 SELECT DISTINCT ur.user_id
-FROM t_user_role_rel ur
-JOIN t_role r ON r.id = ur.role_id AND r.delete_time IS NULL
+FROM t_rbac_user_role_rel ur
+JOIN t_rbac_role r ON r.id = ur.role_id AND r.delete_time IS NULL
 WHERE r.code = ? AND r.status = ?
 ORDER BY ur.user_id`
 
 	// sqlExistsRouteAccess 判断用户是否可通过启用角色链访问接口
 	sqlExistsRouteAccess = `
 SELECT 1
-FROM t_user_role_rel ur
-JOIN t_role r ON r.id = ur.role_id AND r.delete_time IS NULL
-JOIN t_role_permission_rel rp ON rp.role_id = r.id
-JOIN t_permission p ON p.id = rp.permission_id AND p.delete_time IS NULL
+FROM t_rbac_user_role_rel ur
+JOIN t_rbac_role r ON r.id = ur.role_id AND r.delete_time IS NULL
+JOIN t_rbac_role_permission_rel rp ON rp.role_id = r.id
+JOIN t_rbac_permission p ON p.id = rp.permission_id AND p.delete_time IS NULL
 WHERE ur.user_id = ?
   AND r.status = ?
   AND p.status = ?
@@ -54,10 +54,10 @@ LIMIT 1`
 	// sqlListMenusByUserID 查询用户可见的启用菜单
 	sqlListMenusByUserID = `
 SELECT DISTINCT p.*
-FROM t_user_role_rel ur
-JOIN t_role r ON r.id = ur.role_id AND r.delete_time IS NULL
-JOIN t_role_permission_rel rp ON rp.role_id = r.id
-JOIN t_permission p ON p.id = rp.permission_id AND p.delete_time IS NULL
+FROM t_rbac_user_role_rel ur
+JOIN t_rbac_role r ON r.id = ur.role_id AND r.delete_time IS NULL
+JOIN t_rbac_role_permission_rel rp ON rp.role_id = r.id
+JOIN t_rbac_permission p ON p.id = rp.permission_id AND p.delete_time IS NULL
 WHERE ur.user_id = ?
   AND r.status = ?
   AND p.status = ?
@@ -67,10 +67,10 @@ ORDER BY p.id`
 	// sqlListPermissionCodesByUserID 查询用户拥有的启用权限编码
 	sqlListPermissionCodesByUserID = `
 SELECT DISTINCT p.code
-FROM t_user_role_rel ur
-JOIN t_role r ON r.id = ur.role_id AND r.delete_time IS NULL
-JOIN t_role_permission_rel rp ON rp.role_id = r.id
-JOIN t_permission p ON p.id = rp.permission_id AND p.delete_time IS NULL
+FROM t_rbac_user_role_rel ur
+JOIN t_rbac_role r ON r.id = ur.role_id AND r.delete_time IS NULL
+JOIN t_rbac_role_permission_rel rp ON rp.role_id = r.id
+JOIN t_rbac_permission p ON p.id = rp.permission_id AND p.delete_time IS NULL
 WHERE ur.user_id = ?
   AND r.status = ?
   AND p.status = ?
