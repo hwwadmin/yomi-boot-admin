@@ -11,3 +11,8 @@
 
 
 更细的说明看 [后端 README](yomi-admin-backend/README.md) 和 [前端 README](yomi-admin-web/README.md)。
+
+
+## 许可证
+
+本项目采用 [Apache License 2.0](./LICENSE) 开源许可。
