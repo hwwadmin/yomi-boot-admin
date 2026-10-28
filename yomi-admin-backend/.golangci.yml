@@ -75,6 +75,8 @@ linters:
               desc: handler 禁止跳过 usecase 直接依赖契约
             - pkg: yomi-admin-backend/domains/httprecord/service_contract
               desc: handler 禁止跳过 usecase 直接依赖契约
+            - pkg: gorm.io
+              desc: handler 禁止依赖 ORM
 
         # UseCase 编排：可依赖公开契约，禁止碰领域内部与装配层
         server-usecase:
@@ -100,6 +102,8 @@ linters:
               desc: usecase 禁止依赖 domain internal
             - pkg: github.com/gin-gonic/gin
               desc: usecase 禁止依赖 gin
+            - pkg: gorm.io
+              desc: usecase 禁止依赖 ORM
 
         # 跨域编排策略：只组合多个公开契约，不承载协议与存储
         server-policy:
@@ -127,6 +131,8 @@ linters:
               desc: policy 禁止依赖 domain internal
             - pkg: github.com/gin-gonic/gin
               desc: policy 禁止依赖 gin
+            - pkg: gorm.io
+              desc: policy 禁止依赖 ORM
 
         # 入口 support：只放浅层错误，禁止承载业务或依赖领域
         server-support:
@@ -144,6 +150,10 @@ linters:
               desc: support 禁止依赖 policy
             - pkg: yomi-admin-backend/domains
               desc: support 只放浅层错误，禁止依赖 domains
+            - pkg: github.com/gin-gonic/gin
+              desc: support 禁止依赖 gin
+            - pkg: gorm.io
+              desc: support 禁止依赖 ORM
 
         # 中间件：可依赖公开契约，禁止碰领域内部
         server-middleware:
@@ -165,6 +175,8 @@ linters:
               desc: middleware 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/httprecord/internal
               desc: middleware 禁止依赖 domain internal
+            - pkg: gorm.io
+              desc: middleware 禁止依赖 ORM
 
         # 对外契约：无传输、无 ORM、无内部实现
         domain-contract:

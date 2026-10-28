@@ -3,12 +3,10 @@ package httprecord
 
 import (
 	"context"
-	"strings"
-	domainenums "yomi-admin-backend/domains/httprecord/pkg/shared/enums"
+
 	domaininput "yomi-admin-backend/domains/httprecord/pkg/shared/input"
 	domaincontract "yomi-admin-backend/domains/httprecord/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
 	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
@@ -21,26 +19,6 @@ type PageRecordsInput struct {
 	UserID      int64  `json:"userId"`
 	StartTime   int64  `json:"startTime"`
 	EndTime     int64  `json:"endTime"`
-}
-
-// Validate 校验入参
-func (i *PageRecordsInput) Validate() error {
-	i.ValiPage()
-
-	i.Method = strings.ToUpper(strings.TrimSpace(i.Method))
-	if i.Method != "" && !domainenums.IsValidMethod(i.Method) {
-		return errors.Sentinel(domaincontract.ErrInvalidInput)
-	}
-
-	i.StatusClass = strings.ToLower(strings.TrimSpace(i.StatusClass))
-	if i.StatusClass != "" && !domainenums.IsValidStatusClass(domainenums.StatusClass(i.StatusClass)) {
-		return errors.Sentinel(domaincontract.ErrInvalidInput)
-	}
-
-	if i.StartTime > 0 && i.EndTime > 0 && i.StartTime > i.EndTime {
-		return errors.Sentinel(domaincontract.ErrInvalidInput)
-	}
-	return nil
 }
 
 // RecordItem 访问记录列表项
@@ -74,9 +52,7 @@ func NewPageRecordsUsecase(records domaincontract.RecordService) *PageRecordsUse
 
 // Execute 分页查询访问记录
 func (uc *PageRecordsUsecase) Execute(ctx context.Context, in *PageRecordsInput) (*dto.PageOutput[RecordItem], error) {
-	if err := in.Validate(); err != nil {
-		return nil, err
-	}
+	in.ValiPage()
 
 	out, err := uc.records.Page(ctx, &domaininput.PageRecordsInput{
 		Keyword:     in.Keyword,

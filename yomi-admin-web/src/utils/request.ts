@@ -1,8 +1,8 @@
 import axios from 'axios'
 import type { AxiosRequestConfig } from 'axios'
 
-import router from '@/router'
 import { useUserStore } from '@/stores/user'
+import { expireSession } from '@/utils/auth'
 import type { ApiResponse } from '@/api/types'
 
 /** yomi-boot 默认协议的成功码 */
@@ -34,19 +34,18 @@ service.interceptors.response.use(
       return response
     }
     if (UNAUTHORIZED_CODES.has(body.code)) {
-      useUserStore().reset()
-      const current = router.currentRoute.value
-      void router.replace({
-        path: '/login',
-        query: current.path === '/login' ? undefined : { redirect: current.fullPath },
-      })
-      ElMessage.error('登录已过期，请重新登录')
+      expireSession()
       return Promise.reject(new Error(body.code))
     }
     ElMessage.error(body.msg || '请求失败')
     return Promise.reject(new Error(body.msg || '请求失败'))
   },
   (error) => {
+    // 后端默认用业务码表达鉴权失败，这里兼容通过 HTTP 401 表达的情况
+    if (error?.response?.status === 401) {
+      expireSession()
+      return Promise.reject(error)
+    }
     ElMessage.error(error?.message || '网络异常，请稍后重试')
     return Promise.reject(error)
   },
