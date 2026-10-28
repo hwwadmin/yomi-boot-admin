@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { Money, ShoppingCart, User, View } from '@element-plus/icons-vue'
+import welcomeImage from '@/assets/welcome.svg'
 
-import { getUserPage } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 
 defineOptions({ name: 'DashboardPage' })
@@ -16,128 +15,202 @@ const greeting = computed(() => {
   if (hour < 18) return '下午好'
   return '晚上好'
 })
-
-// 除用户总数来自真实接口外，其余为静态示例数据
-const stats = ref([
-  { label: '用户总数', value: 0, icon: User, color: '#409eff' },
-  { label: '今日访问', value: 1286, icon: View, color: '#67c23a' },
-  { label: '订单数', value: 328, icon: ShoppingCart, color: '#e6a23c' },
-  { label: '销售额（元）', value: 92186, icon: Money, color: '#f56c6c' },
-])
-
-onMounted(async () => {
-  try {
-    const { total } = await getUserPage({ page: 1, pageSize: 1 })
-    const first = stats.value[0]
-    if (first) first.value = total
-  } catch {
-    // 错误提示已由 request 拦截器统一处理
-  }
-})
 </script>
 
 <template>
   <div class="dashboard">
-    <el-card shadow="never" class="welcome-card">
-      <div class="welcome-text">
-        {{ greeting }}，{{ userStore.userInfo?.nickname || '管理员' }}！欢迎使用 Yomi Admin
-        管理后台脚手架。
+    <section class="welcome-hero">
+      <div class="welcome-copy">
+        <span class="welcome-eyebrow" aria-hidden="true"></span>
+        <h1 class="welcome-title">
+          <span class="welcome-greeting">
+            {{ greeting }}，{{ userStore.userInfo?.nickname || '管理员' }}！
+          </span>
+          <span class="welcome-subtitle">欢迎使用 Yomi Admin 管理后台脚手架。</span>
+        </h1>
       </div>
-      <div class="welcome-tags">
-        <el-tag>vite</el-tag>
-        <el-tag type="success">vue3 + ts</el-tag>
-        <el-tag type="warning">element-plus</el-tag>
-        <el-tag type="danger">vue-router(hash)</el-tag>
-        <el-tag type="info">pinia</el-tag>
-        <el-tag>axios</el-tag>
-        <el-tag type="success">@vueuse/core</el-tag>
-      </div>
-    </el-card>
-
-    <el-row :gutter="16" class="stat-row">
-      <el-col v-for="item in stats" :key="item.label" :xs="12" :sm="12" :md="6">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-body">
-            <el-icon :size="36" :color="item.color">
-              <component :is="item.icon" />
-            </el-icon>
-            <div class="stat-meta">
-              <div class="stat-value">{{ item.value.toLocaleString() }}</div>
-              <div class="stat-label">{{ item.label }}</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-card shadow="never">
-      <template #header>下一步</template>
-      <ol class="todo-list">
-        <li>在 <code>src/api/</code> 下按模块新增接口，类型放 <code>src/api/types.ts</code></li>
-        <li>
-          在 <code>src/views/</code> 下新增页面，并在 <code>src/router/index.ts</code> 注册路由
-        </li>
-        <li>
-          后端就绪后，把 <code>.env.development</code> 的 <code>VITE_USE_MOCK</code> 改为 false 联调
-        </li>
-        <li>需要按钮级权限时，使用 <code>v-permission</code> 指令</li>
-      </ol>
-    </el-card>
+      <img class="welcome-image" :src="welcomeImage" alt="欢迎使用 Yomi Admin" />
+    </section>
   </div>
 </template>
 
 <style scoped>
-.welcome-card {
-  margin-bottom: 16px;
-}
-
-.welcome-text {
-  color: var(--el-text-color-primary);
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.welcome-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.stat-row {
-  margin-bottom: 16px;
-}
-
-.stat-body {
+.welcome-hero {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 32px;
+  overflow: hidden;
+  padding: 34px 40px;
+  border-radius: 18px;
+  background:
+    radial-gradient(80% 160% at 92% -30%, rgba(64, 158, 255, 0.18) 0%, rgba(64, 158, 255, 0) 60%),
+    radial-gradient(70% 140% at 4% 130%, rgba(103, 194, 58, 0.14) 0%, rgba(103, 194, 58, 0) 55%),
+    linear-gradient(118deg, #f7fbff 0%, #ffffff 46%, #f5fbf1 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 0 0 1px rgba(64, 158, 255, 0.08),
+    0 24px 48px -32px rgba(30, 64, 110, 0.35);
 }
 
-.stat-value {
-  color: var(--el-text-color-primary);
-  font-size: 24px;
-  font-weight: 700;
+/* 右上方点阵纹理，朝插画方向淡出 */
+.welcome-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(64, 158, 255, 0.35) 1.2px, transparent 1.2px);
+  background-size: 18px 18px;
+  -webkit-mask-image: radial-gradient(420px 240px at 78% 18%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(420px 240px at 78% 18%, #000 0%, transparent 72%);
+  pointer-events: none;
 }
 
-.stat-label {
-  margin-top: 4px;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
+/* 左下装饰弧线，平衡右侧插画的视觉重量 */
+.welcome-hero::after {
+  content: '';
+  position: absolute;
+  left: -70px;
+  bottom: -120px;
+  width: 240px;
+  height: 240px;
+  border: 1px solid rgba(64, 158, 255, 0.14);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
-.todo-list {
+.welcome-copy {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+}
+
+.welcome-eyebrow {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #409eff, #67c23a);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.35);
+}
+
+.welcome-title {
   margin: 0;
-  padding-left: 20px;
-  color: var(--el-text-color-regular);
-  font-size: 14px;
-  line-height: 2;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
 }
 
-.todo-list code {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background-color: var(--el-fill-color);
-  font-size: 13px;
+.welcome-greeting {
+  display: block;
+  background: linear-gradient(96deg, #1554d1 0%, #409eff 48%, #4fae4f 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.welcome-subtitle {
+  display: block;
+  margin-top: 10px;
+  color: var(--el-text-color-secondary);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.welcome-image {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 380px;
+  height: auto;
+  filter: drop-shadow(0 18px 28px rgba(64, 158, 255, 0.12));
+  animation: welcome-float 7s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes welcome-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* 暗色主题 */
+html.dark .welcome-hero {
+  background:
+    radial-gradient(80% 160% at 92% -30%, rgba(64, 158, 255, 0.24) 0%, rgba(64, 158, 255, 0) 60%),
+    radial-gradient(70% 140% at 4% 130%, rgba(103, 194, 58, 0.14) 0%, rgba(103, 194, 58, 0) 55%),
+    linear-gradient(118deg, #101a2c 0%, #0d1524 46%, #0f1d1a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 24px 48px -32px rgba(0, 0, 0, 0.7);
+}
+
+html.dark .welcome-hero::before {
+  background-image: radial-gradient(rgba(102, 177, 255, 0.3) 1.2px, transparent 1.2px);
+}
+
+html.dark .welcome-hero::after {
+  border-color: rgba(124, 192, 255, 0.12);
+}
+
+html.dark .welcome-greeting {
+  background: linear-gradient(96deg, #7cc0ff 0%, #b6e3ff 48%, #95d475 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+html.dark .welcome-image {
+  filter: drop-shadow(0 18px 36px rgba(64, 158, 255, 0.25));
+}
+
+@media (max-width: 1280px) {
+  .welcome-hero {
+    gap: 24px;
+    padding: 28px 32px;
+  }
+
+  .welcome-title {
+    font-size: 26px;
+  }
+
+  .welcome-image {
+    width: 320px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .welcome-image {
+    width: 260px;
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-hero {
+    padding: 24px;
+  }
+
+  .welcome-title {
+    font-size: 22px;
+  }
+
+  .welcome-image {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-image {
+    animation: none;
+  }
 }
 </style>
