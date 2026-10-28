@@ -3,6 +3,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 
 import { createUser, deleteUser, getUserPage, updateUser } from '@/api/user'
 import type { UserItem, UserStatus } from '@/api/types'
+import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemUserPage' })
 
@@ -40,10 +41,14 @@ const dialogVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<number | null>(null)
 const formRef = ref<FormInstance>()
-const form = reactive({ username: '', nickname: '', email: '', phone: '', status: 1 as UserStatus })
+const form = reactive({ username: '', password: '', nickname: '', email: '', phone: '', status: 1 as UserStatus })
 
 const rules: FormRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 72, message: '密码长度 6-72 位', trigger: 'blur' },
+  ],
   nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
   email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
   phone: [{ pattern: /^1\d{10}$/, message: '手机号格式不正确', trigger: 'blur' }],
@@ -51,7 +56,7 @@ const rules: FormRules = {
 
 function openCreate() {
   editingId.value = null
-  Object.assign(form, { username: '', nickname: '', email: '', phone: '', status: 1 })
+  Object.assign(form, { username: '', password: '', nickname: '', email: '', phone: '', status: 1 })
   dialogVisible.value = true
 }
 
@@ -59,6 +64,7 @@ function openEdit(row: UserItem) {
   editingId.value = row.id
   Object.assign(form, {
     username: row.username,
+    password: '',
     nickname: row.nickname,
     email: row.email,
     phone: row.phone,
@@ -80,7 +86,7 @@ async function handleSubmit() {
       status: form.status,
     }
     if (editingId.value === null) {
-      await createUser(payload)
+      await createUser({ ...payload, password: form.password })
       ElMessage.success('新增成功')
     } else {
       await updateUser(editingId.value, payload)
@@ -151,7 +157,11 @@ async function handleDelete(row: UserItem) {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
+        <el-table-column label="创建时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime((row as UserItem).createdAt) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="130" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row as UserItem)">编辑</el-button>
@@ -193,6 +203,15 @@ async function handleDelete(row: UserItem) {
             :disabled="editingId !== null"
             placeholder="登录账号，创建后不可修改"
             maxlength="32"
+          />
+        </el-form-item>
+        <el-form-item v-if="editingId === null" label="密码" prop="password">
+          <el-input
+            v-model="form.password"
+            type="password"
+            show-password
+            placeholder="6-72 位"
+            maxlength="72"
           />
         </el-form-item>
         <el-form-item label="昵称" prop="nickname">

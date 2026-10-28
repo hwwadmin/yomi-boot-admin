@@ -1,0 +1,137 @@
+# golangci-lint：yomi-admin-backend（在各 go.mod 根目录执行，files 相对当前 module）
+version: "2"
+
+run:
+  relative-path-mode: gomod
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - depguard
+    - errcheck
+    - govet
+    - staticcheck
+
+  settings:
+    depguard:
+      rules:
+        cmd-entry:
+          list-mode: lax
+          files:
+            - "**/cmd/**/*.go"
+          deny:
+            - pkg: yomi-admin-backend/apps/server/internal/handler
+              desc: cmd 仅负责启动，禁止直接依赖 handler
+            - pkg: yomi-admin-backend/apps/server/internal/usecase
+              desc: cmd 仅负责启动，禁止直接依赖 usecase
+            - pkg: yomi-admin-backend/domains
+              desc: cmd 仅负责启动，禁止直接依赖 domains
+
+        server-handler:
+          list-mode: lax
+          files:
+            - "**/internal/handler/**/*.go"
+          deny:
+            - pkg: yomi-admin-backend/domains/user/provider
+              desc: handler 禁止依赖 domain provider
+            - pkg: yomi-admin-backend/domains/user/internal
+              desc: handler 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/user/service_contract
+              desc: handler 禁止跳过 usecase 直接依赖 service_contract
+
+        server-usecase:
+          list-mode: lax
+          files:
+            - "**/internal/usecase/**/*.go"
+          deny:
+            - pkg: yomi-admin-backend/apps/server/internal/handler
+              desc: usecase 禁止依赖 handler
+            - pkg: yomi-admin-backend/domains/user/provider
+              desc: usecase 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/user/internal
+              desc: usecase 禁止依赖 domain internal
+
+        domain-contract:
+          list-mode: lax
+          files:
+            - "**/service_contract/**/*.go"
+          deny:
+            - pkg: github.com/gin-gonic/gin
+              desc: service_contract 禁止依赖 gin
+            - pkg: gorm.io/gorm
+              desc: service_contract 禁止依赖 gorm
+            - pkg: yomi-admin-backend/apps
+              desc: service_contract 禁止依赖 apps
+            - pkg: yomi-admin-backend/domains/user/internal
+              desc: service_contract 禁止依赖 internal
+
+        domain-service:
+          list-mode: lax
+          files:
+            - "**/internal/service/**/*.go"
+          deny:
+            - pkg: yomi-admin-backend/apps
+              desc: domain service 禁止依赖 apps
+            - pkg: yomi-admin-backend/domains/user/internal/repo
+              desc: service 只依赖 repo_contract，禁止直接依赖 repo 实现
+            - pkg: github.com/gin-gonic/gin
+              desc: domain service 禁止依赖 gin
+
+        shared-types:
+          list-mode: lax
+          files:
+            - "**/pkg/shared/**/*.go"
+          deny:
+            - pkg: yomi-admin-backend/apps
+              desc: 本域 pkg/shared 禁止依赖 apps
+            - pkg: yomi-admin-backend/domains/user/internal
+              desc: pkg/shared 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/user/provider
+              desc: pkg/shared 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/user/service_contract
+              desc: pkg/shared 禁止依赖 service_contract
+            - pkg: github.com/gin-gonic/gin
+              desc: shared 禁止依赖 gin
+            - pkg: gorm.io
+              desc: shared 禁止依赖 gorm
+
+        default-production:
+          list-mode: lax
+          files:
+            - "$all"
+            - "!$test"
+            - "!**/cmd/**/*.go"
+            - "!**/internal/bootstrap/**/*.go"
+            - "!**/internal/handler/**/*.go"
+            - "!**/internal/usecase/**/*.go"
+            - "!**/service_contract/**/*.go"
+            - "!**/provider/**/*.go"
+            - "!**/internal/service/**/*.go"
+            - "!**/internal/repo_contract/**/*.go"
+            - "!**/internal/repo/**/*.go"
+            - "!**/internal/model/**/*.go"
+            - "!**/pkg/shared/**/*.go"
+          allow:
+            - $gostd
+            - github.com
+            - golang.org
+            - gorm.io
+            - gitee.com/hq_project/yomi-boot
+            - yomi-admin-backend
+
+        tests:
+          list-mode: lax
+          files:
+            - "$test"
+          allow:
+            - $gostd
+            - github.com
+            - golang.org
+            - gorm.io
+            - gitee.com/hq_project/yomi-boot
+            - yomi-admin-backend
+
+formatters:
+  enable:
+    - gofumpt

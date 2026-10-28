@@ -5,8 +5,10 @@ import router from '@/router'
 import { useUserStore } from '@/stores/user'
 import type { ApiResponse } from '@/api/types'
 
-const SUCCESS_CODE = 200
-const UNAUTHORIZED_CODE = 401
+/** yomi-boot 默认协议的成功码 */
+const SUCCESS_CODE = 'OK'
+/** Token 缺失 / 失效时后端返回的业务码 */
+const UNAUTHORIZED_CODES = new Set(['TOKEN_REQUIRED', 'TOKEN_VALIDATE_FAILED', 'TOKEN_INVALID'])
 
 const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -31,16 +33,18 @@ service.interceptors.response.use(
     if (body.code === SUCCESS_CODE) {
       return response
     }
-    if (body.code === UNAUTHORIZED_CODE) {
+    if (UNAUTHORIZED_CODES.has(body.code)) {
       useUserStore().reset()
       const current = router.currentRoute.value
       void router.replace({
         path: '/login',
         query: current.path === '/login' ? undefined : { redirect: current.fullPath },
       })
+      ElMessage.error('登录已过期，请重新登录')
+      return Promise.reject(new Error(body.code))
     }
-    ElMessage.error(body.message || '请求失败')
-    return Promise.reject(new Error(body.message || '请求失败'))
+    ElMessage.error(body.msg || '请求失败')
+    return Promise.reject(new Error(body.msg || '请求失败'))
   },
   (error) => {
     ElMessage.error(error?.message || '网络异常，请稍后重试')
@@ -49,10 +53,22 @@ service.interceptors.response.use(
 )
 
 /**
- * 业务请求：响应拦截器保证只有 code === 200 才会正常返回，这里直接解出 data。
- * 非 200（业务错误 / 401 / 网络错误）一律走 reject，调用方 catch 后无需重复提示。
+ * 业务请求：响应拦截器保证只有 code === 'OK' 才会正常返回，这里直接解出 data。
+ * 业务错误 / Token 失效 / 网络错误一律走 reject，调用方 catch 后无需重复提示。
  */
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
   const response = await service.request<ApiResponse<T>>(config)
   return response.data.data
+}
+
+/**
+ * 分页请求：yomi-boot 默认协议把列表放在 data、总数放在顶层 total。
+ * 统一映射成前端分页组件使用的 { list, total }。
+ */
+export async function requestPage<T>(config: AxiosRequestConfig): Promise<{ list: T[]; total: number }> {
+  const response = await service.request<ApiResponse<T[]>>(config)
+  return {
+    list: response.data.data ?? [],
+    total: response.data.total ?? 0,
+  }
 }
