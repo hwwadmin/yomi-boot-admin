@@ -57,7 +57,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	if !ok {
 		t.Fatalf("用户分页不可达: %s", body)
 	}
-	page := parseSuccess(t, body)
+	page := parsePage[userItem](t, body)
 	if page.Total == 0 {
 		t.Fatalf("内置管理员应出现在用户列表中: %s", body)
 	}
@@ -87,11 +87,8 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	if !ok {
 		t.Fatalf("用户分页不可达: %s", body)
 	}
-	page = parseSuccess(t, body)
-	var items []userItem
-	if err := json.Unmarshal(page.Data, &items); err != nil {
-		t.Fatalf("解析用户列表失败: %v body=%s", err, body)
-	}
+	page = parsePage[userItem](t, body)
+	items := page.Items
 	if len(items) != 1 || items[0].Username != username {
 		t.Fatalf("按用户名搜索未命中: %+v", items)
 	}
@@ -118,10 +115,8 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	if !ok {
 		t.Fatalf("更新后分页不可达: %s", body)
 	}
-	page = parseSuccess(t, body)
-	if err := json.Unmarshal(page.Data, &items); err != nil {
-		t.Fatalf("解析更新后用户列表失败: %v body=%s", err, body)
-	}
+	page = parsePage[userItem](t, body)
+	items = page.Items
 	if len(items) != 1 || items[0].Nickname != "更新后的昵称" || items[0].Email != "updated@example.com" {
 		t.Fatalf("更新未生效: %+v", items)
 	}
@@ -137,7 +132,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	if !ok {
 		t.Fatalf("删除后分页不可达: %s", body)
 	}
-	page = parseSuccess(t, body)
+	page = parsePage[userItem](t, body)
 	if page.Total != 0 {
 		t.Fatalf("软删除后仍能查到用户: %s", body)
 	}
@@ -226,13 +221,9 @@ func findUserID(t *testing.T, token, username string) string {
 	if !ok {
 		t.Fatalf("用户分页不可达: %s", body)
 	}
-	page := parseSuccess(t, body)
-	var items []userItem
-	if err := json.Unmarshal(page.Data, &items); err != nil {
-		t.Fatalf("解析用户列表失败: %v body=%s", err, body)
+	page := parsePage[userItem](t, body)
+	if len(page.Items) != 1 {
+		t.Fatalf("按用户名未唯一命中: %+v", page.Items)
 	}
-	if len(items) != 1 {
-		t.Fatalf("按用户名未唯一命中: %+v", items)
-	}
-	return items[0].ID
+	return page.Items[0].ID
 }

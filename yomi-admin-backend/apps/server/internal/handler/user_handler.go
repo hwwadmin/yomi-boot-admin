@@ -60,7 +60,7 @@ func (h *UserHandler) page(c *gin.Context) {
 		PageInput: dto.PageInput{Page: queryInt(c, "page", 1), PageSize: queryInt(c, "pageSize", 10)},
 		Keyword:   c.Query("keyword"),
 	}
-	corehandler.HandlePage(c, func(ctx context.Context) (*dto.PageOutput[userusecase.UserItem], error) {
+	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[userusecase.UserItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }

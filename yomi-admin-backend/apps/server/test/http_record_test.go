@@ -35,14 +35,10 @@ func TestHttpRecordPageAndDetail(t *testing.T) {
 		if !ok {
 			t.Fatalf("访问记录列表接口不可达: %s", body)
 		}
-		page := parseSuccess(t, body)
+		page := parsePage[httpRecordItem](t, body)
 
-		var items []httpRecordItem
-		if err := json.Unmarshal(page.Data, &items); err != nil {
-			t.Fatalf("解析访问记录列表失败: %v body=%s", err, body)
-		}
-		if len(items) > 0 {
-			record = items[0]
+		if len(page.Items) > 0 {
+			record = page.Items[0]
 			break
 		}
 		if time.Now().After(deadline) {

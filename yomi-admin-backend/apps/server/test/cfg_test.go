@@ -91,6 +91,24 @@ func parseSuccess(t *testing.T, body string) response.Response {
 	return parsed
 }
 
+// pageData 分页响应 data 载荷：{items,total}
+type pageData[T any] struct {
+	Items []T   `json:"items"`
+	Total int64 `json:"total"`
+}
+
+// parsePage 断言响应为默认协议的成功分页响应并解析 data 载荷
+func parsePage[T any](t *testing.T, body string) pageData[T] {
+	t.Helper()
+
+	parsed := parseSuccess(t, body)
+	var data pageData[T]
+	if err := json.Unmarshal(parsed.Data, &data); err != nil {
+		t.Fatalf("解析分页 data 失败: %v body=%s", err, body)
+	}
+	return data
+}
+
 // assertFailure 断言响应为默认协议的失败响应
 func assertFailure(t *testing.T, body string) {
 	t.Helper()

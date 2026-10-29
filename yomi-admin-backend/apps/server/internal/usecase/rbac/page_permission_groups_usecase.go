@@ -39,7 +39,7 @@ func NewPagePermissionGroupsUsecase(rbac rbaccontract.RbacAdminService) *PagePer
 }
 
 // Execute 分页查询权限组
-func (uc *PagePermissionGroupsUsecase) Execute(ctx context.Context, in *PagePermissionGroupsInput) (*dto.PageOutput[PermissionGroupItem], error) {
+func (uc *PagePermissionGroupsUsecase) Execute(ctx context.Context, in *PagePermissionGroupsInput) (dto.PageOutput[PermissionGroupItem], error) {
 	in.ValiPage()
 
 	out, err := uc.rbac.PagePermissionGroups(ctx, &rbacinput.PagePermissionGroupsInput{
@@ -49,12 +49,12 @@ func (uc *PagePermissionGroupsUsecase) Execute(ctx context.Context, in *PagePerm
 		PageSize: in.PageSize,
 	})
 	if err != nil {
-		return nil, err
+		return dto.PageOutput[PermissionGroupItem]{}, err
 	}
 
 	items := make([]PermissionGroupItem, 0, len(out.Items))
 	for _, group := range out.Items {
 		items = append(items, toPermissionGroupItem(group))
 	}
-	return &dto.PageOutput[PermissionGroupItem]{Items: items, Total: out.Total}, nil
+	return dto.NewPageOutput(items, out.Total), nil
 }

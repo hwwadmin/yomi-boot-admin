@@ -3,7 +3,7 @@ module yomi-admin-backend/apps/server
 go 1.26.0
 
 require (
-	gitee.com/hq_project/yomi-boot v1.2.1
+	gitee.com/hq_project/yomi-boot v1.2.2-rc.1
 	github.com/getkin/kin-openapi v0.152.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/spf13/viper v1.20.1

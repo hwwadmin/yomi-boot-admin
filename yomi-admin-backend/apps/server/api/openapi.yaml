@@ -12,7 +12,7 @@ info:
 
     ## 协议约定
     - 所有接口 HTTP 状态码恒为 200，业务成败由响应体 `code` 判定：`OK` 表示成功，其余为业务错误码（`msg` 为人读信息）。
-    - 响应包络统一为 `{"code","msg","timestamp","data"[,"total"]}`；分页接口的 `data` 为当前页数组，`total`（总条数）位于包络顶层。
+    - 响应包络统一为 `{"code","msg","timestamp","data"}`；分页接口的 `data` 为 `{"items":[...],"total":N}` 载荷（items 当前页数组、total 总条数）。
     - 雪花 ID 一律以字符串传输（避免 JS int64 精度丢失），如 `"1930000000000000001"`；请求中同名字段也接受数字。
     - 时间戳均为 Unix 毫秒（UTC），由前端按客户端时区展示。
     - 枚举为大写字符串：状态 `ENABLED` / `DISABLED`（用户、角色、权限、权限组通用），权限类型 `MENU` / `API`。
@@ -166,12 +166,9 @@ paths:
                   - allOf:
                       - $ref: '#/components/schemas/EnvelopeBase'
                       - type: object
-                        required: [data, total]
+                        required: [data]
                         properties:
-                          data:
-                            type: array
-                            items: { $ref: '#/components/schemas/UserItem' }
-                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                          data: { $ref: '#/components/schemas/UserItemPage' }
                   - $ref: '#/components/schemas/EnvelopeError'
   /api/system/user/create:
     post:
@@ -284,12 +281,9 @@ paths:
                   - allOf:
                       - $ref: '#/components/schemas/EnvelopeBase'
                       - type: object
-                        required: [data, total]
+                        required: [data]
                         properties:
-                          data:
-                            type: array
-                            items: { $ref: '#/components/schemas/RoleItem' }
-                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                          data: { $ref: '#/components/schemas/RoleItemPage' }
                   - $ref: '#/components/schemas/EnvelopeError'
   /api/system/role/detail:
     get:
@@ -415,12 +409,9 @@ paths:
                   - allOf:
                       - $ref: '#/components/schemas/EnvelopeBase'
                       - type: object
-                        required: [data, total]
+                        required: [data]
                         properties:
-                          data:
-                            type: array
-                            items: { $ref: '#/components/schemas/PermissionItem' }
-                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                          data: { $ref: '#/components/schemas/PermissionItemPage' }
                   - $ref: '#/components/schemas/EnvelopeError'
   /api/system/permission/create:
     post:
@@ -507,12 +498,9 @@ paths:
                   - allOf:
                       - $ref: '#/components/schemas/EnvelopeBase'
                       - type: object
-                        required: [data, total]
+                        required: [data]
                         properties:
-                          data:
-                            type: array
-                            items: { $ref: '#/components/schemas/PermissionGroupItem' }
-                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                          data: { $ref: '#/components/schemas/PermissionGroupItemPage' }
                   - $ref: '#/components/schemas/EnvelopeError'
   /api/system/permission-group/detail:
     get:
@@ -653,12 +641,9 @@ paths:
                   - allOf:
                       - $ref: '#/components/schemas/EnvelopeBase'
                       - type: object
-                        required: [data, total]
+                        required: [data]
                         properties:
-                          data:
-                            type: array
-                            items: { $ref: '#/components/schemas/RecordItem' }
-                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                          data: { $ref: '#/components/schemas/RecordItemPage' }
                   - $ref: '#/components/schemas/EnvelopeError'
   /api/system/http-record/detail:
     get:
@@ -770,6 +755,51 @@ components:
       description: 失败包络（无 data 字段），code 为业务错误码，如 INVALID_INPUT、TOKEN_REQUIRED、ADMIN_PERMISSION_DENIED、ADMIN_USER_NOT_FOUND 等
       allOf:
         - $ref: '#/components/schemas/EnvelopeBase'
+    UserItemPage:
+      type: object
+      description: 用户分页载荷，作为响应 data 字段输出
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/UserItem' }
+        total: { type: integer, format: int64, description: 满足条件的总条数 }
+    RoleItemPage:
+      type: object
+      description: 角色分页载荷，作为响应 data 字段输出
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RoleItem' }
+        total: { type: integer, format: int64, description: 满足条件的总条数 }
+    PermissionItemPage:
+      type: object
+      description: 权限分页载荷，作为响应 data 字段输出
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionItem' }
+        total: { type: integer, format: int64, description: 满足条件的总条数 }
+    PermissionGroupItemPage:
+      type: object
+      description: 权限组分页载荷，作为响应 data 字段输出
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/PermissionGroupItem' }
+        total: { type: integer, format: int64, description: 满足条件的总条数 }
+    RecordItemPage:
+      type: object
+      description: 访问记录分页载荷，作为响应 data 字段输出
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RecordItem' }
+        total: { type: integer, format: int64, description: 满足条件的总条数 }
     Status:
       type: string
       description: 启停状态，用户/角色/权限/权限组通用

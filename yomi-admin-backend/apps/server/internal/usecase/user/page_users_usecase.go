@@ -50,7 +50,7 @@ func NewPageUsersUsecase(users service_contract.UserService, rbac rbaccontract.R
 }
 
 // Execute 分页查询用户
-func (uc *PageUsersUsecase) Execute(ctx context.Context, in *PageUsersInput) (*dto.PageOutput[UserItem], error) {
+func (uc *PageUsersUsecase) Execute(ctx context.Context, in *PageUsersInput) (dto.PageOutput[UserItem], error) {
 	in.ValiPage()
 
 	out, err := uc.users.Page(ctx, &userinput.PageUsersInput{
@@ -59,7 +59,7 @@ func (uc *PageUsersUsecase) Execute(ctx context.Context, in *PageUsersInput) (*d
 		PageSize: in.PageSize,
 	})
 	if err != nil {
-		return nil, err
+		return dto.PageOutput[UserItem]{}, err
 	}
 
 	userIDs := make([]int64, 0, len(out.Items))
@@ -68,7 +68,7 @@ func (uc *PageUsersUsecase) Execute(ctx context.Context, in *PageUsersInput) (*d
 	}
 	rolesByUser, err := uc.rbac.ListRolesByUserIDs(ctx, userIDs)
 	if err != nil {
-		return nil, err
+		return dto.PageOutput[UserItem]{}, err
 	}
 
 	items := make([]UserItem, 0, len(out.Items))
@@ -94,5 +94,5 @@ func (uc *PageUsersUsecase) Execute(ctx context.Context, in *PageUsersInput) (*d
 		})
 	}
 
-	return &dto.PageOutput[UserItem]{Items: items, Total: out.Total}, nil
+	return dto.NewPageOutput(items, out.Total), nil
 }

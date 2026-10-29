@@ -61,7 +61,7 @@ func (h *RoleHandler) page(c *gin.Context) {
 		Keyword:   c.Query("keyword"),
 		Status:    rbacenums.Status(c.Query("status")),
 	}
-	corehandler.HandlePage(c, func(ctx context.Context) (*dto.PageOutput[rbacusecase.RoleItem], error) {
+	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[rbacusecase.RoleItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }

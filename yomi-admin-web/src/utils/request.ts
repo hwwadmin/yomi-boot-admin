@@ -3,7 +3,7 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 
 import { useUserStore } from '@/stores/user'
 import { expireSession } from '@/utils/auth'
-import type { ApiResponse } from '@/api/types'
+import type { ApiResponse, PageData } from '@/api/types'
 
 /** yomi-boot 默认协议的成功码 */
 const SUCCESS_CODE = 'OK'
@@ -119,13 +119,13 @@ export async function request<T>(config: AxiosRequestConfig): Promise<T> {
 }
 
 /**
- * 分页请求：yomi-boot 默认协议把列表放在 data、总数放在顶层 total。
+ * 分页请求：yomi-boot 默认协议把分页载荷放在 data，形如 { items: [...], total }。
  * 统一映射成前端分页组件使用的 { list, total }。
  */
 export async function requestPage<T>(config: AxiosRequestConfig): Promise<{ list: T[]; total: number }> {
-  const response = await send<T[]>(config)
+  const response = await send<PageData<T>>(config)
   return {
-    list: response.data.data ?? [],
-    total: response.data.total ?? 0,
+    list: response.data.data?.items ?? [],
+    total: response.data.data?.total ?? 0,
   }
 }

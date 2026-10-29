@@ -49,11 +49,7 @@ func TestRbacRoleFlow(t *testing.T) {
 	if !ok {
 		t.Fatalf("权限列表接口不可达: %s", body)
 	}
-	permissionsPage := parseSuccess(t, body)
-	var permissions []permissionItem
-	if err := json.Unmarshal(permissionsPage.Data, &permissions); err != nil {
-		t.Fatalf("解析权限列表失败: %v body=%s", err, body)
-	}
+	permissions := parsePage[permissionItem](t, body).Items
 	permissionIDs := make([]string, 0, 2)
 	for _, permission := range permissions {
 		if permission.Code == "system:user" || permission.Code == "system:user:list" {

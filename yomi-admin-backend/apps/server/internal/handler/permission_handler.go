@@ -54,7 +54,7 @@ func (h *PermissionHandler) page(c *gin.Context) {
 		Type:      rbacenums.PermissionType(c.Query("type")),
 		Status:    rbacenums.Status(c.Query("status")),
 	}
-	corehandler.HandlePage(c, func(ctx context.Context) (*dto.PageOutput[rbacusecase.PermissionItem], error) {
+	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[rbacusecase.PermissionItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }

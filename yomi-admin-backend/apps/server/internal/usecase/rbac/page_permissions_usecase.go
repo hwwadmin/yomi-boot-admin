@@ -44,7 +44,7 @@ func NewPagePermissionsUsecase(rbac rbaccontract.RbacAdminService) *PagePermissi
 }
 
 // Execute 分页查询权限目录
-func (uc *PagePermissionsUsecase) Execute(ctx context.Context, in *PagePermissionsInput) (*dto.PageOutput[PermissionItem], error) {
+func (uc *PagePermissionsUsecase) Execute(ctx context.Context, in *PagePermissionsInput) (dto.PageOutput[PermissionItem], error) {
 	in.ValiPage()
 
 	out, err := uc.rbac.PagePermissions(ctx, &rbacinput.PagePermissionsInput{
@@ -55,14 +55,14 @@ func (uc *PagePermissionsUsecase) Execute(ctx context.Context, in *PagePermissio
 		PageSize: in.PageSize,
 	})
 	if err != nil {
-		return nil, err
+		return dto.PageOutput[PermissionItem]{}, err
 	}
 
 	items := make([]PermissionItem, 0, len(out.Items))
 	for _, permission := range out.Items {
 		items = append(items, toPermissionItem(permission))
 	}
-	return &dto.PageOutput[PermissionItem]{Items: items, Total: out.Total}, nil
+	return dto.NewPageOutput(items, out.Total), nil
 }
 
 // toPermissionItem 将权限实体转换为 HTTP 视图

@@ -40,7 +40,7 @@ func NewPageRolesUsecase(rbac rbaccontract.RbacAdminService) *PageRolesUsecase {
 }
 
 // Execute 分页查询角色
-func (uc *PageRolesUsecase) Execute(ctx context.Context, in *PageRolesInput) (*dto.PageOutput[RoleItem], error) {
+func (uc *PageRolesUsecase) Execute(ctx context.Context, in *PageRolesInput) (dto.PageOutput[RoleItem], error) {
 	in.ValiPage()
 
 	out, err := uc.rbac.PageRoles(ctx, &rbacinput.PageRolesInput{
@@ -50,12 +50,12 @@ func (uc *PageRolesUsecase) Execute(ctx context.Context, in *PageRolesInput) (*d
 		PageSize: in.PageSize,
 	})
 	if err != nil {
-		return nil, err
+		return dto.PageOutput[RoleItem]{}, err
 	}
 
 	items := make([]RoleItem, 0, len(out.Items))
 	for _, role := range out.Items {
 		items = append(items, toRoleItem(role))
 	}
-	return &dto.PageOutput[RoleItem]{Items: items, Total: out.Total}, nil
+	return dto.NewPageOutput(items, out.Total), nil
 }

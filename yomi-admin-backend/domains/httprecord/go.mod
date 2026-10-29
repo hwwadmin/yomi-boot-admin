@@ -3,7 +3,7 @@ module yomi-admin-backend/domains/httprecord
 go 1.26.0
 
 require (
-	gitee.com/hq_project/yomi-boot v1.2.1
+	gitee.com/hq_project/yomi-boot v1.2.2-rc.1
 	gorm.io/gorm v1.31.1
 )
 

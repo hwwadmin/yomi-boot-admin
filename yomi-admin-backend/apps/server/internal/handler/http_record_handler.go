@@ -41,7 +41,7 @@ func (h *HttpRecordHandler) page(c *gin.Context) {
 		StartTime:   queryInt64(c, "startTime", 0),
 		EndTime:     queryInt64(c, "endTime", 0),
 	}
-	corehandler.HandlePage(c, func(ctx context.Context) (*dto.PageOutput[httprecoreusecase.RecordItem], error) {
+	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[httprecoreusecase.RecordItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }

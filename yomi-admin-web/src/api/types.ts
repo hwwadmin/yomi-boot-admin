@@ -4,8 +4,12 @@ export interface ApiResponse<T = unknown> {
   msg: string
   timestamp: number
   data: T
-  /** 分页接口在顶层返回总数 */
-  total?: number
+}
+
+/** 分页接口的 data 载荷：当前页数组 + 总条数 */
+export interface PageData<T> {
+  items: T[]
+  total: number
 }
 
 /** 分页查询参数 */

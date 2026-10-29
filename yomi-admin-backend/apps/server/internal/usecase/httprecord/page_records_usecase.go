@@ -51,7 +51,7 @@ func NewPageRecordsUsecase(records domaincontract.RecordService) *PageRecordsUse
 }
 
 // Execute 分页查询访问记录
-func (uc *PageRecordsUsecase) Execute(ctx context.Context, in *PageRecordsInput) (*dto.PageOutput[RecordItem], error) {
+func (uc *PageRecordsUsecase) Execute(ctx context.Context, in *PageRecordsInput) (dto.PageOutput[RecordItem], error) {
 	in.ValiPage()
 
 	out, err := uc.records.Page(ctx, &domaininput.PageRecordsInput{
@@ -65,12 +65,12 @@ func (uc *PageRecordsUsecase) Execute(ctx context.Context, in *PageRecordsInput)
 		PageSize:    in.PageSize,
 	})
 	if err != nil {
-		return nil, err
+		return dto.PageOutput[RecordItem]{}, err
 	}
 
 	items := make([]RecordItem, 0, len(out.Items))
 	for _, record := range out.Items {
 		items = append(items, toRecordItem(record))
 	}
-	return &dto.PageOutput[RecordItem]{Items: items, Total: out.Total}, nil
+	return dto.NewPageOutput(items, out.Total), nil
 }
