@@ -4,7 +4,7 @@ package bootstrap
 import (
 	"sync"
 	"yomi-admin-backend/apps/server/internal/middleware"
-	"yomi-admin-backend/apps/server/internal/policy/superadmin"
+	"yomi-admin-backend/apps/server/internal/support/superadmin"
 
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
 

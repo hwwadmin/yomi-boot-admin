@@ -29,8 +29,6 @@ linters:
               desc: cmd 仅负责启动，禁止直接依赖 handler
             - pkg: yomi-admin-backend/apps/server/internal/usecase
               desc: cmd 仅负责启动，禁止直接依赖 usecase
-            - pkg: yomi-admin-backend/apps/server/internal/policy
-              desc: cmd 仅负责启动，禁止直接依赖 policy
             - pkg: yomi-admin-backend/apps/server/internal/support
               desc: cmd 仅负责启动，禁止直接依赖 support
             - pkg: yomi-admin-backend/domains
@@ -105,36 +103,7 @@ linters:
             - pkg: gorm.io
               desc: usecase 禁止依赖 ORM
 
-        # 跨域编排策略：只组合多个公开契约，不承载协议与存储
-        server-policy:
-          list-mode: lax
-          files:
-            - "**/internal/policy/**"
-          deny:
-            - pkg: yomi-admin-backend/apps/server/internal/bootstrap
-              desc: policy 禁止依赖组合根
-            - pkg: yomi-admin-backend/apps/server/internal/handler
-              desc: policy 禁止依赖 handler
-            - pkg: yomi-admin-backend/apps/server/internal/usecase
-              desc: policy 禁止依赖 usecase
-            - pkg: yomi-admin-backend/domains/user/provider
-              desc: policy 禁止依赖 provider
-            - pkg: yomi-admin-backend/domains/rbac/provider
-              desc: policy 禁止依赖 provider
-            - pkg: yomi-admin-backend/domains/httprecord/provider
-              desc: policy 禁止依赖 provider
-            - pkg: yomi-admin-backend/domains/user/internal
-              desc: policy 禁止依赖 domain internal
-            - pkg: yomi-admin-backend/domains/rbac/internal
-              desc: policy 禁止依赖 domain internal
-            - pkg: yomi-admin-backend/domains/httprecord/internal
-              desc: policy 禁止依赖 domain internal
-            - pkg: github.com/gin-gonic/gin
-              desc: policy 禁止依赖 gin
-            - pkg: gorm.io
-              desc: policy 禁止依赖 ORM
-
-        # 入口 support：只放浅层错误，禁止承载业务或依赖领域
+        # 入口 support：usecase 可复用逻辑（浅层错误、跨域策略），禁止依赖编排实现与领域内部
         server-support:
           list-mode: lax
           files:
@@ -146,10 +115,18 @@ linters:
               desc: support 禁止依赖 handler
             - pkg: yomi-admin-backend/apps/server/internal/usecase
               desc: support 禁止依赖 usecase
-            - pkg: yomi-admin-backend/apps/server/internal/policy
-              desc: support 禁止依赖 policy
-            - pkg: yomi-admin-backend/domains
-              desc: support 只放浅层错误，禁止依赖 domains
+            - pkg: yomi-admin-backend/domains/user/provider
+              desc: support 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/rbac/provider
+              desc: support 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/httprecord/provider
+              desc: support 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/user/internal
+              desc: support 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/rbac/internal
+              desc: support 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/httprecord/internal
+              desc: support 禁止依赖 domain internal
             - pkg: github.com/gin-gonic/gin
               desc: support 禁止依赖 gin
             - pkg: gorm.io
@@ -326,7 +303,6 @@ linters:
             - "!**/internal/bootstrap/**"
             - "!**/internal/handler/**"
             - "!**/internal/usecase/**"
-            - "!**/internal/policy/**"
             - "!**/internal/support/**"
             - "!**/internal/middleware/**"
             - "!**/service_contract/**"

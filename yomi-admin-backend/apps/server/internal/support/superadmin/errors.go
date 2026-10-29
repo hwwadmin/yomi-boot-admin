@@ -1,4 +1,4 @@
-// Package superadmin 编排层跨域策略：超管角色的授予、回收与最后一名启用超管保护。
+// Package superadmin 供 usecase 复用的超管安全策略：超管角色的授予、回收与最后一名启用超管保护。
 package superadmin
 
 import "gitee.com/hq_project/yomi-boot/component/core/errors"

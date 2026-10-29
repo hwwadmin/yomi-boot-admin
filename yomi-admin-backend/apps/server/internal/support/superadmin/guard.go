@@ -1,6 +1,6 @@
-// Package superadmin 编排层跨域策略：超管角色的授予、回收与最后一名启用超管保护。
+// Package superadmin 供 usecase 复用的超管安全策略：超管角色的授予、回收与最后一名启用超管保护。
 //
-// 本包只依赖各领域的公开契约与共享类型，不承载协议、存储或单域不变量。
+// 本包属于入口 support 层，只依赖各领域的公开契约与共享类型，不承载协议、存储或单域不变量。
 package superadmin
 
 import (
