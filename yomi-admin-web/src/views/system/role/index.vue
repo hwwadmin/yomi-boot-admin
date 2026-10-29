@@ -55,13 +55,17 @@ onMounted(fetchList)
 const refreshingCache = ref(false)
 
 async function handleRefreshCache() {
+  const confirmed = await confirmAction({
+    title: '刷新权限缓存',
+    message: '将按数据库重建权限缓存，所有实例随后立即生效。确定刷新吗？',
+    confirmButtonText: '刷新',
+  })
+  if (!confirmed) return
+
   refreshingCache.value = true
   try {
-    const result = await refreshRbacCache()
-    ElMessage.success({
-      message: `缓存已刷新：角色 ${result.roleCount} / 权限 ${result.permissionCount} / 权限组 ${result.permissionGroupCount}，耗时 ${result.durationMs}ms`,
-      duration: 5000,
-    })
+    await refreshRbacCache()
+    ElMessage.success('刷新成功')
   } finally {
     refreshingCache.value = false
   }
@@ -237,6 +241,7 @@ async function saveGroups() {
         </el-button>
         <el-button
           v-permission="'system:rbac_cache:refresh'"
+          type="warning"
           :loading="refreshingCache"
           @click="handleRefreshCache"
         >
