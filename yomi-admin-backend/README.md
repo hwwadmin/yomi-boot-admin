@@ -64,20 +64,14 @@ script/dev/         开发脚本
 
 ## 登录验证码
 
-- 使用 yomi-boot 的 `component/common/captcha`，默认 4 位数字、160x60、180 秒有效。
-  答案只以 SHA-256 摘要写入 Redis（key `yomi:captcha:login:{id}`），校验时原子取出并删除，
-  同一个验证码至多成功使用一次。
-- `GET /api/auth/captcha` 返回 `{ id, image, expiresIn }`，`image` 是 `data:image/png;base64,...`，
-  可直接作为 `img src`；响应带 `Cache-Control: no-store`。该接口不需要 Token 与 API 权限。
-- 登录入参增加 `captchaId`、`captchaCode`，后端先校验验证码再校验账号密码。失败码：
-  `ADMIN_CAPTCHA_REQUIRED`（未填写）、`ADMIN_CAPTCHA_INVALID`（失效/已用）、
-  `ADMIN_CAPTCHA_MISMATCH`（答案错误）、`ADMIN_CAPTCHA_GENERATE_FAILED` /
-  `ADMIN_CAPTCHA_UNAVAILABLE`（服务异常）。
-- 配置在 `biz.captcha`（`config/dev.yml`、`prod.yml`）：`enabled`、`driver`、`length`、
-  `width`、`height`、`ttl_seconds`、`key_prefix`。跑集成测试时用
-  `YOMI_ADMIN_BIZ_CAPTCHA_ENABLED=false` 关闭登录校验；关闭后 `/api/auth/captcha`
-  仍可访问，只是登录不再强制校验。
-- 生产环境建议对验证码生成接口按 IP 限流（当前未接入限流组件）。
+- 登录前需要图形验证码（yomi-boot `component/common/captcha`）：`GET /api/auth/captcha`
+  返回 `{ id, image, expiresIn }`，登录入参带 `captchaId`、`captchaCode`；答案只存 Redis
+  摘要，一次性消费。
+- 同一 IP 刷新验证码有最小间隔，配置在 `biz.captcha.refresh_interval_seconds`（默认 10 秒，
+  0 表示不限流），超限返回 `ADMIN_CAPTCHA_TOO_FREQUENT`；限流由 `ratelimit` 插件提供，
+  需要 `ratelimit.enabled=true`。部署在反向代理后时要配置 `http.trusted_proxies`，
+  否则所有请求都会按代理 IP 限流。
+- 本地跑集成测试时用 `YOMI_ADMIN_BIZ_CAPTCHA_ENABLED=false` 关闭校验。
 
 ## 超管与 Token
 

@@ -31,6 +31,7 @@ import (
 	appctxplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/appctx"
 	dbplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/db"
 	redisplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/redis"
+	redisratelimitplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/redisratelimit"
 	snowflakeplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/snowflake"
 	tokenplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/token"
 
@@ -78,6 +79,7 @@ func load(slot *plugin.PluginSlot) container {
 		snowflakePlugin := snowflakeplugin.From(slot)
 		appCtxPlugin := appctxplugin.From(slot)
 		redisPlugin := redisplugin.From(slot)
+		rateLimitPlugin := redisratelimitplugin.From(slot)
 
 		if db.DB() == nil || txPlugin.Executor() == nil || tokenPlugin.Service() == nil ||
 			snowflakePlugin.Generator() == nil || appCtxPlugin.AppCtx() == nil ||
@@ -86,6 +88,11 @@ func load(slot *plugin.PluginSlot) container {
 		}
 
 		bizCfg := config.MustSection[svcconfig.BootConfig](slot.Config, svcconfig.SectionKey)
+		rateLimitCfg := config.MustSection[redisratelimitplugin.BootConfig](slot.Config, redisratelimitplugin.SectionKey)
+		if bizCfg.Captcha.RefreshInterval() > 0 && !rateLimitCfg.EnabledOrDefault() {
+			panic("yomi-admin: biz.captcha 刷新限流需要启用 ratelimit 插件（ratelimit.enabled=true）")
+		}
+
 		captchaStore, err := captcha.NewRedisStore(redisPlugin.Service(), captcha.RedisStoreConfig{
 			KeyPrefix: bizCfg.Captcha.KeyPrefixOrDefault(),
 		})
@@ -112,6 +119,8 @@ func load(slot *plugin.PluginSlot) container {
 			token: tokenPlugin.Service(),
 			captcha: authusecase.NewCaptchaUsecase(
 				captcha.MustNew(captchaStore, bizCfg.Captcha.ToConfig()),
+				rateLimitPlugin.Limiter(),
+				bizCfg.Captcha.RefreshInterval(),
 				bizCfg.Captcha.EnabledOrDefault(),
 			),
 			appCtx: appCtxPlugin.AppCtx(),

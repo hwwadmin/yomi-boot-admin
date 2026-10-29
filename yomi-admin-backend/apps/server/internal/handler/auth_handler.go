@@ -6,6 +6,7 @@ import (
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 
 	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
+	"gitee.com/hq_project/yomi-boot/component/core/utils/ginutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,7 +39,9 @@ func (h *AuthHandler) Routes(router *gin.RouterGroup) {
 
 func (h *AuthHandler) captcha(c *gin.Context) {
 	c.Header("Cache-Control", "no-store")
-	corehandler.Handle(c, h.captchaUC.Generate)
+	corehandler.Handle(c, func(ctx context.Context) (*authusecase.CaptchaOutput, error) {
+		return h.captchaUC.Generate(ctx, ginutil.ClientIP(c))
+	})
 }
 
 func (h *AuthHandler) login(c *gin.Context) {

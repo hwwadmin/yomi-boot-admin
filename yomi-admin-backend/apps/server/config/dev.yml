@@ -70,6 +70,12 @@ redis:
   password: "hww350521"
   db: 0
 
+# 调用式限流：验证码生成按 IP 限制刷新频率
+ratelimit:
+  enabled: true
+  key_prefix: yomi:rl
+  redis_error_policy: fail_closed
+
 token:
   enabled: true
   token_ttl_minutes: 120
@@ -94,6 +100,7 @@ biz:
     height: 60
     ttl_seconds: 180
     key_prefix: yomi:captcha:login
+    refresh_interval_seconds: 10
 
 # HTTP 访问记录：中间件采集 + 进程内消费者落库，供后台「访问记录」页面查询
 http_record:

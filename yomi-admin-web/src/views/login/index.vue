@@ -16,6 +16,7 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 const captcha = ref<CaptchaChallenge>()
 const captchaLoading = ref(false)
+const captchaStale = ref(false)
 const form = reactive({ username: '', password: '', captchaCode: '' })
 
 const rules: FormRules = {
@@ -26,13 +27,14 @@ const rules: FormRules = {
 
 const showMockTip = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true'
 
-/** 拉取新验证码；验证码一次性消费，登录失败后必须刷新 */
+/** 拉取新验证码；刷新失败（如触发限流）时保留当前图片 */
 async function refreshCaptcha() {
   captchaLoading.value = true
   try {
     captcha.value = await getCaptcha()
+    captchaStale.value = false
   } catch {
-    captcha.value = undefined
+    // 失败提示由 request 拦截器统一处理
   } finally {
     captchaLoading.value = false
   }
@@ -53,8 +55,9 @@ async function handleLogin() {
     const redirect = (route.query.redirect as string) || '/'
     router.replace(redirect)
   } catch {
-    // 登录失败时验证码已在服务端消费，清空输入并换一张
+    // 登录失败时验证码已在服务端消费：清空输入并尝试换一张
     form.captchaCode = ''
+    captchaStale.value = true
     await refreshCaptcha()
   } finally {
     loading.value = false
@@ -106,6 +109,9 @@ onMounted(refreshCaptcha)
             >
               <img v-if="captcha" :src="captcha.image" alt="验证码" />
               <span v-else>{{ captchaLoading ? '加载中' : '点击加载' }}</span>
+              <span v-if="captcha && captchaStale" class="captcha-stale-tip">
+                已失效<br />点击刷新
+              </span>
             </button>
           </div>
         </el-form-item>
@@ -163,6 +169,7 @@ onMounted(refreshCaptcha)
 }
 
 .captcha-image {
+  position: relative;
   display: flex;
   flex: 0 0 120px;
   align-items: center;
@@ -186,6 +193,19 @@ onMounted(refreshCaptcha)
   width: 100%;
   height: 100%;
   object-fit: fill;
+}
+
+.captcha-stale-tip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
+  background: rgb(0 0 0 / 45%);
 }
 
 .login-btn {

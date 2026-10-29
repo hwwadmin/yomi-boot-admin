@@ -242,6 +242,10 @@ const httpRecords: MockHttpRecord[] = httpRecordSeeds.map((seed, index) => {
 const tokenToUsername = new Map<string, string>()
 const captchaStore = new Map<string, { code: string; expiresAt: number }>()
 
+/** 与后端一致：同一 IP 生成验证码的最小间隔 */
+const CAPTCHA_REFRESH_INTERVAL_MS = 10_000
+let lastCaptchaAt = 0
+
 /** 生成 mock 验证码：SVG 里直接画出答案，方便本地手动登录 */
 function createCaptcha() {
   for (const [key, value] of captchaStore) {
@@ -388,6 +392,10 @@ const routes: MockRoute[] = [
     pattern: /^\/api\/auth\/captcha$/,
     handler: async ({ res }) => {
       await delay(80)
+      if (now() - lastCaptchaAt < CAPTCHA_REFRESH_INTERVAL_MS) {
+        return sendJson(res, fail('验证码刷新过于频繁，请 10 秒后重试', 'ADMIN_CAPTCHA_TOO_FREQUENT'))
+      }
+      lastCaptchaAt = now()
       sendJson(res, ok(createCaptcha()))
     },
   },

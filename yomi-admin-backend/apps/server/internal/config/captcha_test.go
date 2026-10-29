@@ -55,3 +55,33 @@ func TestCaptchaConfigEnabledFalse(t *testing.T) {
 		t.Fatal("enabled=false 时应关闭")
 	}
 }
+
+func TestCaptchaConfigRefreshInterval(t *testing.T) {
+	var cfg CaptchaConfig
+	if got := cfg.RefreshInterval(); got != 10*time.Second {
+		t.Fatalf("默认刷新间隔应为 10s，实际 %s", got)
+	}
+
+	zero := 0
+	cfg.RefreshIntervalSeconds = &zero
+	if got := cfg.RefreshInterval(); got != 0 {
+		t.Fatalf("显式 0 应关闭限流，实际 %s", got)
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("0 应合法: %v", err)
+	}
+}
+
+func TestCaptchaConfigRejectsInvalidRefreshInterval(t *testing.T) {
+	negative := -1
+	cfg := CaptchaConfig{RefreshIntervalSeconds: &negative}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("负间隔应校验失败")
+	}
+
+	tooLarge := maxCaptchaRefreshIntervalSeconds + 1
+	cfg = CaptchaConfig{RefreshIntervalSeconds: &tooLarge}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("超过上限的间隔应校验失败")
+	}
+}
