@@ -13,7 +13,7 @@
 ## 1. 文档定位
 
 - **用途**：约束 Go 后端异常的定义方式、创建函数选择、分层传播规则与 Handler 层统一处理口径，确保异常可追溯、可响应、可排查。
-- **边界**：不覆盖分布式事务的幂等错误处理（见 [Go事务规范](./Go事务规范.md) §3.4）；不覆盖微服务间调用错误的信封解析（见 [微服务调用规范](./微服务调用规范.md) §3）；HTTP 出口编码适配见 [API编码适配规范](./API编码适配规范.md)。
+- **边界**：不覆盖分布式事务的幂等错误处理（见 [Go事务规范](./Go事务规范.md) §5.5）；不覆盖微服务间调用错误的信封解析（见 [微服务调用规范](./微服务调用规范.md) §3）；HTTP 出口编码适配见 [API编码适配规范](./API编码适配规范.md)。
 - **适用对象**：`gitee.com/hq_project/yomi-boot/` 本库，以及基于 gitee.com/hq_project/yomi-boot 的业务工程中涉及 error 创建、传播、处理与响应的 Go 代码。
 
 ---
@@ -194,6 +194,7 @@ BindAndHandle / Handle / ...
 | ---- | ---- | -------- |
 | 系统通用 | `INTERNAL_ERROR`、`INVALID_BODY`、`INVALID_INPUT`、`REQUEST_TIMEOUT`、`REQUEST_BODY_TOO_LARGE` | `gitee.com/hq_project/yomi-boot/component/core/shared/error` |
 | 令牌域（boot） | `TOKEN_INVALID`、`TOKEN_REQUIRED`、`TOKEN_VALIDATE_FAILED` | `gitee.com/hq_project/yomi-boot/component/common/token` 就近 |
+| 验证码域 | `CAPTCHA_INVALID_ARGUMENT`、`CAPTCHA_EXPIRED`、`CAPTCHA_MISMATCH`、`CAPTCHA_GENERATE_FAILED` | `gitee.com/hq_project/yomi-boot/component/common/captcha` 就近 |
 | 限流 / 下游 | `RATE_LIMITED`、`DOWNSTREAM_ERROR` | 对应库就近 |
 | 业务域 | `USER_NOT_FOUND` 等 | 各服务 `bizerr` |
 | 权限域 | `PERMISSION_DENIED` 等 | **仅业务仓**，gitee.com/hq_project/yomi-boot 不定义 |
