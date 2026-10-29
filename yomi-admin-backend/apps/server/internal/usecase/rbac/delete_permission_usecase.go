@@ -1,0 +1,43 @@
+package rbac
+
+import (
+	"context"
+
+	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
+	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
+
+	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
+	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+)
+
+// DeletePermissionInput HTTP 删除权限入参
+type DeletePermissionInput struct {
+	ID         dto.JSONInt64 `json:"id"`
+	OperatorID int64         `json:"-"`
+}
+
+// DeletePermissionUsecase 删除权限编排
+type DeletePermissionUsecase struct {
+	rbac rbaccontract.RbacAdminService
+	tx   dbtx.Executor
+}
+
+// NewDeletePermissionUsecase 创建删除权限用例
+func NewDeletePermissionUsecase(rbac rbaccontract.RbacAdminService, tx dbtx.Executor) *DeletePermissionUsecase {
+	return &DeletePermissionUsecase{rbac: rbac, tx: tx}
+}
+
+// Execute 在事务中硬删除权限
+func (uc *DeletePermissionUsecase) Execute(ctx context.Context, in *DeletePermissionInput) error {
+	id := in.ID.Int64()
+	if id <= 0 {
+		return errors.Sentinel(rbaccontract.ErrInvalidInput)
+	}
+	return uc.tx.Run(ctx, func(txCtx context.Context) error {
+		return uc.rbac.DeletePermission(txCtx, &rbacinput.DeletePermissionInput{
+			ID:         id,
+			OperatorID: in.OperatorID,
+		})
+	})
+}

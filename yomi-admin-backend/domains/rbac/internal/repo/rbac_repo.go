@@ -198,16 +198,35 @@ func (r *RbacRepo) CreateRole(ctx context.Context, role *entity.Role, operatorID
 	return nil
 }
 
-// UpdateRole 更新角色资料与状态
+// UpdateRole 更新角色资料
 func (r *RbacRepo) UpdateRole(ctx context.Context, role *entity.Role, operatorID int64) error {
 	updates := map[string]any{
 		"name":      role.Name,
 		"remark":    role.Remark,
-		"status":    role.Status,
 		"update_by": ptrutil.PtrFromInt64(operatorID),
 	}
 	if err := r.UpdateByID(ctx, role.ID, &roleModel{}, updates); err != nil {
 		return errors.Wrap(err, "更新角色失败")
+	}
+	return nil
+}
+
+// UpdateRoleStatus 更新角色启停
+func (r *RbacRepo) UpdateRoleStatus(ctx context.Context, id int64, status enums.Status, operatorID int64) error {
+	updates := map[string]any{
+		"status":    status,
+		"update_by": ptrutil.PtrFromInt64(operatorID),
+	}
+	if err := r.UpdateByID(ctx, id, &roleModel{}, updates); err != nil {
+		return errors.Wrap(err, "更新角色状态失败")
+	}
+	return nil
+}
+
+// DeleteRole 硬删除角色
+func (r *RbacRepo) DeleteRole(ctx context.Context, id int64) error {
+	if err := r.DeleteByID(ctx, id, &roleModel{}); err != nil {
+		return errors.Wrap(err, "删除角色失败")
 	}
 	return nil
 }
@@ -286,16 +305,35 @@ func (r *RbacRepo) CreatePermissionGroup(ctx context.Context, group *entity.Perm
 	return nil
 }
 
-// UpdatePermissionGroup 更新权限组资料与状态
+// UpdatePermissionGroup 更新权限组资料
 func (r *RbacRepo) UpdatePermissionGroup(ctx context.Context, group *entity.PermissionGroup, operatorID int64) error {
 	updates := map[string]any{
 		"name":      group.Name,
 		"remark":    group.Remark,
-		"status":    group.Status,
 		"update_by": ptrutil.PtrFromInt64(operatorID),
 	}
 	if err := r.UpdateByID(ctx, group.ID, &permissionGroupModel{}, updates); err != nil {
 		return errors.Wrap(err, "更新权限组失败")
+	}
+	return nil
+}
+
+// UpdatePermissionGroupStatus 更新权限组启停
+func (r *RbacRepo) UpdatePermissionGroupStatus(ctx context.Context, id int64, status enums.Status, operatorID int64) error {
+	updates := map[string]any{
+		"status":    status,
+		"update_by": ptrutil.PtrFromInt64(operatorID),
+	}
+	if err := r.UpdateByID(ctx, id, &permissionGroupModel{}, updates); err != nil {
+		return errors.Wrap(err, "更新权限组状态失败")
+	}
+	return nil
+}
+
+// DeletePermissionGroup 硬删除权限组
+func (r *RbacRepo) DeletePermissionGroup(ctx context.Context, id int64) error {
+	if err := r.DeleteByID(ctx, id, &permissionGroupModel{}); err != nil {
+		return errors.Wrap(err, "删除权限组失败")
 	}
 	return nil
 }
@@ -309,6 +347,47 @@ func (r *RbacRepo) FindPermissionByID(ctx context.Context, id int64) (*entity.Pe
 	}
 	if !found {
 		return nil, false, nil
+	}
+	return toPermissionEntity(&row), true, nil
+}
+
+// FindPermissionByCode 按编码查询权限
+func (r *RbacRepo) FindPermissionByCode(ctx context.Context, code string) (*entity.Permission, bool, error) {
+	var row permissionModel
+	found, err := r.FirstByField(ctx, "code", code, &row)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "按编码查询权限失败")
+	}
+	if !found {
+		return nil, false, nil
+	}
+	return toPermissionEntity(&row), true, nil
+}
+
+// FindPermissionByUIPath 按菜单路径查询权限
+func (r *RbacRepo) FindPermissionByUIPath(ctx context.Context, uiPath string) (*entity.Permission, bool, error) {
+	var row permissionModel
+	found, err := r.FirstByField(ctx, "ui_path", uiPath, &row)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "按菜单路径查询权限失败")
+	}
+	if !found {
+		return nil, false, nil
+	}
+	return toPermissionEntity(&row), true, nil
+}
+
+// FindPermissionByHTTPRoute 按 HTTP 方法 + 路由模板查询权限
+func (r *RbacRepo) FindPermissionByHTTPRoute(ctx context.Context, method, path string) (*entity.Permission, bool, error) {
+	var row permissionModel
+	err := tx.Exec(ctx, r.DB).
+		Where("http_method = ? AND http_path = ?", method, path).
+		First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, errors.Wrap(err, "按 HTTP 路由查询权限失败")
 	}
 	return toPermissionEntity(&row), true, nil
 }
@@ -365,6 +444,44 @@ func (r *RbacRepo) UpdatePermissionStatus(ctx context.Context, id int64, status 
 	return nil
 }
 
+// CreatePermission 创建权限
+func (r *RbacRepo) CreatePermission(ctx context.Context, permission *entity.Permission, operatorID int64) error {
+	if err := r.Create(ctx, toPermissionModel(permission, operatorID)); err != nil {
+		if yomidb.IsDuplicateKey(err, r.dbType) {
+			return errors.Sentinel(repo_contract.ErrDuplicatedKey)
+		}
+		return err
+	}
+	return nil
+}
+
+// UpdatePermission 更新权限资料
+func (r *RbacRepo) UpdatePermission(ctx context.Context, permission *entity.Permission, operatorID int64) error {
+	updates := map[string]any{
+		"name":        permission.Name,
+		"ui_path":     ptrutil.PtrFromString(permission.UIPath),
+		"http_method": ptrutil.PtrFromString(permission.HTTPMethod),
+		"http_path":   ptrutil.PtrFromString(permission.HTTPPath),
+		"remark":      permission.Remark,
+		"update_by":   ptrutil.PtrFromInt64(operatorID),
+	}
+	if err := r.UpdateByID(ctx, permission.ID, &permissionModel{}, updates); err != nil {
+		if yomidb.IsDuplicateKey(err, r.dbType) {
+			return errors.Sentinel(repo_contract.ErrDuplicatedKey)
+		}
+		return errors.Wrap(err, "更新权限失败")
+	}
+	return nil
+}
+
+// DeletePermission 硬删除权限
+func (r *RbacRepo) DeletePermission(ctx context.Context, id int64) error {
+	if err := r.DeleteByID(ctx, id, &permissionModel{}); err != nil {
+		return errors.Wrap(err, "删除权限失败")
+	}
+	return nil
+}
+
 // ListGroupIDsByRoleID 列出角色已绑权限组 ID
 func (r *RbacRepo) ListGroupIDsByRoleID(ctx context.Context, roleID int64) ([]int64, error) {
 	var ids []int64
@@ -376,6 +493,29 @@ func (r *RbacRepo) ListGroupIDsByRoleID(ctx context.Context, roleID int64) ([]in
 		return nil, errors.Wrap(err, "查询角色权限组失败")
 	}
 	return ids, nil
+}
+
+// CountUserRolesByRoleID 统计绑定了角色的用户数
+func (r *RbacRepo) CountUserRolesByRoleID(ctx context.Context, roleID int64) (int64, error) {
+	var total int64
+	if err := tx.Exec(ctx, r.DB).
+		Model(&userRoleRelModel{}).
+		Where("role_id = ?", roleID).
+		Count(&total).Error; err != nil {
+		return 0, errors.Wrap(err, "统计角色用户绑定失败")
+	}
+	return total, nil
+}
+
+// DeleteUserRolesByUserID 硬删除用户全部角色关系
+func (r *RbacRepo) DeleteUserRolesByUserID(ctx context.Context, userID int64) error {
+	if err := tx.Exec(ctx, r.DB).
+		Unscoped().
+		Where("user_id = ?", userID).
+		Delete(&userRoleRelModel{}).Error; err != nil {
+		return errors.Wrap(err, "清理用户角色失败")
+	}
+	return nil
 }
 
 // ReplaceRoleGroups 覆盖角色权限组绑定
@@ -406,6 +546,40 @@ func (r *RbacRepo) ListPermissionIDsByRoleID(ctx context.Context, roleID int64) 
 	return ids, nil
 }
 
+// DeleteRoleGroupsByRoleID 硬删除角色全部权限组关系
+func (r *RbacRepo) DeleteRoleGroupsByRoleID(ctx context.Context, roleID int64) error {
+	if err := tx.Exec(ctx, r.DB).
+		Unscoped().
+		Where("role_id = ?", roleID).
+		Delete(&roleGroupRelModel{}).Error; err != nil {
+		return errors.Wrap(err, "清理角色权限组失败")
+	}
+	return nil
+}
+
+// CountRoleGroupsByGroupID 统计绑定了权限组的角色数
+func (r *RbacRepo) CountRoleGroupsByGroupID(ctx context.Context, groupID int64) (int64, error) {
+	var total int64
+	if err := tx.Exec(ctx, r.DB).
+		Model(&roleGroupRelModel{}).
+		Where("group_id = ?", groupID).
+		Count(&total).Error; err != nil {
+		return 0, errors.Wrap(err, "统计权限组角色绑定失败")
+	}
+	return total, nil
+}
+
+// DeleteRoleGroupsByGroupID 硬删除权限组全部角色关系
+func (r *RbacRepo) DeleteRoleGroupsByGroupID(ctx context.Context, groupID int64) error {
+	if err := tx.Exec(ctx, r.DB).
+		Unscoped().
+		Where("group_id = ?", groupID).
+		Delete(&roleGroupRelModel{}).Error; err != nil {
+		return errors.Wrap(err, "清理权限组角色关系失败")
+	}
+	return nil
+}
+
 // ListPermissionIDsByGroupID 列出权限组已绑权限 ID
 func (r *RbacRepo) ListPermissionIDsByGroupID(ctx context.Context, groupID int64) ([]int64, error) {
 	var ids []int64
@@ -432,6 +606,28 @@ func (r *RbacRepo) ReplaceGroupPermissions(ctx context.Context, groupID int64, r
 	}
 	if err := r.CreateInBatches(ctx, toGroupPermissionRelModels(rels, operatorID), 100); err != nil {
 		return errors.Wrap(err, "写入权限组权限失败")
+	}
+	return nil
+}
+
+// DeleteGroupPermissionsByGroupID 硬删除权限组全部权限关系
+func (r *RbacRepo) DeleteGroupPermissionsByGroupID(ctx context.Context, groupID int64) error {
+	if err := tx.Exec(ctx, r.DB).
+		Unscoped().
+		Where("group_id = ?", groupID).
+		Delete(&groupPermissionRelModel{}).Error; err != nil {
+		return errors.Wrap(err, "清理权限组权限失败")
+	}
+	return nil
+}
+
+// DeleteGroupPermissionsByPermissionID 硬删除权限被权限组引用的全部关系
+func (r *RbacRepo) DeleteGroupPermissionsByPermissionID(ctx context.Context, permissionID int64) error {
+	if err := tx.Exec(ctx, r.DB).
+		Unscoped().
+		Where("permission_id = ?", permissionID).
+		Delete(&groupPermissionRelModel{}).Error; err != nil {
+		return errors.Wrap(err, "清理权限的权限组关系失败")
 	}
 	return nil
 }

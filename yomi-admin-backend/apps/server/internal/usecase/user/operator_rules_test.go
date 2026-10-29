@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 	"yomi-admin-backend/apps/server/internal/support"
+	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 	"yomi-admin-backend/domains/user/pkg/shared/enums"
 	"yomi-admin-backend/domains/user/service_contract"
 
@@ -32,6 +33,17 @@ func (f *fakeUserService) Update(_ context.Context, in *userinput.UpdateUserInpu
 func (f *fakeUserService) Delete(_ context.Context, in *userinput.DeleteUserInput) error {
 	f.deleted = in
 	return f.deleteErr
+}
+
+// fakeRbacAdmin 只实现删除用户角色绑定，其余方法由嵌入接口兜底
+type fakeRbacAdmin struct {
+	rbaccontract.RbacAdminService
+	cleanedUserID int64
+}
+
+func (f *fakeRbacAdmin) DeleteUserRoles(_ context.Context, userID int64) error {
+	f.cleanedUserID = userID
+	return nil
 }
 
 // fakeExecutor 在当前协程内直接执行事务闭包
@@ -147,9 +159,10 @@ func TestUpdateSelfEnableAllowed(t *testing.T) {
 
 func TestDeleteUserCannotDeleteSelf(t *testing.T) {
 	users := &fakeUserService{}
+	rbacAdmin := &fakeRbacAdmin{}
 	guard := &fakeGuard{}
 	tokens := &fakeTokenService{}
-	uc := NewDeleteUserUsecase(users, guard, fakeExecutor{}, tokens)
+	uc := NewDeleteUserUsecase(users, rbacAdmin, guard, fakeExecutor{}, tokens)
 
 	if err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(7), OperatorID: 7}); !errors.Is(err, support.ErrCannotOperateSelf) {
 		t.Fatalf("删除自己期望 ErrCannotOperateSelf，实际 %v", err)
@@ -161,9 +174,10 @@ func TestDeleteUserCannotDeleteSelf(t *testing.T) {
 
 func TestDeleteOtherUserRevokesToken(t *testing.T) {
 	users := &fakeUserService{}
+	rbacAdmin := &fakeRbacAdmin{}
 	guard := &fakeGuard{}
 	tokens := &fakeTokenService{}
-	uc := NewDeleteUserUsecase(users, guard, fakeExecutor{}, tokens)
+	uc := NewDeleteUserUsecase(users, rbacAdmin, guard, fakeExecutor{}, tokens)
 
 	if err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(8), OperatorID: 1}); err != nil {
 		t.Fatalf("删除他人失败: %v", err)
@@ -176,6 +190,9 @@ func TestDeleteOtherUserRevokesToken(t *testing.T) {
 	}
 	if users.deleted == nil || users.deleted.ID != 8 {
 		t.Fatalf("删除未透传: %+v", users.deleted)
+	}
+	if rbacAdmin.cleanedUserID != 8 {
+		t.Fatalf("用户角色未清理: %d", rbacAdmin.cleanedUserID)
 	}
 	if len(tokens.revoked) != 1 || tokens.revoked[0] != 8 {
 		t.Fatalf("令牌未撤销: %v", tokens.revoked)
@@ -227,9 +244,10 @@ func TestUpdateUserTokenRevokeFailsAfterRetries(t *testing.T) {
 
 func TestDeleteUserRevokesTokenWhenAlreadyDeleted(t *testing.T) {
 	users := &fakeUserService{deleteErr: errors.Sentinel(service_contract.ErrUserNotFound)}
+	rbacAdmin := &fakeRbacAdmin{}
 	guard := &fakeGuard{}
 	tokens := &fakeTokenService{}
-	uc := NewDeleteUserUsecase(users, guard, fakeExecutor{}, tokens)
+	uc := NewDeleteUserUsecase(users, rbacAdmin, guard, fakeExecutor{}, tokens)
 
 	err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(8), OperatorID: 1})
 	if !errors.Is(err, service_contract.ErrUserNotFound) {
@@ -245,9 +263,10 @@ func TestDeleteUserRevokesTokenWhenAlreadyDeleted(t *testing.T) {
 
 func TestDeleteUserTokenRevokeFailsAfterRetries(t *testing.T) {
 	users := &fakeUserService{}
+	rbacAdmin := &fakeRbacAdmin{}
 	guard := &fakeGuard{}
 	tokens := &fakeTokenService{failures: tokenRevokeAttempts}
-	uc := NewDeleteUserUsecase(users, guard, fakeExecutor{}, tokens)
+	uc := NewDeleteUserUsecase(users, rbacAdmin, guard, fakeExecutor{}, tokens)
 
 	err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(8), OperatorID: 1})
 	if !errors.Is(err, support.ErrTokenRevokeFailed) {

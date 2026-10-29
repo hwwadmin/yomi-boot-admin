@@ -246,4 +246,106 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	if role, ok, _ := r.FindRoleByID(ctx, 2); !ok || role.Name != "只读角色" {
 		t.Fatalf("角色更新未生效: %+v", role)
 	}
+
+	// 角色启停独立更新
+	if err := r.UpdateRoleStatus(ctx, 2, enums.StatusDisabled, 1); err != nil {
+		t.Fatalf("更新角色状态失败: %v", err)
+	}
+	if role, ok, _ := r.FindRoleByID(ctx, 2); !ok || role.Status != enums.StatusDisabled {
+		t.Fatalf("角色状态未更新: %+v", role)
+	}
+
+	// 权限创建、查询与更新
+	auditMenu := &entity.Permission{
+		ID: 30, Code: "system:audit", Name: "审计", Type: enums.PermissionTypeMenu,
+		UIPath: "/system/audit", Status: enums.StatusEnabled,
+	}
+	if err := r.CreatePermission(ctx, auditMenu, 1); err != nil {
+		t.Fatalf("创建菜单权限失败: %v", err)
+	}
+	if permission, ok, err := r.FindPermissionByCode(ctx, "system:audit"); err != nil || !ok || permission.ID != 30 {
+		t.Fatalf("按编码查询权限失败: %+v ok=%v err=%v", permission, ok, err)
+	}
+	if permission, ok, err := r.FindPermissionByUIPath(ctx, "/system/audit"); err != nil || !ok || permission.ID != 30 {
+		t.Fatalf("按菜单路径查询权限失败: %+v ok=%v err=%v", permission, ok, err)
+	}
+	reportAPI := &entity.Permission{
+		ID: 31, Code: "system:audit:report", Name: "审计报表", Type: enums.PermissionTypeAPI,
+		HTTPMethod: "GET", HTTPPath: "/api/system/audit/report", Status: enums.StatusEnabled,
+	}
+	if err := r.CreatePermission(ctx, reportAPI, 1); err != nil {
+		t.Fatalf("创建接口权限失败: %v", err)
+	}
+	if permission, ok, err := r.FindPermissionByHTTPRoute(ctx, "GET", "/api/system/audit/report"); err != nil || !ok || permission.ID != 31 {
+		t.Fatalf("按 HTTP 路由查询权限失败: %+v ok=%v err=%v", permission, ok, err)
+	}
+	auditMenu.Name = "审计日志"
+	auditMenu.UIPath = "/system/audit-log"
+	if err := r.UpdatePermission(ctx, auditMenu, 1); err != nil {
+		t.Fatalf("更新权限失败: %v", err)
+	}
+	if permission, ok, _ := r.FindPermissionByID(ctx, 30); !ok || permission.Name != "审计日志" || permission.UIPath != "/system/audit-log" {
+		t.Fatalf("权限更新未生效: %+v", permission)
+	}
+
+	// 权限删除同步清理权限组关系
+	if err := r.ReplaceGroupPermissions(ctx, 21, []*entity.GroupPermissionRel{
+		{ID: 104, GroupID: 21, PermissionID: 30},
+	}, 1); err != nil {
+		t.Fatalf("权限组绑定待删除权限失败: %v", err)
+	}
+	if err := r.DeleteGroupPermissionsByPermissionID(ctx, 30); err != nil {
+		t.Fatalf("清理权限组关系失败: %v", err)
+	}
+	if ids, err := r.ListPermissionIDsByGroupID(ctx, 21); err != nil || len(ids) != 0 {
+		t.Fatalf("权限组关系未清理: ids=%v err=%v", ids, err)
+	}
+	if err := r.DeletePermission(ctx, 30); err != nil {
+		t.Fatalf("删除权限失败: %v", err)
+	}
+	if _, ok, _ := r.FindPermissionByID(ctx, 30); ok {
+		t.Fatal("权限未硬删除")
+	}
+
+	// 用户角色关系清理与绑定计数
+	if err := r.DeleteUserRolesByUserID(ctx, 7); err != nil {
+		t.Fatalf("清理用户角色失败: %v", err)
+	}
+	if ids, err := r.ListRoleIDsByUserID(ctx, 7); err != nil || len(ids) != 0 {
+		t.Fatalf("用户角色未清理: ids=%v err=%v", ids, err)
+	}
+	if total, err := r.CountUserRolesByRoleID(ctx, 3); err != nil || total != 1 {
+		t.Fatalf("角色用户绑定计数不符: total=%d err=%v", total, err)
+	}
+	if total, err := r.CountRoleGroupsByGroupID(ctx, 21); err != nil || total != 1 {
+		t.Fatalf("权限组角色绑定计数不符: total=%d err=%v", total, err)
+	}
+
+	// 角色硬删除同步清理权限组关系
+	if err := r.DeleteRoleGroupsByRoleID(ctx, 2); err != nil {
+		t.Fatalf("清理角色权限组失败: %v", err)
+	}
+	if ids, err := r.ListGroupIDsByRoleID(ctx, 2); err != nil || len(ids) != 0 {
+		t.Fatalf("角色权限组未清理: ids=%v err=%v", ids, err)
+	}
+	if err := r.DeleteRole(ctx, 2); err != nil {
+		t.Fatalf("删除角色失败: %v", err)
+	}
+	if _, ok, _ := r.FindRoleByID(ctx, 2); ok {
+		t.Fatal("角色未硬删除")
+	}
+	if total, err := r.CountRoleGroupsByGroupID(ctx, 21); err != nil || total != 0 {
+		t.Fatalf("删除角色后权限组绑定计数应为 0: total=%d err=%v", total, err)
+	}
+
+	// 权限组硬删除同步清理权限关系
+	if err := r.DeleteGroupPermissionsByGroupID(ctx, 21); err != nil {
+		t.Fatalf("清理权限组权限失败: %v", err)
+	}
+	if err := r.DeletePermissionGroup(ctx, 21); err != nil {
+		t.Fatalf("删除权限组失败: %v", err)
+	}
+	if _, ok, _ := r.FindPermissionGroupByID(ctx, 21); ok {
+		t.Fatal("权限组未硬删除")
+	}
 }

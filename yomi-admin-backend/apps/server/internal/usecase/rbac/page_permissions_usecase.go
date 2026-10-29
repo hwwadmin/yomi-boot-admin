@@ -2,7 +2,7 @@ package rbac
 
 import (
 	"context"
-
+	"yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	rbacenums "yomi-admin-backend/domains/rbac/pkg/shared/enums"
 	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
@@ -60,19 +60,24 @@ func (uc *PagePermissionsUsecase) Execute(ctx context.Context, in *PagePermissio
 
 	items := make([]PermissionItem, 0, len(out.Items))
 	for _, permission := range out.Items {
-		items = append(items, PermissionItem{
-			ID:         dto.JSONInt64(permission.ID),
-			Code:       permission.Code,
-			Name:       permission.Name,
-			Type:       permission.Type,
-			UIPath:     permission.UIPath,
-			HTTPMethod: permission.HTTPMethod,
-			HTTPPath:   permission.HTTPPath,
-			Status:     permission.Status,
-			Remark:     permission.Remark,
-			CreateTime: permission.CreateTime,
-			UpdateTime: permission.UpdateTime,
-		})
+		items = append(items, toPermissionItem(permission))
 	}
 	return &dto.PageOutput[PermissionItem]{Items: items, Total: out.Total}, nil
+}
+
+// toPermissionItem 将权限实体转换为 HTTP 视图
+func toPermissionItem(permission *entity.Permission) PermissionItem {
+	return PermissionItem{
+		ID:         dto.JSONInt64(permission.ID),
+		Code:       permission.Code,
+		Name:       permission.Name,
+		Type:       permission.Type,
+		UIPath:     permission.UIPath,
+		HTTPMethod: permission.HTTPMethod,
+		HTTPPath:   permission.HTTPPath,
+		Status:     permission.Status,
+		Remark:     permission.Remark,
+		CreateTime: permission.CreateTime,
+		UpdateTime: permission.UpdateTime,
+	}
 }

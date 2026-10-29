@@ -115,9 +115,7 @@ CREATE TABLE IF NOT EXISTS `t_rbac_group_permission_rel` (
 INSERT IGNORE INTO `t_rbac_role` (`id`, `code`, `name`, `builtin`, `status`, `remark`)
 VALUES (100000000000000101, 'super_admin', '超级管理员', 1, 'ENABLED', '内置角色，拥有全部权限');
 
--- 接口权限目录以种子为唯一来源，先清空保证路由调整后不留旧记录
-DELETE FROM `t_rbac_permission` WHERE `permission_type` = 'API';
-
+-- 接口权限目录与权限组：种子只负责初始化，管理端可继续维护
 -- 菜单权限，名称与前端导航（权限管理下的 角色 / 权限组 / 权限）保持一致
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001001, 'system:user', '系统用户', 'MENU', '/system/user', NULL, NULL, 'ENABLED');
@@ -155,12 +153,22 @@ INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`,
 VALUES (100000000000001024, 'system:role:update', '更新角色', 'API', NULL, 'POST', '/api/system/role/update', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001025, 'system:role:bind-group', '角色绑定权限组', 'API', NULL, 'POST', '/api/system/role/bind-group', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001026, 'system:role:delete', '删除角色', 'API', NULL, 'POST', '/api/system/role/delete', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001027, 'system:role:status', '角色启停', 'API', NULL, 'POST', '/api/system/role/set-status', 'ENABLED');
 
 -- 权限目录接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001031, 'system:permission:list', '权限列表', 'API', NULL, 'GET', '/api/system/permission', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001032, 'system:permission:status', '权限启停', 'API', NULL, 'POST', '/api/system/permission/set-status', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001033, 'system:permission:create', '创建权限', 'API', NULL, 'POST', '/api/system/permission/create', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001034, 'system:permission:update', '更新权限', 'API', NULL, 'POST', '/api/system/permission/update', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001035, 'system:permission:delete', '删除权限', 'API', NULL, 'POST', '/api/system/permission/delete', 'ENABLED');
 
 -- 用户角色接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
@@ -185,6 +193,10 @@ INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`,
 VALUES (100000000000001064, 'system:permission-group:update', '更新权限组', 'API', NULL, 'POST', '/api/system/permission-group/update', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001065, 'system:permission-group:bind-permission', '权限组绑定权限', 'API', NULL, 'POST', '/api/system/permission-group/bind-permission', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001066, 'system:permission-group:delete', '删除权限组', 'API', NULL, 'POST', '/api/system/permission-group/delete', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001067, 'system:permission-group:status', '权限组启停', 'API', NULL, 'POST', '/api/system/permission-group/set-status', 'ENABLED');
 
 -- 种子权限组：按现有菜单域给出可直接使用的权限包
 INSERT IGNORE INTO `t_rbac_permission_group` (`id`, `code`, `name`, `status`, `remark`)
@@ -225,6 +237,10 @@ INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_
 VALUES (100000000000005015, 100000000000003002, 100000000000001024);
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
 VALUES (100000000000005016, 100000000000003002, 100000000000001025);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005017, 100000000000003002, 100000000000001026);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005018, 100000000000003002, 100000000000001027);
 
 -- 权限管理组
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
@@ -245,6 +261,16 @@ INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_
 VALUES (100000000000005028, 100000000000003003, 100000000000001064);
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
 VALUES (100000000000005029, 100000000000003003, 100000000000001065);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005041, 100000000000003003, 100000000000001033);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005042, 100000000000003003, 100000000000001034);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005043, 100000000000003003, 100000000000001035);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005044, 100000000000003003, 100000000000001066);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005045, 100000000000003003, 100000000000001067);
 
 -- 访问记录组
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)

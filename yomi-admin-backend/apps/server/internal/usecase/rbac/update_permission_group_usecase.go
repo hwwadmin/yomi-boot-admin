@@ -3,7 +3,6 @@ package rbac
 import (
 	"context"
 
-	rbacenums "yomi-admin-backend/domains/rbac/pkg/shared/enums"
 	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
@@ -11,13 +10,12 @@ import (
 	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
-// UpdatePermissionGroupInput HTTP 更新权限组入参；编码不可变
+// UpdatePermissionGroupInput HTTP 更新权限组入参；编码不可变，启停走独立接口
 type UpdatePermissionGroupInput struct {
-	ID         dto.JSONInt64    `json:"id"`
-	Name       string           `json:"name"`
-	Remark     string           `json:"remark"`
-	Status     rbacenums.Status `json:"status"`
-	OperatorID int64            `json:"-"`
+	ID         dto.JSONInt64 `json:"id"`
+	Name       string        `json:"name"`
+	Remark     string        `json:"remark"`
+	OperatorID int64         `json:"-"`
 }
 
 // UpdatePermissionGroupUsecase 更新权限组编排
@@ -40,7 +38,6 @@ func (uc *UpdatePermissionGroupUsecase) Execute(ctx context.Context, in *UpdateP
 		ID:         id,
 		Name:       in.Name,
 		Remark:     in.Remark,
-		Status:     in.Status,
 		OperatorID: in.OperatorID,
 	})
 }

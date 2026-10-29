@@ -80,17 +80,12 @@ func TestUpdateRoleRules(t *testing.T) {
 	repo.roles[2] = &entity.Role{ID: 2, Code: "viewer", Name: "只读", Status: enums.StatusEnabled}
 	svc := newTestAdminService(repo)
 
-	if err := svc.UpdateRole(ctx, &input.UpdateRoleInput{ID: 1, Name: "超管", Status: enums.StatusDisabled, OperatorID: 1}); !errors.Is(err, service_contract.ErrBuiltinRoleImmutable) {
-		t.Fatalf("禁用内置角色期望 ErrBuiltinRoleImmutable，实际 %v", err)
-	}
-
 	invalid := []struct {
 		name string
 		in   *input.UpdateRoleInput
 	}{
-		{name: "名称为空", in: &input.UpdateRoleInput{ID: 2, Name: " ", Status: enums.StatusEnabled}},
-		{name: "非法状态", in: &input.UpdateRoleInput{ID: 2, Name: "只读", Status: enums.Status("UNKNOWN")}},
-		{name: "备注超长", in: &input.UpdateRoleInput{ID: 2, Name: "只读", Status: enums.StatusEnabled, Remark: strings.Repeat("字", 256)}},
+		{name: "名称为空", in: &input.UpdateRoleInput{ID: 2, Name: " "}},
+		{name: "备注超长", in: &input.UpdateRoleInput{ID: 2, Name: "只读", Remark: strings.Repeat("字", 256)}},
 	}
 	for _, tc := range invalid {
 		t.Run(tc.name, func(t *testing.T) {
@@ -100,14 +95,84 @@ func TestUpdateRoleRules(t *testing.T) {
 		})
 	}
 
-	if err := svc.UpdateRole(ctx, &input.UpdateRoleInput{ID: 0, Name: "只读", Status: enums.StatusEnabled}); !errors.Is(err, service_contract.ErrRoleNotFound) {
+	if err := svc.UpdateRole(ctx, &input.UpdateRoleInput{ID: 0, Name: "只读"}); !errors.Is(err, service_contract.ErrRoleNotFound) {
 		t.Fatalf("非法 ID 期望 ErrRoleNotFound，实际 %v", err)
 	}
-	if err := svc.UpdateRole(ctx, &input.UpdateRoleInput{ID: 2, Name: " 只读角色 ", Status: enums.StatusDisabled, OperatorID: 1}); err != nil {
+	if err := svc.UpdateRole(ctx, &input.UpdateRoleInput{ID: 2, Name: " 只读角色 ", Remark: "备注", OperatorID: 1}); err != nil {
 		t.Fatalf("更新普通角色失败: %v", err)
 	}
-	if repo.roles[2].Status != enums.StatusDisabled || repo.roles[2].Name != "只读角色" {
+	if repo.roles[2].Name != "只读角色" || repo.roles[2].Remark != "备注" {
 		t.Fatalf("更新未生效: %+v", repo.roles[2])
+	}
+	if repo.roles[2].Status != enums.StatusEnabled {
+		t.Fatalf("更新资料不应改变启停状态: %+v", repo.roles[2])
+	}
+	if err := svc.UpdateRole(ctx, &input.UpdateRoleInput{ID: 1, Name: "超级管理员", OperatorID: 1}); err != nil {
+		t.Fatalf("内置角色应允许更新资料: %v", err)
+	}
+}
+
+func TestSetRoleStatusRules(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepo()
+	repo.roles[1] = &entity.Role{ID: 1, Code: enums.RoleCodeSuperAdmin, Name: "超管", Builtin: true, Status: enums.StatusEnabled}
+	repo.roles[2] = &entity.Role{ID: 2, Code: "viewer", Name: "只读", Status: enums.StatusEnabled}
+	svc := newTestAdminService(repo)
+
+	if err := svc.SetRoleStatus(ctx, &input.SetRoleStatusInput{ID: 0, Status: enums.StatusEnabled}); !errors.Is(err, service_contract.ErrRoleNotFound) {
+		t.Fatalf("非法 ID 期望 ErrRoleNotFound，实际 %v", err)
+	}
+	if err := svc.SetRoleStatus(ctx, &input.SetRoleStatusInput{ID: 2, Status: enums.Status("UNKNOWN")}); !errors.Is(err, service_contract.ErrInvalidInput) {
+		t.Fatalf("非法状态期望 ErrInvalidInput，实际 %v", err)
+	}
+	if err := svc.SetRoleStatus(ctx, &input.SetRoleStatusInput{ID: 99, Status: enums.StatusEnabled}); !errors.Is(err, service_contract.ErrRoleNotFound) {
+		t.Fatalf("角色不存在期望 ErrRoleNotFound，实际 %v", err)
+	}
+	if err := svc.SetRoleStatus(ctx, &input.SetRoleStatusInput{ID: 1, Status: enums.StatusDisabled}); !errors.Is(err, service_contract.ErrBuiltinRoleImmutable) {
+		t.Fatalf("禁用内置角色期望 ErrBuiltinRoleImmutable，实际 %v", err)
+	}
+	if err := svc.SetRoleStatus(ctx, &input.SetRoleStatusInput{ID: 2, Status: enums.StatusDisabled, OperatorID: 1}); err != nil {
+		t.Fatalf("设置角色启停失败: %v", err)
+	}
+	if repo.roles[2].Status != enums.StatusDisabled {
+		t.Fatalf("角色启停未生效: %+v", repo.roles[2])
+	}
+}
+
+func TestDeleteRoleRules(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepo()
+	repo.roles[1] = &entity.Role{ID: 1, Code: enums.RoleCodeSuperAdmin, Name: "超管", Builtin: true, Status: enums.StatusEnabled}
+	repo.roles[2] = &entity.Role{ID: 2, Code: "viewer", Name: "只读", Status: enums.StatusEnabled}
+	repo.userRoles[9] = []int64{2}
+	repo.roleGroups[2] = []int64{20, 21}
+	svc := newTestAdminService(repo)
+
+	if err := svc.DeleteRole(ctx, &input.DeleteRoleInput{ID: 0}); !errors.Is(err, service_contract.ErrRoleNotFound) {
+		t.Fatalf("非法 ID 期望 ErrRoleNotFound，实际 %v", err)
+	}
+	if err := svc.DeleteRole(ctx, &input.DeleteRoleInput{ID: 1}); !errors.Is(err, service_contract.ErrBuiltinRoleImmutable) {
+		t.Fatalf("删除内置角色期望 ErrBuiltinRoleImmutable，实际 %v", err)
+	}
+	if err := svc.DeleteRole(ctx, &input.DeleteRoleInput{ID: 2}); !errors.Is(err, service_contract.ErrRoleBoundToUsers) {
+		t.Fatalf("角色仍绑定用户期望 ErrRoleBoundToUsers，实际 %v", err)
+	}
+	if _, ok := repo.roles[2]; !ok {
+		t.Fatal("绑定校验失败时不应删除角色")
+	}
+
+	delete(repo.userRoles, 9)
+	if err := svc.DeleteRole(ctx, &input.DeleteRoleInput{ID: 2, OperatorID: 1}); err != nil {
+		t.Fatalf("删除角色失败: %v", err)
+	}
+	if _, ok := repo.roles[2]; ok {
+		t.Fatal("角色未硬删除")
+	}
+	if _, ok := repo.roleGroups[2]; ok {
+		t.Fatal("角色权限组关系未清理")
+	}
+	if err := svc.DeleteRole(ctx, &input.DeleteRoleInput{ID: 2}); !errors.Is(err, service_contract.ErrRoleNotFound) {
+		t.Fatalf("重复删除期望 ErrRoleNotFound，实际 %v", err)
 	}
 }
 
@@ -214,17 +279,173 @@ func TestUpdatePermissionGroupRules(t *testing.T) {
 	repo.permissionGroups[1] = &entity.PermissionGroup{ID: 1, Code: "system_user", Name: "用户管理", Status: enums.StatusEnabled}
 	svc := newTestAdminService(repo)
 
-	if err := svc.UpdatePermissionGroup(ctx, &input.UpdatePermissionGroupInput{ID: 0, Name: "组", Status: enums.StatusEnabled}); !errors.Is(err, service_contract.ErrPermissionGroupNotFound) {
+	if err := svc.UpdatePermissionGroup(ctx, &input.UpdatePermissionGroupInput{ID: 0, Name: "组"}); !errors.Is(err, service_contract.ErrPermissionGroupNotFound) {
 		t.Fatalf("非法 ID 期望 ErrPermissionGroupNotFound，实际 %v", err)
 	}
-	if err := svc.UpdatePermissionGroup(ctx, &input.UpdatePermissionGroupInput{ID: 1, Name: " ", Status: enums.StatusEnabled}); !errors.Is(err, service_contract.ErrInvalidInput) {
+	if err := svc.UpdatePermissionGroup(ctx, &input.UpdatePermissionGroupInput{ID: 1, Name: " "}); !errors.Is(err, service_contract.ErrInvalidInput) {
 		t.Fatalf("名称为空期望 ErrInvalidInput，实际 %v", err)
 	}
-	if err := svc.UpdatePermissionGroup(ctx, &input.UpdatePermissionGroupInput{ID: 1, Name: "用户组", Status: enums.StatusDisabled, OperatorID: 1}); err != nil {
+	if err := svc.UpdatePermissionGroup(ctx, &input.UpdatePermissionGroupInput{ID: 1, Name: "用户组", Remark: "备注", OperatorID: 1}); err != nil {
 		t.Fatalf("更新权限组失败: %v", err)
 	}
-	if repo.permissionGroups[1].Name != "用户组" || repo.permissionGroups[1].Status != enums.StatusDisabled {
+	if repo.permissionGroups[1].Name != "用户组" || repo.permissionGroups[1].Remark != "备注" {
 		t.Fatalf("更新未生效: %+v", repo.permissionGroups[1])
+	}
+	if repo.permissionGroups[1].Status != enums.StatusEnabled {
+		t.Fatalf("更新资料不应改变启停状态: %+v", repo.permissionGroups[1])
+	}
+}
+
+func TestSetPermissionGroupStatusRules(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepo()
+	repo.permissionGroups[1] = &entity.PermissionGroup{ID: 1, Code: "system_user", Status: enums.StatusEnabled}
+	svc := newTestAdminService(repo)
+
+	if err := svc.SetPermissionGroupStatus(ctx, &input.SetPermissionGroupStatusInput{ID: 0, Status: enums.StatusEnabled}); !errors.Is(err, service_contract.ErrPermissionGroupNotFound) {
+		t.Fatalf("非法 ID 期望 ErrPermissionGroupNotFound，实际 %v", err)
+	}
+	if err := svc.SetPermissionGroupStatus(ctx, &input.SetPermissionGroupStatusInput{ID: 1, Status: enums.Status("UNKNOWN")}); !errors.Is(err, service_contract.ErrInvalidInput) {
+		t.Fatalf("非法状态期望 ErrInvalidInput，实际 %v", err)
+	}
+	if err := svc.SetPermissionGroupStatus(ctx, &input.SetPermissionGroupStatusInput{ID: 1, Status: enums.StatusDisabled, OperatorID: 1}); err != nil {
+		t.Fatalf("设置权限组启停失败: %v", err)
+	}
+	if repo.permissionGroups[1].Status != enums.StatusDisabled {
+		t.Fatalf("权限组启停未生效: %+v", repo.permissionGroups[1])
+	}
+}
+
+func TestDeletePermissionGroupRules(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepo()
+	repo.permissionGroups[20] = &entity.PermissionGroup{ID: 20, Code: "system_user", Status: enums.StatusEnabled}
+	repo.roleGroups[7] = []int64{20}
+	repo.groupPermissions[20] = []int64{10, 11}
+	svc := newTestAdminService(repo)
+
+	if err := svc.DeletePermissionGroup(ctx, &input.DeletePermissionGroupInput{ID: 0}); !errors.Is(err, service_contract.ErrPermissionGroupNotFound) {
+		t.Fatalf("非法 ID 期望 ErrPermissionGroupNotFound，实际 %v", err)
+	}
+	if err := svc.DeletePermissionGroup(ctx, &input.DeletePermissionGroupInput{ID: 20}); !errors.Is(err, service_contract.ErrPermissionGroupBoundToRoles) {
+		t.Fatalf("权限组仍绑定角色期望 ErrPermissionGroupBoundToRoles，实际 %v", err)
+	}
+	if _, ok := repo.permissionGroups[20]; !ok {
+		t.Fatal("绑定校验失败时不应删除权限组")
+	}
+
+	delete(repo.roleGroups, 7)
+	if err := svc.DeletePermissionGroup(ctx, &input.DeletePermissionGroupInput{ID: 20, OperatorID: 1}); err != nil {
+		t.Fatalf("删除权限组失败: %v", err)
+	}
+	if _, ok := repo.permissionGroups[20]; ok {
+		t.Fatal("权限组未硬删除")
+	}
+	if _, ok := repo.groupPermissions[20]; ok {
+		t.Fatal("权限组权限关系未清理")
+	}
+	if err := svc.DeletePermissionGroup(ctx, &input.DeletePermissionGroupInput{ID: 20}); !errors.Is(err, service_contract.ErrPermissionGroupNotFound) {
+		t.Fatalf("重复删除期望 ErrPermissionGroupNotFound，实际 %v", err)
+	}
+}
+
+func TestPermissionCRUD(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepo()
+	repo.permissions[10] = &entity.Permission{
+		ID: 10, Code: "system:user", Name: "系统用户", Type: enums.PermissionTypeMenu,
+		UIPath: "/system/user", Status: enums.StatusEnabled,
+	}
+	repo.permissions[11] = &entity.Permission{
+		ID: 11, Code: "system:user:list", Name: "用户列表", Type: enums.PermissionTypeAPI,
+		HTTPMethod: "GET", HTTPPath: "/api/system/user", Status: enums.StatusEnabled,
+	}
+	svc := newTestAdminService(repo)
+
+	if _, err := svc.CreatePermission(ctx, &input.CreatePermissionInput{
+		Code: "system:user", Name: "重复编码", Type: enums.PermissionTypeMenu, UIPath: "/system/dup",
+	}); !errors.Is(err, service_contract.ErrPermissionCodeExists) {
+		t.Fatalf("重复编码期望 ErrPermissionCodeExists，实际 %v", err)
+	}
+	if _, err := svc.CreatePermission(ctx, &input.CreatePermissionInput{
+		Code: "system:dup", Name: "重复菜单", Type: enums.PermissionTypeMenu, UIPath: "/system/user",
+	}); !errors.Is(err, service_contract.ErrPermissionResourceExists) {
+		t.Fatalf("重复菜单路径期望 ErrPermissionResourceExists，实际 %v", err)
+	}
+	if _, err := svc.CreatePermission(ctx, &input.CreatePermissionInput{
+		Code: "system:dup", Name: "重复接口", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/user",
+	}); !errors.Is(err, service_contract.ErrPermissionResourceExists) {
+		t.Fatalf("重复接口路由期望 ErrPermissionResourceExists，实际 %v", err)
+	}
+
+	invalid := []struct {
+		name string
+		in   *input.CreatePermissionInput
+	}{
+		{name: "编码非法", in: &input.CreatePermissionInput{Code: "System:Dup", Name: "权限", Type: enums.PermissionTypeMenu, UIPath: "/system/dup"}},
+		{name: "类型非法", in: &input.CreatePermissionInput{Code: "system:dup", Name: "权限", Type: enums.PermissionType("OTHER")}},
+		{name: "菜单路径非法", in: &input.CreatePermissionInput{Code: "system:dup", Name: "权限", Type: enums.PermissionTypeMenu, UIPath: "system/dup"}},
+		{name: "接口方法非法", in: &input.CreatePermissionInput{Code: "system:dup", Name: "权限", Type: enums.PermissionTypeAPI, HTTPMethod: "FETCH", HTTPPath: "/api/system/dup"}},
+		{name: "接口路径非法", in: &input.CreatePermissionInput{Code: "system:dup", Name: "权限", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/system/dup"}},
+		{name: "名称为空", in: &input.CreatePermissionInput{Code: "system:dup", Name: " ", Type: enums.PermissionTypeMenu, UIPath: "/system/dup"}},
+	}
+	for _, tc := range invalid {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := svc.CreatePermission(ctx, tc.in); !errors.Is(err, service_contract.ErrInvalidInput) {
+				t.Fatalf("期望 ErrInvalidInput，实际 %v", err)
+			}
+		})
+	}
+
+	menu, err := svc.CreatePermission(ctx, &input.CreatePermissionInput{
+		Code: " system:audit ", Name: " 审计 ", Type: enums.PermissionTypeMenu, UIPath: " /system/audit ", Remark: " 备注 ", OperatorID: 1,
+	})
+	if err != nil {
+		t.Fatalf("创建菜单权限失败: %v", err)
+	}
+	if menu.Code != "system:audit" || menu.Name != "审计" || menu.UIPath != "/system/audit" ||
+		menu.HTTPMethod != "" || menu.HTTPPath != "" || menu.Status != enums.StatusEnabled || menu.Remark != "备注" {
+		t.Fatalf("菜单权限归一化不符: %+v", menu)
+	}
+	api, err := svc.CreatePermission(ctx, &input.CreatePermissionInput{
+		Code: "system:audit:list", Name: "审计列表", Type: enums.PermissionTypeAPI, HTTPMethod: "get", HTTPPath: " /api/system/audit ", OperatorID: 1,
+	})
+	if err != nil {
+		t.Fatalf("创建接口权限失败: %v", err)
+	}
+	if api.HTTPMethod != "GET" || api.HTTPPath != "/api/system/audit" || api.UIPath != "" {
+		t.Fatalf("接口权限归一化不符: %+v", api)
+	}
+
+	if err := svc.UpdatePermission(ctx, &input.UpdatePermissionInput{
+		ID: menu.ID, Name: "审计菜单", UIPath: "/system/user",
+	}); !errors.Is(err, service_contract.ErrPermissionResourceExists) {
+		t.Fatalf("更新为重复菜单路径期望 ErrPermissionResourceExists，实际 %v", err)
+	}
+	if err := svc.UpdatePermission(ctx, &input.UpdatePermissionInput{
+		ID: menu.ID, Name: " 审计菜单 ", UIPath: " /system/audit-log ", OperatorID: 1,
+	}); err != nil {
+		t.Fatalf("更新菜单权限失败: %v", err)
+	}
+	if repo.permissions[menu.ID].Name != "审计菜单" || repo.permissions[menu.ID].UIPath != "/system/audit-log" {
+		t.Fatalf("菜单权限更新未生效: %+v", repo.permissions[menu.ID])
+	}
+	if repo.permissions[menu.ID].Type != enums.PermissionTypeMenu || repo.permissions[menu.ID].Status != enums.StatusEnabled {
+		t.Fatalf("更新不应改变类型或状态: %+v", repo.permissions[menu.ID])
+	}
+
+	repo.groupPermissions[20] = []int64{menu.ID, 10}
+	if err := svc.DeletePermission(ctx, &input.DeletePermissionInput{ID: menu.ID, OperatorID: 1}); err != nil {
+		t.Fatalf("删除权限失败: %v", err)
+	}
+	if _, ok := repo.permissions[menu.ID]; ok {
+		t.Fatal("权限未硬删除")
+	}
+	if ids := repo.groupPermissions[20]; len(ids) != 1 || ids[0] != 10 {
+		t.Fatalf("权限组引用未清理: %v", ids)
+	}
+	if err := svc.DeletePermission(ctx, &input.DeletePermissionInput{ID: menu.ID}); !errors.Is(err, service_contract.ErrPermissionNotFound) {
+		t.Fatalf("重复删除期望 ErrPermissionNotFound，实际 %v", err)
 	}
 }
 

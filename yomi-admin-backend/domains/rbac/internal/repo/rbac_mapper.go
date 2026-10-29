@@ -89,6 +89,24 @@ func toPermissionGroupModel(group *entity.PermissionGroup, operatorID int64) *pe
 	return row
 }
 
+// toPermissionModel 将权限实体转换为持久化模型
+func toPermissionModel(permission *entity.Permission, operatorID int64) *permissionModel {
+	row := &permissionModel{
+		Code:           permission.Code,
+		Name:           permission.Name,
+		PermissionType: permission.Type,
+		UIPath:         ptrutil.PtrFromString(permission.UIPath),
+		HTTPMethod:     ptrutil.PtrFromString(permission.HTTPMethod),
+		HTTPPath:       ptrutil.PtrFromString(permission.HTTPPath),
+		Status:         permission.Status,
+		Remark:         permission.Remark,
+	}
+	row.ID = permission.ID
+	row.CreateBy = ptrutil.PtrFromInt64(operatorID)
+	row.UpdateBy = ptrutil.PtrFromInt64(operatorID)
+	return row
+}
+
 // toUserRoleRelModels 将用户角色关系转换为持久化模型
 func toUserRoleRelModels(rels []*entity.UserRoleRel, operatorID int64) []*userRoleRelModel {
 	rows := make([]*userRoleRelModel, 0, len(rels))

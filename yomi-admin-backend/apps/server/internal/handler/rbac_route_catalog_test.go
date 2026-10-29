@@ -28,7 +28,8 @@ func TestRBACRouteCatalogCoverage(t *testing.T) {
 	group := engine.Group("/api")
 	(&AuthHandler{}).Routes(group)
 	(&UserHandler{}).Routes(group)
-	(&RbacHandler{}).Routes(group)
+	(&RoleHandler{}).Routes(group)
+	(&PermissionHandler{}).Routes(group)
 	(&PermissionGroupHandler{}).Routes(group)
 	(&HttpRecordHandler{}).Routes(group)
 

@@ -17,7 +17,7 @@ type permissionItem struct {
 	Type string `json:"type"`
 }
 
-// TestRbacRoleFlow 覆盖权限组创建、权限组绑权限、角色绑组、用户绑角色与鉴权拒绝
+// TestRbacRoleFlow 覆盖权限/权限组/角色 CRUD、绑定关系、删除保护与鉴权拒绝
 func TestRbacRoleFlow(t *testing.T) {
 	requireServer(t)
 	adminToken := login(t, adminUsername, adminPassword)
@@ -43,14 +43,6 @@ func TestRbacRoleFlow(t *testing.T) {
 	if err := json.Unmarshal(created.Data, &role); err != nil || role.ID == "" {
 		t.Fatalf("解析角色 ID 失败: %v body=%s", err, body)
 	}
-	t.Cleanup(func() {
-		_, _ = testclient.Post(API("/system/role/update"), adminToken, map[string]any{
-			"id":     role.ID,
-			"name":   roleName,
-			"remark": "集成测试角色",
-			"status": "DISABLED",
-		})
-	})
 
 	// 查询权限目录，取出菜单与接口权限 ID
 	body, ok = testclient.Get(API("/system/permission?page=1&pageSize=100"), adminToken)
@@ -72,6 +64,45 @@ func TestRbacRoleFlow(t *testing.T) {
 		t.Fatalf("未找到预期权限: %+v", permissions)
 	}
 
+	// 权限目录 CRUD：创建菜单、更新资料、删除
+	permissionCode := fmt.Sprintf("system:rbac_test_%d", suffix)
+	permissionUIPath := fmt.Sprintf("/system/rbac-test/%d", suffix)
+	body, ok = testclient.Post(API("/system/permission/create"), adminToken, map[string]any{
+		"code":   permissionCode,
+		"name":   "集成测试菜单",
+		"type":   "MENU",
+		"uiPath": permissionUIPath,
+		"remark": "集成测试权限",
+	})
+	if !ok {
+		t.Fatalf("创建权限接口不可达: %s", body)
+	}
+	permissionCreated := parseSuccess(t, body)
+	var createdPermission struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(permissionCreated.Data, &createdPermission); err != nil || createdPermission.ID == "" {
+		t.Fatalf("解析权限 ID 失败: %v body=%s", err, body)
+	}
+	t.Cleanup(func() {
+		_, _ = testclient.Post(API("/system/permission/delete"), adminToken, map[string]any{"id": createdPermission.ID})
+	})
+	body, ok = testclient.Post(API("/system/permission/update"), adminToken, map[string]any{
+		"id":     createdPermission.ID,
+		"name":   "集成测试菜单（更新）",
+		"uiPath": permissionUIPath,
+		"remark": "集成测试权限",
+	})
+	if !ok {
+		t.Fatalf("更新权限接口不可达: %s", body)
+	}
+	parseSuccess(t, body)
+	body, ok = testclient.Post(API("/system/permission/delete"), adminToken, map[string]any{"id": createdPermission.ID})
+	if !ok {
+		t.Fatalf("删除权限接口不可达: %s", body)
+	}
+	parseSuccess(t, body)
+
 	// 创建权限组并绑定权限
 	body, ok = testclient.Post(API("/system/permission-group/create"), adminToken, map[string]any{
 		"code":   groupCode,
@@ -89,12 +120,9 @@ func TestRbacRoleFlow(t *testing.T) {
 		t.Fatalf("解析权限组 ID 失败: %v body=%s", err, body)
 	}
 	t.Cleanup(func() {
-		_, _ = testclient.Post(API("/system/permission-group/update"), adminToken, map[string]any{
-			"id":     group.ID,
-			"name":   groupName,
-			"remark": "集成测试权限组",
-			"status": "DISABLED",
-		})
+		// 用户由后注册的 cleanup 先删除；角色先于权限组删除，保证绑定检查能通过
+		_, _ = testclient.Post(API("/system/role/delete"), adminToken, map[string]any{"id": role.ID})
+		_, _ = testclient.Post(API("/system/permission-group/delete"), adminToken, map[string]any{"id": group.ID})
 	})
 
 	body, ok = testclient.Post(API("/system/permission-group/bind-permission"), adminToken, map[string]any{
@@ -165,6 +193,18 @@ func TestRbacRoleFlow(t *testing.T) {
 	}
 	parseSuccess(t, body)
 
+	// 删除保护：角色仍绑定用户、权限组仍绑定角色时不可删除
+	body, ok = testclient.Post(API("/system/role/delete"), adminToken, map[string]any{"id": role.ID})
+	if !ok {
+		t.Fatalf("删除角色接口不可达: %s", body)
+	}
+	assertFailure(t, body)
+	body, ok = testclient.Post(API("/system/permission-group/delete"), adminToken, map[string]any{"id": group.ID})
+	if !ok {
+		t.Fatalf("删除权限组接口不可达: %s", body)
+	}
+	assertFailure(t, body)
+
 	// 受限用户登录后：有用户菜单与列表权限，无角色管理权限
 	userToken := login(t, username, "test1234")
 	body, ok = testclient.Get(API("/auth/profile"), userToken)
@@ -203,4 +243,24 @@ func TestRbacRoleFlow(t *testing.T) {
 		t.Fatalf("受限用户访问未授权接口不可达: %s", body)
 	}
 	assertFailure(t, body)
+
+	// 解绑用户角色后角色可硬删除，角色删除后权限组可硬删除
+	body, ok = testclient.Post(API("/system/user/bind-role"), adminToken, map[string]any{
+		"userId":  userID,
+		"roleIds": []string{},
+	})
+	if !ok {
+		t.Fatalf("解绑用户角色接口不可达: %s", body)
+	}
+	parseSuccess(t, body)
+	body, ok = testclient.Post(API("/system/role/delete"), adminToken, map[string]any{"id": role.ID})
+	if !ok {
+		t.Fatalf("删除角色接口不可达: %s", body)
+	}
+	parseSuccess(t, body)
+	body, ok = testclient.Post(API("/system/permission-group/delete"), adminToken, map[string]any{"id": group.ID})
+	if !ok {
+		t.Fatalf("删除权限组接口不可达: %s", body)
+	}
+	parseSuccess(t, body)
 }

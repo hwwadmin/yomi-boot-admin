@@ -4,18 +4,15 @@ import type { FormInstance, FormRules } from 'element-plus'
 import {
   bindGroupPermissions,
   createPermissionGroup,
+  deletePermissionGroup,
   getPermissionGroupDetail,
   getPermissionGroupPage,
   getPermissionPage,
+  setPermissionGroupStatus,
   updatePermissionGroup,
 } from '@/api/rbac'
 import type { PermissionGroupQuery } from '@/api/rbac'
-import type {
-  PermissionGroupItem,
-  PermissionGroupPayload,
-  PermissionItem,
-  Status,
-} from '@/api/types'
+import type { PermissionGroupItem, PermissionItem, Status } from '@/api/types'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
@@ -60,34 +57,34 @@ onMounted(fetchList)
 const dialogVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<string | null>(null)
-const editingOriginalStatus = ref<Status | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive({
   code: '',
   name: '',
   remark: '',
-  status: 'ENABLED' as Status,
 })
 
 const rules: FormRules = {
   code: [
     { required: true, message: '请输入权限组编码', trigger: 'blur' },
-    { pattern: /^[a-z][a-z0-9_]{2,31}$/, message: '小写字母开头，3-32 位小写字母/数字/下划线', trigger: 'blur' },
+    {
+      pattern: /^[a-z][a-z0-9_]{2,31}$/,
+      message: '小写字母开头，3-32 位小写字母/数字/下划线',
+      trigger: 'blur',
+    },
   ],
   name: [{ required: true, message: '请输入权限组名称', trigger: 'blur' }],
 }
 
 function openCreate() {
   editingId.value = null
-  editingOriginalStatus.value = null
-  Object.assign(form, { code: '', name: '', remark: '', status: 'ENABLED' })
+  Object.assign(form, { code: '', name: '', remark: '' })
   dialogVisible.value = true
 }
 
 function openEdit(row: PermissionGroupItem) {
   editingId.value = row.id
-  editingOriginalStatus.value = row.status
-  Object.assign(form, { code: row.code, name: row.name, remark: row.remark, status: row.status })
+  Object.assign(form, { code: row.code, name: row.name, remark: row.remark })
   dialogVisible.value = true
 }
 
@@ -105,25 +102,19 @@ function confirmStatusChange(name: string, next: Status): Promise<boolean> {
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-  if (editingOriginalStatus.value && form.status !== editingOriginalStatus.value) {
-    if (!(await confirmStatusChange(form.name.trim(), form.status))) return
-  }
   submitting.value = true
   try {
     if (editingId.value === null) {
-      const payload: PermissionGroupPayload = {
+      await createPermissionGroup({
         code: form.code.trim(),
         name: form.name.trim(),
         remark: form.remark.trim(),
-        status: 'ENABLED',
-      }
-      await createPermissionGroup(payload)
+      })
       ElMessage.success('新增成功')
     } else {
       await updatePermissionGroup(editingId.value, {
         name: form.name.trim(),
         remark: form.remark.trim(),
-        status: form.status,
       })
       ElMessage.success('保存成功')
     }
@@ -136,12 +127,27 @@ async function handleSubmit() {
 
 async function handleStatusChange(row: PermissionGroupItem, status: Status) {
   try {
-    await updatePermissionGroup(row.id, { name: row.name, remark: row.remark, status })
+    await setPermissionGroupStatus(row.id, status)
     row.status = status
     ElMessage.success('状态已更新')
   } catch {
     fetchList()
   }
+}
+
+async function handleDelete(row: PermissionGroupItem) {
+  const confirmed = await confirmAction({
+    title: '删除权限组',
+    message: `确定删除权限组「${row.name}」吗？已绑定角色的权限组无法删除。`,
+    confirmButtonText: '删除',
+  })
+  if (!confirmed) return
+  await deletePermissionGroup(row.id)
+  ElMessage.success('删除成功')
+  if (list.value.length === 1 && query.page > 1) {
+    query.page -= 1
+  }
+  fetchList()
 }
 
 // ———————— 分配权限 ————————
@@ -221,11 +227,21 @@ async function savePermissions() {
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-switch
+              v-permission="'system:permission-group:status'"
               :model-value="row.status"
               active-value="ENABLED"
               inactive-value="DISABLED"
-              :before-change="() => confirmStatusChange((row as PermissionGroupItem).name, (row as PermissionGroupItem).status === 'ENABLED' ? 'DISABLED' : 'ENABLED')"
-              @change="(value: string | number | boolean) => handleStatusChange(row as PermissionGroupItem, value as Status)"
+              :before-change="
+                () =>
+                  confirmStatusChange(
+                    (row as PermissionGroupItem).name,
+                    (row as PermissionGroupItem).status === 'ENABLED' ? 'DISABLED' : 'ENABLED',
+                  )
+              "
+              @change="
+                (value: string | number | boolean) =>
+                  handleStatusChange(row as PermissionGroupItem, value as Status)
+              "
             />
           </template>
         </el-table-column>
@@ -235,9 +251,24 @@ async function savePermissions() {
             {{ formatDateTime((row as PermissionGroupItem).createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right" align="center">
+        <el-table-column label="操作" width="240" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row as PermissionGroupItem)">编辑</el-button>
+            <el-button
+              v-permission="'system:permission-group:update'"
+              link
+              type="primary"
+              @click="openEdit(row as PermissionGroupItem)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-permission="'system:permission-group:delete'"
+              link
+              type="danger"
+              @click="handleDelete(row as PermissionGroupItem)"
+            >
+              删除
+            </el-button>
             <el-button
               v-permission="'system:permission-group:bind-permission'"
               link
@@ -271,19 +302,18 @@ async function savePermissions() {
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <el-form-item label="权限组编码" prop="code">
-          <el-input v-model="form.code" :disabled="editingId !== null" placeholder="创建后不可修改" maxlength="32" />
+          <el-input
+            v-model="form.code"
+            :disabled="editingId !== null"
+            placeholder="创建后不可修改"
+            maxlength="32"
+          />
         </el-form-item>
         <el-form-item label="权限组名称" prop="name">
           <el-input v-model="form.name" maxlength="32" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" maxlength="255" :rows="3" />
-        </el-form-item>
-        <el-form-item v-if="editingId !== null" label="状态">
-          <el-radio-group v-model="form.status">
-            <el-radio value="ENABLED">启用</el-radio>
-            <el-radio value="DISABLED">禁用</el-radio>
-          </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -331,7 +361,9 @@ async function savePermissions() {
       </div>
       <template #footer>
         <el-button @click="permissionDrawerVisible = false">取消</el-button>
-        <el-button type="primary" :loading="permissionSaving" @click="savePermissions">保存</el-button>
+        <el-button type="primary" :loading="permissionSaving" @click="savePermissions"
+          >保存</el-button
+        >
       </template>
     </el-drawer>
   </div>

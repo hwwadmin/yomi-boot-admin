@@ -119,12 +119,11 @@ export interface RoleDetail extends RoleItem {
   permissionIds: string[]
 }
 
-/** 角色创建/更新请求体 */
+/** 角色创建/更新请求体；启停走独立接口 */
 export interface RolePayload {
   code?: string
   name: string
   remark: string
-  status: Status
 }
 
 /** 权限目录项 */
@@ -158,12 +157,22 @@ export interface PermissionGroupDetail extends PermissionGroupItem {
   permissionIds: string[]
 }
 
-/** 权限组创建/更新请求体 */
+/** 权限组创建/更新请求体；启停走独立接口 */
 export interface PermissionGroupPayload {
   code?: string
   name: string
   remark: string
-  status: Status
+}
+
+/** 权限创建/更新请求体；编码与类型不可变，启停走独立接口 */
+export interface PermissionPayload {
+  code?: string
+  name: string
+  type: PermissionType
+  uiPath?: string
+  httpMethod?: string
+  httpPath?: string
+  remark: string
 }
 
 /** 用户角色绑定视图 */

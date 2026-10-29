@@ -18,6 +18,8 @@ type PermissionGroupHandler struct {
 	getUC             *rbacusecase.GetPermissionGroupUsecase
 	createUC          *rbacusecase.CreatePermissionGroupUsecase
 	updateUC          *rbacusecase.UpdatePermissionGroupUsecase
+	deleteUC          *rbacusecase.DeletePermissionGroupUsecase
+	setStatusUC       *rbacusecase.SetPermissionGroupStatusUsecase
 	bindPermissionsUC *rbacusecase.BindGroupPermissionsUsecase
 }
 
@@ -27,6 +29,8 @@ func NewPermissionGroupHandler(
 	getUC *rbacusecase.GetPermissionGroupUsecase,
 	createUC *rbacusecase.CreatePermissionGroupUsecase,
 	updateUC *rbacusecase.UpdatePermissionGroupUsecase,
+	deleteUC *rbacusecase.DeletePermissionGroupUsecase,
+	setStatusUC *rbacusecase.SetPermissionGroupStatusUsecase,
 	bindPermissionsUC *rbacusecase.BindGroupPermissionsUsecase,
 ) *PermissionGroupHandler {
 	return &PermissionGroupHandler{
@@ -34,6 +38,8 @@ func NewPermissionGroupHandler(
 		getUC:             getUC,
 		createUC:          createUC,
 		updateUC:          updateUC,
+		deleteUC:          deleteUC,
+		setStatusUC:       setStatusUC,
 		bindPermissionsUC: bindPermissionsUC,
 	}
 }
@@ -44,6 +50,8 @@ func (h *PermissionGroupHandler) Routes(router *gin.RouterGroup) {
 	router.GET("/system/permission-group/detail", h.get)
 	router.POST("/system/permission-group/create", h.create)
 	router.POST("/system/permission-group/update", h.update)
+	router.POST("/system/permission-group/delete", h.delete)
+	router.POST("/system/permission-group/set-status", h.setStatus)
 	router.POST("/system/permission-group/bind-permission", h.bindPermissions)
 }
 
@@ -95,6 +103,36 @@ func (h *PermissionGroupHandler) update(c *gin.Context) {
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
 		return h.updateUC.Execute(ctx, &in)
+	})
+}
+
+func (h *PermissionGroupHandler) delete(c *gin.Context) {
+	var in rbacusecase.DeletePermissionGroupInput
+	if !corehandler.BindJSON(c, &in) {
+		return
+	}
+	opID, ok := operatorID(c)
+	if !ok {
+		return
+	}
+	in.OperatorID = opID
+	corehandler.HandleVoid(c, func(ctx context.Context) error {
+		return h.deleteUC.Execute(ctx, &in)
+	})
+}
+
+func (h *PermissionGroupHandler) setStatus(c *gin.Context) {
+	var in rbacusecase.SetPermissionGroupStatusInput
+	if !corehandler.BindJSON(c, &in) {
+		return
+	}
+	opID, ok := operatorID(c)
+	if !ok {
+		return
+	}
+	in.OperatorID = opID
+	corehandler.HandleVoid(c, func(ctx context.Context) error {
+		return h.setStatusUC.Execute(ctx, &in)
 	})
 }
 

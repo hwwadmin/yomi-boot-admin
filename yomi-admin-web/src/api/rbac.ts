@@ -6,6 +6,7 @@ import type {
   PermissionGroupItem,
   PermissionGroupPayload,
   PermissionItem,
+  PermissionPayload,
   PermissionType,
   RoleDetail,
   RoleItem,
@@ -50,9 +51,19 @@ export function createRole(data: RolePayload) {
   return request<RoleItem>({ url: '/system/role/create', method: 'post', data })
 }
 
-/** 更新角色 */
+/** 更新角色资料 */
 export function updateRole(id: string, data: Omit<RolePayload, 'code'>) {
   return request<null>({ url: '/system/role/update', method: 'post', data: { id, ...data } })
+}
+
+/** 删除角色 */
+export function deleteRole(id: string) {
+  return request<null>({ url: '/system/role/delete', method: 'post', data: { id } })
+}
+
+/** 设置角色启停 */
+export function setRoleStatus(id: string, status: Status) {
+  return request<null>({ url: '/system/role/set-status', method: 'post', data: { id, status } })
 }
 
 /** 覆盖角色权限组 */
@@ -94,12 +105,26 @@ export function createPermissionGroup(data: PermissionGroupPayload) {
   })
 }
 
-/** 更新权限组 */
+/** 更新权限组资料 */
 export function updatePermissionGroup(id: string, data: Omit<PermissionGroupPayload, 'code'>) {
   return request<null>({
     url: '/system/permission-group/update',
     method: 'post',
     data: { id, ...data },
+  })
+}
+
+/** 删除权限组 */
+export function deletePermissionGroup(id: string) {
+  return request<null>({ url: '/system/permission-group/delete', method: 'post', data: { id } })
+}
+
+/** 设置权限组启停 */
+export function setPermissionGroupStatus(id: string, status: Status) {
+  return request<null>({
+    url: '/system/permission-group/set-status',
+    method: 'post',
+    data: { id, status },
   })
 }
 
@@ -122,6 +147,21 @@ export async function getPermissionPage(
     params,
   })
   return { list, total, page: params.page, pageSize: params.pageSize }
+}
+
+/** 创建权限 */
+export function createPermission(data: PermissionPayload) {
+  return request<PermissionItem>({ url: '/system/permission/create', method: 'post', data })
+}
+
+/** 更新权限资料；编码与类型不可变 */
+export function updatePermission(id: string, data: Omit<PermissionPayload, 'code' | 'type'>) {
+  return request<null>({ url: '/system/permission/update', method: 'post', data: { id, ...data } })
+}
+
+/** 删除权限 */
+export function deletePermission(id: string) {
+  return request<null>({ url: '/system/permission/delete', method: 'post', data: { id } })
 }
 
 /** 设置权限启停 */

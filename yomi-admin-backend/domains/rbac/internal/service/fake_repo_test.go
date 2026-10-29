@@ -90,6 +90,18 @@ func (r *fakeRepo) UpdateRole(_ context.Context, role *entity.Role, _ int64) err
 	return nil
 }
 
+func (r *fakeRepo) UpdateRoleStatus(_ context.Context, id int64, status enums.Status, _ int64) error {
+	if role, ok := r.roles[id]; ok {
+		role.Status = status
+	}
+	return nil
+}
+
+func (r *fakeRepo) DeleteRole(_ context.Context, id int64) error {
+	delete(r.roles, id)
+	return nil
+}
+
 func (r *fakeRepo) FindPermissionGroupByID(_ context.Context, id int64) (*entity.PermissionGroup, bool, error) {
 	group, ok := r.permissionGroups[id]
 	return group, ok, nil
@@ -139,9 +151,48 @@ func (r *fakeRepo) UpdatePermissionGroup(_ context.Context, group *entity.Permis
 	return nil
 }
 
+func (r *fakeRepo) UpdatePermissionGroupStatus(_ context.Context, id int64, status enums.Status, _ int64) error {
+	if group, ok := r.permissionGroups[id]; ok {
+		group.Status = status
+	}
+	return nil
+}
+
+func (r *fakeRepo) DeletePermissionGroup(_ context.Context, id int64) error {
+	delete(r.permissionGroups, id)
+	return nil
+}
+
 func (r *fakeRepo) FindPermissionByID(_ context.Context, id int64) (*entity.Permission, bool, error) {
 	permission, ok := r.permissions[id]
 	return permission, ok, nil
+}
+
+func (r *fakeRepo) FindPermissionByCode(_ context.Context, code string) (*entity.Permission, bool, error) {
+	for _, permission := range r.permissions {
+		if permission.Code == code {
+			return permission, true, nil
+		}
+	}
+	return nil, false, nil
+}
+
+func (r *fakeRepo) FindPermissionByUIPath(_ context.Context, uiPath string) (*entity.Permission, bool, error) {
+	for _, permission := range r.permissions {
+		if permission.UIPath == uiPath {
+			return permission, true, nil
+		}
+	}
+	return nil, false, nil
+}
+
+func (r *fakeRepo) FindPermissionByHTTPRoute(_ context.Context, method, path string) (*entity.Permission, bool, error) {
+	for _, permission := range r.permissions {
+		if permission.HTTPMethod == method && permission.HTTPPath == path {
+			return permission, true, nil
+		}
+	}
+	return nil, false, nil
 }
 
 func (r *fakeRepo) FindPermissionsByIDs(_ context.Context, ids []int64) ([]*entity.Permission, error) {
@@ -179,8 +230,40 @@ func (r *fakeRepo) UpdatePermissionStatus(_ context.Context, id int64, status en
 	return nil
 }
 
+func (r *fakeRepo) CreatePermission(_ context.Context, permission *entity.Permission, _ int64) error {
+	r.permissions[permission.ID] = permission
+	return nil
+}
+
+func (r *fakeRepo) UpdatePermission(_ context.Context, permission *entity.Permission, _ int64) error {
+	r.permissions[permission.ID] = permission
+	return nil
+}
+
+func (r *fakeRepo) DeletePermission(_ context.Context, id int64) error {
+	delete(r.permissions, id)
+	return nil
+}
+
 func (r *fakeRepo) ListGroupIDsByRoleID(_ context.Context, roleID int64) ([]int64, error) {
 	return append([]int64(nil), r.roleGroups[roleID]...), nil
+}
+
+func (r *fakeRepo) CountUserRolesByRoleID(_ context.Context, roleID int64) (int64, error) {
+	var total int64
+	for _, roleIDs := range r.userRoles {
+		for _, id := range roleIDs {
+			if id == roleID {
+				total++
+			}
+		}
+	}
+	return total, nil
+}
+
+func (r *fakeRepo) DeleteUserRolesByUserID(_ context.Context, userID int64) error {
+	delete(r.userRoles, userID)
+	return nil
 }
 
 func (r *fakeRepo) ReplaceRoleGroups(_ context.Context, roleID int64, rels []*entity.RoleGroupRel, _ int64) error {
@@ -189,6 +272,30 @@ func (r *fakeRepo) ReplaceRoleGroups(_ context.Context, roleID int64, rels []*en
 		ids = append(ids, rel.GroupID)
 	}
 	r.roleGroups[roleID] = ids
+	return nil
+}
+
+func (r *fakeRepo) DeleteRoleGroupsByRoleID(_ context.Context, roleID int64) error {
+	delete(r.roleGroups, roleID)
+	return nil
+}
+
+func (r *fakeRepo) CountRoleGroupsByGroupID(_ context.Context, groupID int64) (int64, error) {
+	var total int64
+	for _, groupIDs := range r.roleGroups {
+		for _, id := range groupIDs {
+			if id == groupID {
+				total++
+			}
+		}
+	}
+	return total, nil
+}
+
+func (r *fakeRepo) DeleteRoleGroupsByGroupID(_ context.Context, groupID int64) error {
+	for roleID, groupIDs := range r.roleGroups {
+		r.roleGroups[roleID] = removeInt64(groupIDs, groupID)
+	}
 	return nil
 }
 
@@ -218,6 +325,18 @@ func (r *fakeRepo) ReplaceGroupPermissions(_ context.Context, groupID int64, rel
 		ids = append(ids, rel.PermissionID)
 	}
 	r.groupPermissions[groupID] = ids
+	return nil
+}
+
+func (r *fakeRepo) DeleteGroupPermissionsByGroupID(_ context.Context, groupID int64) error {
+	delete(r.groupPermissions, groupID)
+	return nil
+}
+
+func (r *fakeRepo) DeleteGroupPermissionsByPermissionID(_ context.Context, permissionID int64) error {
+	for groupID, permissionIDs := range r.groupPermissions {
+		r.groupPermissions[groupID] = removeInt64(permissionIDs, permissionID)
+	}
 	return nil
 }
 
@@ -344,6 +463,17 @@ func (r *fakeRepo) enabledPermissionsOf(userID int64) map[int64]*entity.Permissi
 		}
 	}
 	return result
+}
+
+// removeInt64 返回去掉指定值后的新切片
+func removeInt64(ids []int64, target int64) []int64 {
+	out := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if id != target {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 func paginateRoles(roles []*entity.Role, page, pageSize int) []*entity.Role {

@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"yomi-admin-backend/apps/server/internal/support"
+	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 	"yomi-admin-backend/domains/user/service_contract"
 
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
@@ -22,17 +23,18 @@ type DeleteUserInput struct {
 // DeleteUserUsecase 删除用户编排
 type DeleteUserUsecase struct {
 	users service_contract.UserService
+	rbac  rbaccontract.RbacAdminService
 	guard lastSuperGuard
 	tx    dbtx.Executor
 	token token.TokenService
 }
 
 // NewDeleteUserUsecase 创建删除用户用例
-func NewDeleteUserUsecase(users service_contract.UserService, guard lastSuperGuard, tx dbtx.Executor, tokenService token.TokenService) *DeleteUserUsecase {
-	return &DeleteUserUsecase{users: users, guard: guard, tx: tx, token: tokenService}
+func NewDeleteUserUsecase(users service_contract.UserService, rbac rbaccontract.RbacAdminService, guard lastSuperGuard, tx dbtx.Executor, tokenService token.TokenService) *DeleteUserUsecase {
+	return &DeleteUserUsecase{users: users, rbac: rbac, guard: guard, tx: tx, token: tokenService}
 }
 
-// Execute 在超管锁内软删除用户，并撤销其全部 Token
+// Execute 在超管锁内软删除用户、清理角色绑定，并撤销其全部 Token
 func (uc *DeleteUserUsecase) Execute(ctx context.Context, in *DeleteUserInput) error {
 	id := in.ID.Int64()
 	if id <= 0 {
@@ -47,10 +49,13 @@ func (uc *DeleteUserUsecase) Execute(ctx context.Context, in *DeleteUserInput) e
 			if err := uc.guard.EnsureNotLastSuper(txCtx, id); err != nil {
 				return err
 			}
-			return uc.users.Delete(txCtx, &userinput.DeleteUserInput{
+			if err := uc.users.Delete(txCtx, &userinput.DeleteUserInput{
 				ID:         id,
 				OperatorID: in.OperatorID,
-			})
+			}); err != nil {
+				return err
+			}
+			return uc.rbac.DeleteUserRoles(txCtx, id)
 		})
 	})
 	if err != nil && !errors.Is(err, service_contract.ErrUserNotFound) {

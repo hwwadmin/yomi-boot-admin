@@ -4,20 +4,16 @@ import type { FormInstance, FormRules } from 'element-plus'
 import {
   bindRoleGroups,
   createRole,
+  deleteRole,
   getPermissionGroupPage,
   getPermissionPage,
   getRoleDetail,
   getRolePage,
+  setRoleStatus,
   updateRole,
 } from '@/api/rbac'
 import type { RoleQuery } from '@/api/rbac'
-import type {
-  PermissionGroupItem,
-  PermissionItem,
-  RoleItem,
-  RolePayload,
-  Status,
-} from '@/api/types'
+import type { PermissionGroupItem, PermissionItem, RoleItem, Status } from '@/api/types'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
@@ -57,34 +53,34 @@ onMounted(fetchList)
 const dialogVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<string | null>(null)
-const editingOriginalStatus = ref<Status | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive({
   code: '',
   name: '',
   remark: '',
-  status: 'ENABLED' as Status,
 })
 
 const rules: FormRules = {
   code: [
     { required: true, message: '请输入角色编码', trigger: 'blur' },
-    { pattern: /^[a-z][a-z0-9_]{2,31}$/, message: '小写字母开头，3-32 位小写字母/数字/下划线', trigger: 'blur' },
+    {
+      pattern: /^[a-z][a-z0-9_]{2,31}$/,
+      message: '小写字母开头，3-32 位小写字母/数字/下划线',
+      trigger: 'blur',
+    },
   ],
   name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
 }
 
 function openCreate() {
   editingId.value = null
-  editingOriginalStatus.value = null
-  Object.assign(form, { code: '', name: '', remark: '', status: 'ENABLED' })
+  Object.assign(form, { code: '', name: '', remark: '' })
   dialogVisible.value = true
 }
 
 function openEdit(row: RoleItem) {
   editingId.value = row.id
-  editingOriginalStatus.value = row.status
-  Object.assign(form, { code: row.code, name: row.name, remark: row.remark, status: row.status })
+  Object.assign(form, { code: row.code, name: row.name, remark: row.remark })
   dialogVisible.value = true
 }
 
@@ -102,26 +98,17 @@ function confirmStatusChange(name: string, next: Status): Promise<boolean> {
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-  if (editingOriginalStatus.value && form.status !== editingOriginalStatus.value) {
-    if (!(await confirmStatusChange(form.name.trim(), form.status))) return
-  }
   submitting.value = true
   try {
     if (editingId.value === null) {
-      const payload: RolePayload = {
+      await createRole({
         code: form.code.trim(),
         name: form.name.trim(),
         remark: form.remark.trim(),
-        status: 'ENABLED',
-      }
-      await createRole(payload)
+      })
       ElMessage.success('新增成功')
     } else {
-      await updateRole(editingId.value, {
-        name: form.name.trim(),
-        remark: form.remark.trim(),
-        status: form.status,
-      })
+      await updateRole(editingId.value, { name: form.name.trim(), remark: form.remark.trim() })
       ElMessage.success('保存成功')
     }
     dialogVisible.value = false
@@ -133,12 +120,27 @@ async function handleSubmit() {
 
 async function handleStatusChange(row: RoleItem, status: Status) {
   try {
-    await updateRole(row.id, { name: row.name, remark: row.remark, status })
+    await setRoleStatus(row.id, status)
     row.status = status
     ElMessage.success('状态已更新')
   } catch {
     fetchList()
   }
+}
+
+async function handleDelete(row: RoleItem) {
+  const confirmed = await confirmAction({
+    title: '删除角色',
+    message: `确定删除角色「${row.name}」吗？已绑定用户的角色无法删除。`,
+    confirmButtonText: '删除',
+  })
+  if (!confirmed) return
+  await deleteRole(row.id)
+  ElMessage.success('删除成功')
+  if (list.value.length === 1 && query.page > 1) {
+    query.page -= 1
+  }
+  fetchList()
 }
 
 // ———————— 分配权限组 ————————
@@ -226,12 +228,22 @@ async function saveGroups() {
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-switch
+              v-permission="'system:role:status'"
               :model-value="row.status"
               active-value="ENABLED"
               inactive-value="DISABLED"
               :disabled="row.builtin"
-              :before-change="() => confirmStatusChange((row as RoleItem).name, (row as RoleItem).status === 'ENABLED' ? 'DISABLED' : 'ENABLED')"
-              @change="(value: string | number | boolean) => handleStatusChange(row as RoleItem, value as Status)"
+              :before-change="
+                () =>
+                  confirmStatusChange(
+                    (row as RoleItem).name,
+                    (row as RoleItem).status === 'ENABLED' ? 'DISABLED' : 'ENABLED',
+                  )
+              "
+              @change="
+                (value: string | number | boolean) =>
+                  handleStatusChange(row as RoleItem, value as Status)
+              "
             />
           </template>
         </el-table-column>
@@ -241,9 +253,25 @@ async function saveGroups() {
             {{ formatDateTime((row as RoleItem).createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right" align="center">
+        <el-table-column label="操作" width="240" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row as RoleItem)">编辑</el-button>
+            <el-button
+              v-permission="'system:role:update'"
+              link
+              type="primary"
+              @click="openEdit(row as RoleItem)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-if="!row.builtin"
+              v-permission="'system:role:delete'"
+              link
+              type="danger"
+              @click="handleDelete(row as RoleItem)"
+            >
+              删除
+            </el-button>
             <el-button
               v-if="!row.builtin"
               v-permission="'system:role:bind-group'"
@@ -278,21 +306,18 @@ async function saveGroups() {
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="角色编码" prop="code">
-          <el-input v-model="form.code" :disabled="editingId !== null" placeholder="创建后不可修改" maxlength="32" />
+          <el-input
+            v-model="form.code"
+            :disabled="editingId !== null"
+            placeholder="创建后不可修改"
+            maxlength="32"
+          />
         </el-form-item>
         <el-form-item label="角色名称" prop="name">
           <el-input v-model="form.name" maxlength="32" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" maxlength="255" :rows="3" />
-        </el-form-item>
-        <el-form-item v-if="editingId !== null" label="状态">
-          <el-radio-group v-model="form.status">
-            <el-radio value="ENABLED">启用</el-radio>
-            <el-radio value="DISABLED" :disabled="list.find((item) => item.id === editingId)?.builtin">
-              禁用
-            </el-radio>
-          </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>

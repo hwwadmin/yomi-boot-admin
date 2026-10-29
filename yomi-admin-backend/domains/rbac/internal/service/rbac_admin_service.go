@@ -18,13 +18,18 @@ import (
 )
 
 const (
-	maxCodeLength  = 32
-	maxNameRunes   = 32
-	maxRemarkRunes = 255
+	maxCodeLength     = 32
+	maxPermissionCode = 96
+	maxNameRunes      = 32
+	maxRemarkRunes    = 255
+	maxResourceLength = 191
 )
 
 // codePattern 约束角色与权限组编码为小写字母开头的下划线组合
 var codePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{2,31}$`)
+
+// permissionCodePattern 约束权限编码为小写字母开头、冒号分段的小写标识
+var permissionCodePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(?::[a-z][a-z0-9_]*)*$`)
 
 // RbacAdminService 角色、权限组与权限管理实现
 type RbacAdminService struct {
@@ -124,7 +129,7 @@ func (s *RbacAdminService) CreateRole(ctx context.Context, in *input.CreateRoleI
 	return role, nil
 }
 
-// UpdateRole 更新角色资料与状态
+// UpdateRole 更新角色资料；启停走独立入口
 func (s *RbacAdminService) UpdateRole(ctx context.Context, in *input.UpdateRoleInput) error {
 	if in == nil || in.ID <= 0 {
 		return errors.Sentinel(service_contract.ErrRoleNotFound)
@@ -132,7 +137,60 @@ func (s *RbacAdminService) UpdateRole(ctx context.Context, in *input.UpdateRoleI
 
 	roleName := strings.TrimSpace(in.Name)
 	remark := strings.TrimSpace(in.Remark)
-	if !validName(roleName) || !validRemark(remark) || !enums.IsValidStatus(in.Status) {
+	if !validName(roleName) || !validRemark(remark) {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	role, found, err := s.repo.FindRoleByID(ctx, in.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrRoleNotFound)
+	}
+
+	role.Name = roleName
+	role.Remark = remark
+	return s.repo.UpdateRole(ctx, role, in.OperatorID)
+}
+
+// DeleteRole 硬删除角色：仍有用户绑定时拒绝，并同步清理角色权限组关系
+func (s *RbacAdminService) DeleteRole(ctx context.Context, in *input.DeleteRoleInput) error {
+	if in == nil || in.ID <= 0 {
+		return errors.Sentinel(service_contract.ErrRoleNotFound)
+	}
+
+	role, found, err := s.repo.FindRoleByID(ctx, in.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrRoleNotFound)
+	}
+	if role.Builtin {
+		return errors.Sentinel(service_contract.ErrBuiltinRoleImmutable)
+	}
+
+	boundUsers, err := s.repo.CountUserRolesByRoleID(ctx, role.ID)
+	if err != nil {
+		return err
+	}
+	if boundUsers > 0 {
+		return errors.Sentinel(service_contract.ErrRoleBoundToUsers)
+	}
+
+	if err := s.repo.DeleteRoleGroupsByRoleID(ctx, role.ID); err != nil {
+		return err
+	}
+	return s.repo.DeleteRole(ctx, role.ID)
+}
+
+// SetRoleStatus 设置角色启停；内置超管不可禁用
+func (s *RbacAdminService) SetRoleStatus(ctx context.Context, in *input.SetRoleStatusInput) error {
+	if in == nil || in.ID <= 0 {
+		return errors.Sentinel(service_contract.ErrRoleNotFound)
+	}
+	if !enums.IsValidStatus(in.Status) {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 
@@ -146,11 +204,7 @@ func (s *RbacAdminService) UpdateRole(ctx context.Context, in *input.UpdateRoleI
 	if role.Builtin && in.Status == enums.StatusDisabled {
 		return errors.Sentinel(service_contract.ErrBuiltinRoleImmutable)
 	}
-
-	role.Name = roleName
-	role.Remark = remark
-	role.Status = in.Status
-	return s.repo.UpdateRole(ctx, role, in.OperatorID)
+	return s.repo.UpdateRoleStatus(ctx, role.ID, in.Status, in.OperatorID)
 }
 
 // BindRoleGroups 覆盖角色权限组；角色权限始终来自权限组的去重聚合
@@ -283,7 +337,7 @@ func (s *RbacAdminService) CreatePermissionGroup(ctx context.Context, in *input.
 	return group, nil
 }
 
-// UpdatePermissionGroup 更新权限组资料与状态
+// UpdatePermissionGroup 更新权限组资料；启停走独立入口
 func (s *RbacAdminService) UpdatePermissionGroup(ctx context.Context, in *input.UpdatePermissionGroupInput) error {
 	if in == nil || in.ID <= 0 {
 		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
@@ -291,7 +345,7 @@ func (s *RbacAdminService) UpdatePermissionGroup(ctx context.Context, in *input.
 
 	groupName := strings.TrimSpace(in.Name)
 	remark := strings.TrimSpace(in.Remark)
-	if !validName(groupName) || !validRemark(remark) || !enums.IsValidStatus(in.Status) {
+	if !validName(groupName) || !validRemark(remark) {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 
@@ -305,8 +359,54 @@ func (s *RbacAdminService) UpdatePermissionGroup(ctx context.Context, in *input.
 
 	group.Name = groupName
 	group.Remark = remark
-	group.Status = in.Status
 	return s.repo.UpdatePermissionGroup(ctx, group, in.OperatorID)
+}
+
+// DeletePermissionGroup 硬删除权限组：仍有角色绑定时拒绝，并同步清理权限组权限关系
+func (s *RbacAdminService) DeletePermissionGroup(ctx context.Context, in *input.DeletePermissionGroupInput) error {
+	if in == nil || in.ID <= 0 {
+		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+	}
+
+	group, found, err := s.repo.FindPermissionGroupByID(ctx, in.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+	}
+
+	boundRoles, err := s.repo.CountRoleGroupsByGroupID(ctx, group.ID)
+	if err != nil {
+		return err
+	}
+	if boundRoles > 0 {
+		return errors.Sentinel(service_contract.ErrPermissionGroupBoundToRoles)
+	}
+
+	if err := s.repo.DeleteGroupPermissionsByGroupID(ctx, group.ID); err != nil {
+		return err
+	}
+	return s.repo.DeletePermissionGroup(ctx, group.ID)
+}
+
+// SetPermissionGroupStatus 设置权限组启停
+func (s *RbacAdminService) SetPermissionGroupStatus(ctx context.Context, in *input.SetPermissionGroupStatusInput) error {
+	if in == nil || in.ID <= 0 {
+		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+	}
+	if !enums.IsValidStatus(in.Status) {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	group, found, err := s.repo.FindPermissionGroupByID(ctx, in.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+	}
+	return s.repo.UpdatePermissionGroupStatus(ctx, group.ID, in.Status, in.OperatorID)
 }
 
 // BindGroupPermissions 覆盖权限组权限
@@ -375,6 +475,115 @@ func (s *RbacAdminService) PagePermissions(ctx context.Context, in *input.PagePe
 		return nil, err
 	}
 	return &output.PagePermissionsOutput{Items: items, Total: total}, nil
+}
+
+// CreatePermission 创建权限
+func (s *RbacAdminService) CreatePermission(ctx context.Context, in *input.CreatePermissionInput) (*entity.Permission, error) {
+	if in == nil {
+		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	code := strings.TrimSpace(in.Code)
+	permissionName := strings.TrimSpace(in.Name)
+	remark := strings.TrimSpace(in.Remark)
+	if !validPermissionCode(code) || !validName(permissionName) || !validRemark(remark) {
+		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	permission, ok := normalizePermissionResource(in.Type, in.UIPath, in.HTTPMethod, in.HTTPPath)
+	if !ok {
+		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	_, found, err := s.repo.FindPermissionByCode(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		return nil, errors.Sentinel(service_contract.ErrPermissionCodeExists)
+	}
+	if err := s.ensurePermissionResourceFree(ctx, permission, 0); err != nil {
+		return nil, err
+	}
+
+	id, err := s.ids.NextID()
+	if err != nil {
+		return nil, errors.Wrap(err, "生成权限 ID 失败")
+	}
+	permission.ID = id
+	permission.Code = code
+	permission.Name = permissionName
+	permission.Status = enums.StatusEnabled
+	permission.Remark = remark
+	if err := s.repo.CreatePermission(ctx, permission, in.OperatorID); err != nil {
+		if errors.Is(err, repo_contract.ErrDuplicatedKey) {
+			return nil, errors.Sentinel(service_contract.ErrPermissionResourceExists)
+		}
+		return nil, err
+	}
+	return permission, nil
+}
+
+// UpdatePermission 更新权限资料；编码与类型不可变
+func (s *RbacAdminService) UpdatePermission(ctx context.Context, in *input.UpdatePermissionInput) error {
+	if in == nil || in.ID <= 0 {
+		return errors.Sentinel(service_contract.ErrPermissionNotFound)
+	}
+
+	permissionName := strings.TrimSpace(in.Name)
+	remark := strings.TrimSpace(in.Remark)
+	if !validName(permissionName) || !validRemark(remark) {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	permission, found, err := s.repo.FindPermissionByID(ctx, in.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrPermissionNotFound)
+	}
+
+	resource, ok := normalizePermissionResource(permission.Type, in.UIPath, in.HTTPMethod, in.HTTPPath)
+	if !ok {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+	if err := s.ensurePermissionResourceFree(ctx, resource, permission.ID); err != nil {
+		return err
+	}
+
+	permission.Name = permissionName
+	permission.UIPath = resource.UIPath
+	permission.HTTPMethod = resource.HTTPMethod
+	permission.HTTPPath = resource.HTTPPath
+	permission.Remark = remark
+	if err := s.repo.UpdatePermission(ctx, permission, in.OperatorID); err != nil {
+		if errors.Is(err, repo_contract.ErrDuplicatedKey) {
+			return errors.Sentinel(service_contract.ErrPermissionResourceExists)
+		}
+		return err
+	}
+	return nil
+}
+
+// DeletePermission 硬删除权限，并同步清理权限组对它的引用
+func (s *RbacAdminService) DeletePermission(ctx context.Context, in *input.DeletePermissionInput) error {
+	if in == nil || in.ID <= 0 {
+		return errors.Sentinel(service_contract.ErrPermissionNotFound)
+	}
+
+	_, found, err := s.repo.FindPermissionByID(ctx, in.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrPermissionNotFound)
+	}
+
+	if err := s.repo.DeleteGroupPermissionsByPermissionID(ctx, in.ID); err != nil {
+		return err
+	}
+	return s.repo.DeletePermission(ctx, in.ID)
 }
 
 // SetPermissionStatus 设置权限启停
@@ -452,6 +661,14 @@ func (s *RbacAdminService) BindUserRoles(ctx context.Context, in *input.BindUser
 	return s.repo.ReplaceUserRoles(ctx, in.UserID, rels, in.OperatorID)
 }
 
+// DeleteUserRoles 硬删除用户全部角色绑定
+func (s *RbacAdminService) DeleteUserRoles(ctx context.Context, userID int64) error {
+	if userID <= 0 {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+	return s.repo.DeleteUserRolesByUserID(ctx, userID)
+}
+
 // ListRolesByUserIDs 按用户批量查询已绑角色
 func (s *RbacAdminService) ListRolesByUserIDs(ctx context.Context, userIDs []int64) (map[int64][]*entity.Role, error) {
 	return s.repo.ListRolesByUserIDs(ctx, userIDs)
@@ -487,6 +704,79 @@ func validName(name string) bool {
 // validRemark 判断备注长度是否合法
 func validRemark(remark string) bool {
 	return utf8.RuneCountInString(remark) <= maxRemarkRunes
+}
+
+// validPermissionCode 判断权限编码是否合法
+func validPermissionCode(code string) bool {
+	return len(code) >= 3 && len(code) <= maxPermissionCode && permissionCodePattern.MatchString(code)
+}
+
+// validUIPath 判断菜单路径是否合法
+func validUIPath(uiPath string) bool {
+	return strings.HasPrefix(uiPath, "/") && len(uiPath) <= maxResourceLength && !containsSpace(uiPath)
+}
+
+// validHTTPPath 判断接口路由模板是否合法
+func validHTTPPath(httpPath string) bool {
+	return strings.HasPrefix(httpPath, "/api/") && len(httpPath) <= maxResourceLength && !containsSpace(httpPath)
+}
+
+// validHTTPMethod 判断 HTTP 方法是否合法
+func validHTTPMethod(method string) bool {
+	switch method {
+	case "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS":
+		return true
+	default:
+		return false
+	}
+}
+
+// containsSpace 判断字符串是否包含空白字符
+func containsSpace(value string) bool {
+	return strings.ContainsAny(value, " \t\r\n")
+}
+
+// normalizePermissionResource 按权限类型归一化资源字段：菜单只看 uiPath，接口只看 method + path
+func normalizePermissionResource(permissionType enums.PermissionType, uiPath, httpMethod, httpPath string) (*entity.Permission, bool) {
+	uiPath = strings.TrimSpace(uiPath)
+	httpMethod = strings.ToUpper(strings.TrimSpace(httpMethod))
+	httpPath = strings.TrimSpace(httpPath)
+
+	switch permissionType {
+	case enums.PermissionTypeMenu:
+		if !validUIPath(uiPath) {
+			return nil, false
+		}
+		return &entity.Permission{Type: permissionType, UIPath: uiPath}, true
+	case enums.PermissionTypeAPI:
+		if !validHTTPMethod(httpMethod) || !validHTTPPath(httpPath) {
+			return nil, false
+		}
+		return &entity.Permission{Type: permissionType, HTTPMethod: httpMethod, HTTPPath: httpPath}, true
+	default:
+		return nil, false
+	}
+}
+
+// ensurePermissionResourceFree 校验权限资源未被其它权限占用
+func (s *RbacAdminService) ensurePermissionResourceFree(ctx context.Context, permission *entity.Permission, excludeID int64) error {
+	var (
+		existing *entity.Permission
+		found    bool
+		err      error
+	)
+	if permission.Type == enums.PermissionTypeMenu {
+		existing, found, err = s.repo.FindPermissionByUIPath(ctx, permission.UIPath)
+	} else {
+		existing, found, err = s.repo.FindPermissionByHTTPRoute(ctx, permission.HTTPMethod, permission.HTTPPath)
+	}
+	if err != nil {
+		return err
+	}
+	if found && existing.ID != excludeID {
+		return errors.Sentinel(service_contract.ErrPermissionResourceExists)
+	}
+	return nil
 }
 
 // normalizeIDs 校验并去重 ID 列表，保持首次出现顺序
