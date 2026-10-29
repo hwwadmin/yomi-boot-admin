@@ -11,7 +11,6 @@ import (
 	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
 	"gitee.com/hq_project/yomi-boot/component/common/token"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
 )
 
 // UpdateUserInput HTTP 更新用户入参；用户名不可变
@@ -36,7 +35,7 @@ func NewUpdateUserUsecase(users service_contract.UserService, guard lastSuperGua
 	return &UpdateUserUsecase{users: users, guard: guard, tx: tx, token: tokenService}
 }
 
-// Execute 更新用户；状态改为禁用后撤销该用户全部 Token
+// Execute 更新用户；状态改为禁用后在超管锁内校验并撤销该用户全部 Token
 func (uc *UpdateUserUsecase) Execute(ctx context.Context, id int64, in *UpdateUserInput) error {
 	if id <= 0 {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
@@ -45,7 +44,7 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, id int64, in *UpdateUs
 		return support.ErrCannotOperateSelf
 	}
 
-	if err := uc.tx.Run(ctx, func(txCtx context.Context) error {
+	update := func(txCtx context.Context) error {
 		if in.Status == enums.UserStatusDisabled {
 			if err := uc.guard.EnsureNotLastSuper(txCtx, id); err != nil {
 				return err
@@ -59,14 +58,24 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, id int64, in *UpdateUs
 			Status:     in.Status,
 			OperatorID: in.OperatorID,
 		})
-	}); err != nil {
+	}
+
+	var err error
+	if in.Status == enums.UserStatusDisabled {
+		// 禁用会减少启用态超管集合，必须串行化。
+		err = uc.guard.WithLock(ctx, func(lockCtx context.Context) error {
+			return uc.tx.Run(lockCtx, update)
+		})
+	} else {
+		// 启用不会减少集合，无需加锁；并发禁用可能因此保守拒绝。
+		err = uc.tx.Run(ctx, update)
+	}
+	if err != nil {
 		return err
 	}
 
 	if in.Status == enums.UserStatusDisabled {
-		if err := uc.token.RevokeByUserID(ctx, id); err != nil {
-			logger.Error(ctx, "撤销用户令牌失败", "userID", id, "error", err)
-		}
+		return revokeUserTokens(ctx, uc.token, id)
 	}
 	return nil
 }

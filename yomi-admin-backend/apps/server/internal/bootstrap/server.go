@@ -19,6 +19,7 @@ import (
 	"gitee.com/hq_project/yomi-boot/boot"
 	"gitee.com/hq_project/yomi-boot/boot/server"
 	"gitee.com/hq_project/yomi-boot/component/common/db/tx"
+	"gitee.com/hq_project/yomi-boot/component/common/distlock"
 	"gitee.com/hq_project/yomi-boot/component/common/token"
 	"gitee.com/hq_project/yomi-boot/component/core/appctx"
 	"gitee.com/hq_project/yomi-boot/component/core/config"
@@ -27,6 +28,7 @@ import (
 	"gitee.com/hq_project/yomi-boot/plugin"
 	appctxplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/appctx"
 	dbplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/db"
+	redisplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/redis"
 	snowflakeplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/snowflake"
 	tokenplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/token"
 
@@ -52,6 +54,7 @@ type container struct {
 	tx      tx.Executor
 	token   token.TokenService
 	appCtx  appctx.AppCtx
+	lock    distlock.DistLockFactory
 }
 
 var (
@@ -67,9 +70,11 @@ func load(slot *plugin.PluginSlot) container {
 		tokenPlugin := tokenplugin.From(slot)
 		snowflakePlugin := snowflakeplugin.From(slot)
 		appCtxPlugin := appctxplugin.From(slot)
+		redisPlugin := redisplugin.From(slot)
 
 		if db.DB() == nil || txPlugin.Executor() == nil || tokenPlugin.Service() == nil ||
-			snowflakePlugin.Generator() == nil || appCtxPlugin.AppCtx() == nil {
+			snowflakePlugin.Generator() == nil || appCtxPlugin.AppCtx() == nil ||
+			redisPlugin.DistLockFactory() == nil {
 			panic("yomi-admin: 需要启用 db、redis、token、snowflake 插件")
 		}
 
@@ -91,6 +96,7 @@ func load(slot *plugin.PluginSlot) container {
 			tx:     txPlugin.Executor(),
 			token:  tokenPlugin.Service(),
 			appCtx: appCtxPlugin.AppCtx(),
+			lock:   redisPlugin.DistLockFactory(),
 		}
 	})
 	return appContainer
@@ -100,7 +106,7 @@ func load(slot *plugin.PluginSlot) container {
 func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	c := load(slot)
 	registerHttpRecordHandler(slot, c.records.Records)
-	guard := superadmin.New(c.users.Users, c.rbac.Admin)
+	guard := superadmin.New(c.users.Users, c.rbac.Admin, newSuperAdminLocker(c.lock))
 
 	return []router.Registrar{
 		corehandler.NewHealthHandler("/v1/health", "/v1/health/ops", c.appCtx),

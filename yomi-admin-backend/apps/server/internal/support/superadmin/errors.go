@@ -10,4 +10,8 @@ var (
 	ErrUnbindSelfSuper = errors.NewBiz("ADMIN_CANNOT_UNBIND_SELF_SUPER", "不能解绑自己的超级管理员角色")
 	// ErrLastSuperAdmin 不能移除最后一名启用状态的超管
 	ErrLastSuperAdmin = errors.NewBiz("ADMIN_LAST_SUPER_ADMIN", "不能移除最后一名启用状态的超级管理员")
+	// ErrSuperAdminBusy 超管变更操作正在进行中
+	ErrSuperAdminBusy = errors.NewBiz("ADMIN_SUPER_ADMIN_BUSY", "超管变更操作进行中，请稍后重试")
+	// ErrSuperAdminLockUnavailable 超管变更锁暂时不可用
+	ErrSuperAdminLockUnavailable = errors.NewBiz("ADMIN_SUPER_ADMIN_LOCK_UNAVAILABLE", "超管变更暂时不可用，请稍后重试")
 )

@@ -19,6 +19,7 @@ type BindUserRolesInput struct {
 
 // superAdminPolicy 超管相关编排策略
 type superAdminPolicy interface {
+	WithLock(ctx context.Context, fn func(context.Context) error) error
 	EnsureCanBindRoles(ctx context.Context, operatorID, targetUserID int64, roleIDs []int64) error
 }
 
@@ -34,21 +35,23 @@ func NewBindUserRolesUsecase(rbac rbaccontract.RbacAdminService, guard superAdmi
 	return &BindUserRolesUsecase{rbac: rbac, guard: guard, tx: tx}
 }
 
-// Execute 覆盖用户角色
+// Execute 在超管锁内覆盖用户角色
 func (uc *BindUserRolesUsecase) Execute(ctx context.Context, userID int64, in *BindUserRolesInput) error {
 	if userID <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
 	}
 
 	roleIDs := in.RoleIDs.Int64Slice()
-	return uc.tx.Run(ctx, func(txCtx context.Context) error {
-		if err := uc.guard.EnsureCanBindRoles(txCtx, in.OperatorID, userID, roleIDs); err != nil {
-			return err
-		}
-		return uc.rbac.BindUserRoles(txCtx, &rbacinput.BindUserRolesInput{
-			UserID:     userID,
-			RoleIDs:    roleIDs,
-			OperatorID: in.OperatorID,
+	return uc.guard.WithLock(ctx, func(lockCtx context.Context) error {
+		return uc.tx.Run(lockCtx, func(txCtx context.Context) error {
+			if err := uc.guard.EnsureCanBindRoles(txCtx, in.OperatorID, userID, roleIDs); err != nil {
+				return err
+			}
+			return uc.rbac.BindUserRoles(txCtx, &rbacinput.BindUserRolesInput{
+				UserID:     userID,
+				RoleIDs:    roleIDs,
+				OperatorID: in.OperatorID,
+			})
 		})
 	})
 }

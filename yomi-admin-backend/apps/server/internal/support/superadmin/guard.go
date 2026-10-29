@@ -27,18 +27,38 @@ type RoleReader interface {
 	ListRolesByIDs(ctx context.Context, ids []int64) ([]*rbacentity.Role, error)
 }
 
+// Locker 串行化所有会改变启用态超管集合的操作。
+//
+// 实现必须保证：锁覆盖「检查 + 写入 + 提交」整段；抢不到锁时 fail closed。
+type Locker interface {
+	WithLock(ctx context.Context, fn func(context.Context) error) error
+}
+
+// LockKey 是超管变更操作共享的分布式锁 key。
+//
+// 多入口只复用领域时，新入口若也会改变超管状态，必须复用同一个 key，
+// 否则入口之间的竞态会重新出现。
+const LockKey = "yomi-admin:superadmin:guard"
+
 // Guard 超管相关编排策略
 type Guard struct {
 	users UserReader
 	rbac  RoleReader
+	lock  Locker
 }
 
 // New 创建超管策略守卫
-func New(users UserReader, rbac RoleReader) *Guard {
-	return &Guard{users: users, rbac: rbac}
+func New(users UserReader, rbac RoleReader, lock Locker) *Guard {
+	return &Guard{users: users, rbac: rbac, lock: lock}
 }
 
-// EnsureNotLastSuper 目标用户是唯一启用态超管时拒绝禁用或删除
+// WithLock 在超管变更锁内执行 fn；fn 必须包含检查、写入和事务提交。
+func (g *Guard) WithLock(ctx context.Context, fn func(context.Context) error) error {
+	return g.lock.WithLock(ctx, fn)
+}
+
+// EnsureNotLastSuper 目标用户是唯一启用态超管时拒绝禁用或删除。
+// 必须在 WithLock 内调用，且锁需覆盖后续写入与提交。
 func (g *Guard) EnsureNotLastSuper(ctx context.Context, targetUserID int64) error {
 	userIDs, err := g.enabledSuperUserIDs(ctx)
 	if err != nil {
@@ -53,6 +73,8 @@ func (g *Guard) EnsureNotLastSuper(ctx context.Context, targetUserID int64) erro
 }
 
 // EnsureCanBindRoles 校验本次用户角色变更是否允许。
+//
+// 必须在 WithLock 内调用，且锁需覆盖后续写入与提交。
 //
 // 规则：
 //   - 授予或回收超管角色，操作者必须是启用态超管；

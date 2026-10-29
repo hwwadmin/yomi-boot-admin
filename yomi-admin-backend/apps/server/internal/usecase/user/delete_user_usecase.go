@@ -10,7 +10,6 @@ import (
 	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
 	"gitee.com/hq_project/yomi-boot/component/common/token"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
 )
 
 // DeleteUserUsecase 删除用户编排
@@ -26,7 +25,7 @@ func NewDeleteUserUsecase(users service_contract.UserService, guard lastSuperGua
 	return &DeleteUserUsecase{users: users, guard: guard, tx: tx, token: tokenService}
 }
 
-// Execute 软删除用户并撤销其全部 Token
+// Execute 在超管锁内软删除用户，并撤销其全部 Token
 func (uc *DeleteUserUsecase) Execute(ctx context.Context, id, operatorID int64) error {
 	if id <= 0 {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
@@ -35,20 +34,24 @@ func (uc *DeleteUserUsecase) Execute(ctx context.Context, id, operatorID int64) 
 		return support.ErrCannotOperateSelf
 	}
 
-	if err := uc.tx.Run(ctx, func(txCtx context.Context) error {
-		if err := uc.guard.EnsureNotLastSuper(txCtx, id); err != nil {
-			return err
-		}
-		return uc.users.Delete(txCtx, &userinput.DeleteUserInput{
-			ID:         id,
-			OperatorID: operatorID,
+	err := uc.guard.WithLock(ctx, func(lockCtx context.Context) error {
+		return uc.tx.Run(lockCtx, func(txCtx context.Context) error {
+			if err := uc.guard.EnsureNotLastSuper(txCtx, id); err != nil {
+				return err
+			}
+			return uc.users.Delete(txCtx, &userinput.DeleteUserInput{
+				ID:         id,
+				OperatorID: operatorID,
+			})
 		})
-	}); err != nil {
+	})
+	if err != nil && !errors.Is(err, service_contract.ErrUserNotFound) {
 		return err
 	}
 
-	if err := uc.token.RevokeByUserID(ctx, id); err != nil {
-		logger.Error(ctx, "撤销用户令牌失败", "userID", id, "error", err)
+	// 用户可能已被软删除；仍然补撤 Token，保证失败重试能生效。
+	if revokeErr := revokeUserTokens(ctx, uc.token, id); revokeErr != nil {
+		return revokeErr
 	}
-	return nil
+	return err
 }
