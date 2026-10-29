@@ -47,6 +47,7 @@ func newRBACEngine(t *testing.T, auth rbaccontract.RbacAuthService, skip map[str
 
 	group := engine.Group("/api")
 	group.GET("/system/role", func(c *gin.Context) { c.String(http.StatusOK, "ok") })
+	group.POST("/system/role", func(c *gin.Context) { c.String(http.StatusOK, "posted") })
 	return engine
 }
 
@@ -120,15 +121,24 @@ func TestRBACChecksMatchedRoute(t *testing.T) {
 // TestRBACSkipsPublicPaths 校验跳过名单与预检请求不参与鉴权
 func TestRBACSkipsPublicPaths(t *testing.T) {
 	auth := &fakeAuthService{allowed: false}
-	engine := newRBACEngine(t, auth, map[string]struct{}{"/api/auth/login": {}})
+	engine := newRBACEngine(t, auth, map[string]struct{}{"GET /api/system/role": {}})
 
-	if recorder := serve(engine, http.MethodPost, "/api/auth/login"); recorder.Code != http.StatusNotFound {
-		t.Fatalf("跳过路径应交给后续处理: status=%d", recorder.Code)
+	// 命中跳过名单：交给后续处理，不查权限
+	if recorder := serve(engine, http.MethodGet, "/api/system/role"); recorder.Code != http.StatusOK || recorder.Body.String() != "ok" {
+		t.Fatalf("跳过名单应交给后续处理: status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 	if recorder := serve(engine, http.MethodOptions, "/api/not-exists"); recorder.Code != http.StatusNotFound {
 		t.Fatalf("预检请求应放行: status=%d", recorder.Code)
 	}
 	if auth.calls != 0 {
 		t.Fatalf("跳过名单与预检不应查询权限: calls=%d", auth.calls)
+	}
+
+	// 同一路径的其它方法不在跳过名单里：必须查询权限
+	if recorder := serve(engine, http.MethodPost, "/api/system/role"); bodyCode(t, recorder) != "ADMIN_PERMISSION_DENIED" {
+		t.Fatalf("同一路径的其它方法不应被跳过: status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if auth.calls != 1 {
+		t.Fatalf("同一路径的其它方法应查询权限: calls=%d", auth.calls)
 	}
 }

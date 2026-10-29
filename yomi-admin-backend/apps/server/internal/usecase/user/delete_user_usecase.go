@@ -63,7 +63,7 @@ func (uc *DeleteUserUsecase) Execute(ctx context.Context, in *DeleteUserInput) e
 	}
 
 	// 用户可能已被软删除；仍然补撤 Token，保证失败重试能生效。
-	if revokeErr := revokeUserTokens(ctx, uc.token, id); revokeErr != nil {
+	if revokeErr := support.RevokeUserTokens(ctx, uc.token, id); revokeErr != nil {
 		return revokeErr
 	}
 	return err

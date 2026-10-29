@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -36,6 +37,18 @@ func (r *fakeUserRepo) FindByID(_ context.Context, id int64) (*entity.User, bool
 
 func (r *fakeUserRepo) FindCredentialByUsername(_ context.Context, username string) (*repo_contract.UserCredential, bool, error) {
 	cred, ok := r.credentials[username]
+	if !ok {
+		return nil, false, nil
+	}
+	return &cred, true, nil
+}
+
+func (r *fakeUserRepo) FindCredentialByID(_ context.Context, id int64) (*repo_contract.UserCredential, bool, error) {
+	user, ok := r.users[id]
+	if !ok {
+		return nil, false, nil
+	}
+	cred, ok := r.credentials[user.Username]
 	if !ok {
 		return nil, false, nil
 	}
@@ -80,6 +93,15 @@ func (r *fakeUserRepo) Update(_ context.Context, user *entity.User, operatorID i
 
 func (r *fakeUserRepo) SoftDelete(_ context.Context, id int64, operatorID int64) error {
 	delete(r.users, id)
+	return nil
+}
+
+func (r *fakeUserRepo) UpdatePassword(_ context.Context, id int64, passwordHash string, operatorID int64) error {
+	user, ok := r.users[id]
+	if !ok {
+		return fmt.Errorf("user %d not found", id)
+	}
+	r.credentials[user.Username] = repo_contract.UserCredential{User: user, PasswordHash: passwordHash}
 	return nil
 }
 
@@ -239,5 +261,62 @@ func TestUpdateAndDeleteUser(t *testing.T) {
 	}
 	if _, ok := repo.users[admin.ID]; ok {
 		t.Fatal("用户未被删除")
+	}
+}
+
+func TestChangePassword(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	admin := seedUser(t, repo, "admin", "admin123", enums.UserStatusEnabled)
+	svc := newTestUserService(repo)
+
+	cases := []struct {
+		name string
+		in   *input.ChangePasswordInput
+		want error
+	}{
+		{name: "原密码错误", in: &input.ChangePasswordInput{ID: admin.ID, OldPassword: "wrong", NewPassword: "newpass1"}, want: service_contract.ErrOldPasswordMismatch},
+		{name: "新密码过短", in: &input.ChangePasswordInput{ID: admin.ID, OldPassword: "admin123", NewPassword: "123"}, want: service_contract.ErrInvalidInput},
+		{name: "新密码与原密码相同", in: &input.ChangePasswordInput{ID: admin.ID, OldPassword: "admin123", NewPassword: "admin123"}, want: service_contract.ErrPasswordUnchanged},
+		{name: "用户不存在", in: &input.ChangePasswordInput{ID: 999, OldPassword: "admin123", NewPassword: "newpass1"}, want: service_contract.ErrUserNotFound},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := svc.ChangePassword(ctx, tc.in); !errors.Is(err, tc.want) {
+				t.Fatalf("期望 %v，实际 %v", tc.want, err)
+			}
+		})
+	}
+
+	// 成功路径：新密码可登录，原密码失效
+	if err := svc.ChangePassword(ctx, &input.ChangePasswordInput{ID: admin.ID, OldPassword: "admin123", NewPassword: "newpass1"}); err != nil {
+		t.Fatalf("修改密码失败: %v", err)
+	}
+	if _, err := svc.Authenticate(ctx, &input.AuthenticateInput{Username: "admin", Password: "newpass1"}); err != nil {
+		t.Fatalf("新密码应可登录: %v", err)
+	}
+	if _, err := svc.Authenticate(ctx, &input.AuthenticateInput{Username: "admin", Password: "admin123"}); !errors.Is(err, service_contract.ErrInvalidCredential) {
+		t.Fatalf("原密码应失效: %v", err)
+	}
+}
+
+func TestResetPassword(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	admin := seedUser(t, repo, "admin", "admin123", enums.UserStatusEnabled)
+	svc := newTestUserService(repo)
+
+	if err := svc.ResetPassword(ctx, &input.ResetPasswordInput{ID: admin.ID, NewPassword: "reset123", OperatorID: 999}); err != nil {
+		t.Fatalf("重置密码失败: %v", err)
+	}
+	if _, err := svc.Authenticate(ctx, &input.AuthenticateInput{Username: "admin", Password: "reset123"}); err != nil {
+		t.Fatalf("重置后的密码应可登录: %v", err)
+	}
+
+	if err := svc.ResetPassword(ctx, &input.ResetPasswordInput{ID: 999, NewPassword: "reset123", OperatorID: 999}); !errors.Is(err, service_contract.ErrUserNotFound) {
+		t.Fatalf("重置不存在用户期望 ErrUserNotFound，实际 %v", err)
+	}
+	if err := svc.ResetPassword(ctx, &input.ResetPasswordInput{ID: admin.ID, NewPassword: "123", OperatorID: 999}); !errors.Is(err, service_contract.ErrInvalidInput) {
+		t.Fatalf("重置密码过短期望 ErrInvalidInput，实际 %v", err)
 	}
 }

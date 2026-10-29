@@ -63,6 +63,22 @@ func (r *UserRepo) FindCredentialByUsername(ctx context.Context, username string
 	}, true, nil
 }
 
+// FindCredentialByID 按主键查询验密凭证
+func (r *UserRepo) FindCredentialByID(ctx context.Context, id int64) (*repo_contract.UserCredential, bool, error) {
+	var row userModel
+	found, err := r.FirstByID(ctx, id, &row)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "按主键查询用户失败")
+	}
+	if !found {
+		return nil, false, nil
+	}
+	return &repo_contract.UserCredential{
+		User:         toUserEntity(&row),
+		PasswordHash: row.PasswordHash,
+	}, true, nil
+}
+
 // ExistsByUsername 判断用户名是否存在（包含已软删除记录）
 func (r *UserRepo) ExistsByUsername(ctx context.Context, username string) (bool, error) {
 	var count int64
@@ -124,6 +140,18 @@ func (r *UserRepo) Update(ctx context.Context, user *entity.User, operatorID int
 	}
 	if err := r.UpdateByID(ctx, user.ID, &userModel{}, updates); err != nil {
 		return errors.Wrap(err, "更新用户失败")
+	}
+	return nil
+}
+
+// UpdatePassword 只更新密码哈希与操作人，不动其他字段
+func (r *UserRepo) UpdatePassword(ctx context.Context, id int64, passwordHash string, operatorID int64) error {
+	updates := map[string]any{
+		"password_hash": passwordHash,
+		"update_by":     ptrutil.PtrFromInt64(operatorID),
+	}
+	if err := r.UpdateByID(ctx, id, &userModel{}, updates); err != nil {
+		return errors.Wrap(err, "更新用户密码失败")
 	}
 	return nil
 }

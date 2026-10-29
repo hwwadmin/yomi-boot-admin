@@ -99,8 +99,8 @@ func (s *UserService) Create(ctx context.Context, in *input.CreateUserInput) (*e
 	if !usernamePattern.MatchString(username) {
 		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
 	}
-	if len([]byte(in.Password)) < minPasswordBytes || len([]byte(in.Password)) > passwd.MaxPasswordBytes {
-		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	if err := validatePassword(in.Password); err != nil {
+		return nil, err
 	}
 
 	nickname := strings.TrimSpace(in.Nickname)
@@ -130,12 +130,9 @@ func (s *UserService) Create(ctx context.Context, in *input.CreateUserInput) (*e
 		return nil, errors.Sentinel(service_contract.ErrUsernameExists)
 	}
 
-	passwordHash, err := passwd.Hash(in.Password)
+	passwordHash, err := hashPassword(in.Password)
 	if err != nil {
-		if errors.Is(err, passwd.ErrPasswordTooLong) {
-			return nil, errors.Sentinel(service_contract.ErrInvalidInput)
-		}
-		return nil, errors.Wrap(err, "生成密码哈希失败")
+		return nil, err
 	}
 
 	id, err := s.idGenerator.NextID()
@@ -213,4 +210,83 @@ func (s *UserService) Delete(ctx context.Context, in *input.DeleteUserInput) err
 		return errors.Sentinel(service_contract.ErrUserNotFound)
 	}
 	return s.users.SoftDelete(ctx, in.ID, in.OperatorID)
+}
+
+// ChangePassword 校验原密码后修改密码；调用方负责撤销该用户的登录令牌
+func (s *UserService) ChangePassword(ctx context.Context, in *input.ChangePasswordInput) error {
+	if in.ID <= 0 {
+		return errors.Sentinel(service_contract.ErrUserNotFound)
+	}
+	if err := validatePassword(in.NewPassword); err != nil {
+		return err
+	}
+
+	cred, found, err := s.users.FindCredentialByID(ctx, in.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrUserNotFound)
+	}
+
+	// 原密码错误与超长都统一按“原密码不正确”返回，不额外暴露密码长度规则
+	if err := passwd.Verify(cred.PasswordHash, in.OldPassword); err != nil {
+		if errors.Is(err, passwd.ErrMismatch) || errors.Is(err, passwd.ErrPasswordTooLong) {
+			return errors.Sentinel(service_contract.ErrOldPasswordMismatch)
+		}
+		return errors.Wrap(err, "校验原密码失败")
+	}
+	if in.NewPassword == in.OldPassword {
+		return errors.Sentinel(service_contract.ErrPasswordUnchanged)
+	}
+
+	passwordHash, err := hashPassword(in.NewPassword)
+	if err != nil {
+		return err
+	}
+	return s.users.UpdatePassword(ctx, in.ID, passwordHash, in.ID)
+}
+
+// ResetPassword 直接重置密码；调用方负责超管权限校验与撤销该用户的登录令牌
+func (s *UserService) ResetPassword(ctx context.Context, in *input.ResetPasswordInput) error {
+	if in.ID <= 0 {
+		return errors.Sentinel(service_contract.ErrUserNotFound)
+	}
+	if err := validatePassword(in.NewPassword); err != nil {
+		return err
+	}
+
+	_, found, err := s.users.FindByID(ctx, in.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrUserNotFound)
+	}
+
+	passwordHash, err := hashPassword(in.NewPassword)
+	if err != nil {
+		return err
+	}
+	return s.users.UpdatePassword(ctx, in.ID, passwordHash, in.OperatorID)
+}
+
+// validatePassword 校验密码长度：下限按业务设定，上限取自 bcrypt 的 72 字节
+func validatePassword(password string) error {
+	if len([]byte(password)) < minPasswordBytes || len([]byte(password)) > passwd.MaxPasswordBytes {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+	return nil
+}
+
+// hashPassword 生成密码哈希；超长按非法入参处理
+func hashPassword(password string) (string, error) {
+	passwordHash, err := passwd.Hash(password)
+	if err != nil {
+		if errors.Is(err, passwd.ErrPasswordTooLong) {
+			return "", errors.Sentinel(service_contract.ErrInvalidInput)
+		}
+		return "", errors.Wrap(err, "生成密码哈希失败")
+	}
+	return passwordHash, nil
 }

@@ -83,7 +83,7 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, in *UpdateUserInput) e
 	}
 
 	if disabling {
-		return revokeUserTokens(ctx, uc.token, id)
+		return support.RevokeUserTokens(ctx, uc.token, id)
 	}
 	return nil
 }

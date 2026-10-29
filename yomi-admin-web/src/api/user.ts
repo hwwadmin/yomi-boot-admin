@@ -29,3 +29,8 @@ export function updateUser(id: string, data: Partial<UserPayload>) {
 export function deleteUser(id: string) {
   return request<null>({ url: '/system/user/delete', method: 'post', data: { id } })
 }
+
+/** 重置用户密码（仅超级管理员）；成功后该用户全部会话失效 */
+export function resetUserPassword(id: string, newPassword: string) {
+  return request<null>({ url: '/system/user/reset-password', method: 'post', data: { id, newPassword } })
+}

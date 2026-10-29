@@ -58,8 +58,8 @@ func TestCaptchaConfigEnabledFalse(t *testing.T) {
 
 func TestCaptchaConfigRefreshInterval(t *testing.T) {
 	var cfg CaptchaConfig
-	if got := cfg.RefreshInterval(); got != 10*time.Second {
-		t.Fatalf("默认刷新间隔应为 10s，实际 %s", got)
+	if got := cfg.RefreshInterval(); got != 1*time.Second {
+		t.Fatalf("默认刷新间隔应为 1s，实际 %s", got)
 	}
 
 	zero := 0

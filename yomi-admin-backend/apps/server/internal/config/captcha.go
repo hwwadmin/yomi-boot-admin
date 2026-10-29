@@ -11,8 +11,11 @@ import (
 // defaultCaptchaKeyPrefix 是登录验证码默认 Redis 键前缀
 const defaultCaptchaKeyPrefix = "yomi:captcha:login"
 
-// defaultCaptchaRefreshInterval 是同 IP 生成验证码的默认最小间隔
-const defaultCaptchaRefreshInterval = 10 * time.Second
+// defaultCaptchaRefreshInterval 是同 IP 生成验证码的默认最小间隔。
+//
+// 取 1 秒：验证码是一次性的，登录失败后前端会立刻换图，间隔太大时换图被限流拒绝，
+// 页面会停留在已经作废的验证码上，用户改完密码再提交必然多失败一次。
+const defaultCaptchaRefreshInterval = 1 * time.Second
 
 // maxCaptchaRefreshIntervalSeconds 是刷新间隔上限（秒）
 const maxCaptchaRefreshIntervalSeconds = 3600
@@ -26,7 +29,7 @@ type CaptchaConfig struct {
 	Height                 int    `mapstructure:"height"`                   // Height 是图片高度（像素），0 则 80
 	TTLSeconds             int    `mapstructure:"ttl_seconds"`              // TTLSeconds 是验证码有效期（秒），0 则 300
 	KeyPrefix              string `mapstructure:"key_prefix"`               // KeyPrefix 是 Redis 键前缀，空则 yomi:captcha:login
-	RefreshIntervalSeconds *int   `mapstructure:"refresh_interval_seconds"` // RefreshIntervalSeconds 是同 IP 生成验证码的最小间隔（秒），未配置默认 10，0 表示不限流
+	RefreshIntervalSeconds *int   `mapstructure:"refresh_interval_seconds"` // RefreshIntervalSeconds 是同 IP 生成验证码的最小间隔（秒），未配置默认 1，0 表示不限流
 }
 
 // EnabledOrDefault 返回登录是否强制校验图像验证码，未配置默认 true
@@ -34,7 +37,7 @@ func (c CaptchaConfig) EnabledOrDefault() bool {
 	return c.Enabled == nil || *c.Enabled
 }
 
-// RefreshInterval 返回同 IP 生成验证码的最小间隔，未配置默认 10s
+// RefreshInterval 返回同 IP 生成验证码的最小间隔，未配置默认 1s
 func (c CaptchaConfig) RefreshInterval() time.Duration {
 	if c.RefreshIntervalSeconds == nil {
 		return defaultCaptchaRefreshInterval

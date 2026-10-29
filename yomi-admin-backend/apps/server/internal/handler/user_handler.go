@@ -18,6 +18,7 @@ type UserHandler struct {
 	createUC    *userusecase.CreateUserUsecase
 	updateUC    *userusecase.UpdateUserUsecase
 	deleteUC    *userusecase.DeleteUserUsecase
+	resetPwdUC  *userusecase.ResetUserPasswordUsecase
 	getRolesUC  *rbacusecase.GetUserRolesUsecase
 	bindRolesUC *rbacusecase.BindUserRolesUsecase
 }
@@ -28,6 +29,7 @@ func NewUserHandler(
 	createUC *userusecase.CreateUserUsecase,
 	updateUC *userusecase.UpdateUserUsecase,
 	deleteUC *userusecase.DeleteUserUsecase,
+	resetPwdUC *userusecase.ResetUserPasswordUsecase,
 	getRolesUC *rbacusecase.GetUserRolesUsecase,
 	bindRolesUC *rbacusecase.BindUserRolesUsecase,
 ) *UserHandler {
@@ -36,6 +38,7 @@ func NewUserHandler(
 		createUC:    createUC,
 		updateUC:    updateUC,
 		deleteUC:    deleteUC,
+		resetPwdUC:  resetPwdUC,
 		getRolesUC:  getRolesUC,
 		bindRolesUC: bindRolesUC,
 	}
@@ -47,6 +50,7 @@ func (h *UserHandler) Routes(router *gin.RouterGroup) {
 	router.POST("/system/user/create", h.create)
 	router.POST("/system/user/update", h.update)
 	router.POST("/system/user/delete", h.delete)
+	router.POST("/system/user/reset-password", h.resetPassword)
 	router.GET("/system/user/role", h.getRoles)
 	router.POST("/system/user/bind-role", h.bindRoles)
 }
@@ -103,6 +107,21 @@ func (h *UserHandler) delete(c *gin.Context) {
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
 		return h.deleteUC.Execute(ctx, &in)
+	})
+}
+
+func (h *UserHandler) resetPassword(c *gin.Context) {
+	var in userusecase.ResetUserPasswordInput
+	if !corehandler.BindJSON(c, &in) {
+		return
+	}
+	opID, ok := operatorID(c)
+	if !ok {
+		return
+	}
+	in.OperatorID = opID
+	corehandler.HandleVoid(c, func(ctx context.Context) error {
+		return h.resetPwdUC.Execute(ctx, &in)
 	})
 }
 

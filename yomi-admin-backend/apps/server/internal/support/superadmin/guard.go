@@ -82,6 +82,25 @@ func (g *Guard) EnsureCanManageUser(ctx context.Context, operatorID, targetUserI
 	return nil
 }
 
+// EnsureCanResetPassword 校验操作者能否重置他人密码。
+//
+// 规则：只有启用态超管可以重置他人密码；重置自己的密码必须走"修改密码"并校验原密码。
+// 重置密码不改变启用态超管集合，因此不需要持锁。
+func (g *Guard) EnsureCanResetPassword(ctx context.Context, operatorID int64) error {
+	if operatorID <= 0 {
+		return errors.Sentinel(ErrResetPasswordDenied)
+	}
+
+	enabledSupers, err := g.enabledSuperUserIDs(ctx)
+	if err != nil {
+		return err
+	}
+	if _, ok := enabledSupers[operatorID]; !ok {
+		return errors.Sentinel(ErrResetPasswordDenied)
+	}
+	return nil
+}
+
 // EnsureCanBindRoles 校验本次用户角色变更是否允许。
 //
 // 必须在 WithLock 内调用，且锁需覆盖后续写入与提交。

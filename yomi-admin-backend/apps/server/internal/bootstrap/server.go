@@ -68,6 +68,8 @@ type container struct {
 	loginGuard *loginguard.Guard
 	appCtx     appctx.AppCtx
 	lock       distlock.DistLockFactory
+	// rbacSkip 是免接口权限校验的路由集合，键为 "GET /api/auth/login"，由 biz.auth.public_paths 生成
+	rbacSkip map[string]struct{}
 }
 
 var (
@@ -100,6 +102,12 @@ func load(slot *plugin.PluginSlot) container {
 		if bizCfg.LoginGuard.EnabledOrDefault() && !rateLimitCfg.EnabledOrDefault() {
 			panic("yomi-admin: biz.login_guard 需要启用 ratelimit 插件（ratelimit.enabled=true）")
 		}
+
+		// 公开路由只在 biz.auth.public_paths 声明：这里把它同时注入令牌中间件的跳过清单，
+		// 并生成 RBAC 的跳过集合，保证"哪些路由免鉴权"只有一个来源。
+		httpCfg := config.MustSection[routerplugin.BootConfig](slot.Config, routerplugin.SectionKey).ToConfig()
+		rbacSkip, anonymousPaths := splitPublicRoutes(bizCfg.Auth.PublicRoutes(httpCfg.RouterPrefixClean()))
+		config.MustSection[tokenplugin.BootConfig](slot.Config, tokenplugin.SectionKey).SkipValidatePaths = anonymousPaths
 
 		captchaStore, err := captcha.NewRedisStore(redisPlugin.Service(), captcha.RedisStoreConfig{
 			KeyPrefix: bizCfg.Captcha.KeyPrefixOrDefault(),
@@ -147,6 +155,8 @@ func load(slot *plugin.PluginSlot) container {
 			),
 			appCtx: appCtxPlugin.AppCtx(),
 			lock:   redisPlugin.DistLockFactory(),
+
+			rbacSkip: rbacSkip,
 		}
 
 		// 启动期刷新与定时刷新挂在运行时 context 上，进程退出时自动停止
@@ -182,12 +192,14 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 			c.captcha,
 			authusecase.NewProfileUsecase(c.users.Users, c.rbac.Auth),
 			authusecase.NewLogoutUsecase(c.token),
+			authusecase.NewChangePasswordUsecase(c.users.Users, c.token),
 		),
 		apphandler.NewUserHandler(
 			userusecase.NewPageUsersUsecase(c.users.Users, c.rbac.Admin),
 			userusecase.NewCreateUserUsecase(c.users.Users, c.tx),
 			userusecase.NewUpdateUserUsecase(c.users.Users, guard, c.tx, c.token),
 			userusecase.NewDeleteUserUsecase(c.users.Users, c.rbac.Admin, guard, c.tx, c.token),
+			userusecase.NewResetUserPasswordUsecase(c.users.Users, guard, c.token),
 			rbacusecase.NewGetUserRolesUsecase(c.users.Users, c.rbac.Admin),
 			rbacusecase.NewBindUserRolesUsecase(c.rbac.Admin, guard, c.tx),
 		),
@@ -239,14 +251,22 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 func Middlewares(slot *plugin.PluginSlot) []gin.HandlerFunc {
 	c := load(slot)
 
-	tokenCfg := config.MustSection[tokenplugin.BootConfig](slot.Config, tokenplugin.SectionKey).ToConfig()
-	skip := make(map[string]struct{}, len(tokenCfg.SkipValidatePaths)+2)
-	for _, path := range tokenCfg.SkipValidatePaths {
-		skip[path] = struct{}{}
-	}
-	skip["/api/auth/profile"] = struct{}{}
-	skip["/api/auth/logout"] = struct{}{}
-
 	middlewares := server.DefaultMiddlewares(slot)
-	return append(middlewares, middleware.RBAC(c.rbac.Auth, skip))
+	return append(middlewares, middleware.RBAC(c.rbac.Auth, c.rbacSkip))
+}
+
+// splitPublicRoutes 把公开路由拆成 RBAC 跳过集合与免令牌路径清单。
+//
+// RBAC 跳过键为"方法 + 完整路径"；免令牌清单只取 token=false 的条目，
+// 因为令牌中间件只能按路径跳过。
+func splitPublicRoutes(routes []svcconfig.PublicRoute) (map[string]struct{}, []string) {
+	skip := make(map[string]struct{}, len(routes))
+	anonymous := make([]string, 0, len(routes))
+	for _, route := range routes {
+		skip[route.Method+" "+route.Path] = struct{}{}
+		if !route.Token {
+			anonymous = append(anonymous, route.Path)
+		}
+	}
+	return skip, anonymous
 }

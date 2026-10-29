@@ -2,7 +2,7 @@
 import type { FormInstance, FormRules } from 'element-plus'
 
 import { bindUserRoles, getUserRoles } from '@/api/rbac'
-import { createUser, deleteUser, getUserPage, updateUser } from '@/api/user'
+import { createUser, deleteUser, getUserPage, resetUserPassword, updateUser } from '@/api/user'
 import type { RoleItem, UserItem, UserStatus } from '@/api/types'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
@@ -178,6 +178,39 @@ async function handleDelete(row: UserItem) {
   }
   fetchList()
 }
+
+// ———————— 重置密码（仅超级管理员） ————————
+const resetPwdVisible = ref(false)
+const resetPwdSubmitting = ref(false)
+const resetPwdTarget = ref<UserItem | null>(null)
+const resetPwdRef = ref<FormInstance>()
+const resetPwdForm = reactive({ newPassword: '' })
+
+const resetPwdRules: FormRules = {
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, max: 72, message: '密码长度 6-72 位', trigger: 'blur' },
+  ],
+}
+
+function openResetPassword(row: UserItem) {
+  resetPwdTarget.value = row
+  resetPwdForm.newPassword = ''
+  resetPwdVisible.value = true
+}
+
+async function handleResetPassword() {
+  const valid = await resetPwdRef.value?.validate().catch(() => false)
+  if (!valid || !resetPwdTarget.value) return
+  resetPwdSubmitting.value = true
+  try {
+    await resetUserPassword(resetPwdTarget.value.id, resetPwdForm.newPassword)
+    ElMessage.success('密码已重置，该用户需使用新密码重新登录')
+    resetPwdVisible.value = false
+  } finally {
+    resetPwdSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -235,7 +268,7 @@ async function handleDelete(row: UserItem) {
             {{ formatDateTime((row as UserItem).createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="190" fixed="right" align="center">
+        <el-table-column label="操作" width="250" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               v-permission="'system:user:update'"
@@ -252,6 +285,14 @@ async function handleDelete(row: UserItem) {
               @click="openRoleDialog(row as UserItem)"
             >
               分配角色
+            </el-button>
+            <el-button
+              v-permission="'system:user:reset-password'"
+              link
+              type="warning"
+              @click="openResetPassword(row as UserItem)"
+            >
+              重置密码
             </el-button>
             <el-button
               v-permission="'system:user:delete'"
@@ -324,8 +365,7 @@ async function handleDelete(row: UserItem) {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="roleDialogVisible" title="分配角色" width="460px">
-      <div v-loading="roleDialogLoading">
+    <el-dialog v-model="roleDialogVisible" title="分配角色" width="460px">      <div v-loading="roleDialogLoading">
         <div class="role-target">
           用户：<strong>{{ roleTarget?.nickname }}</strong>
           <span class="role-username">{{ roleTarget?.username }}</span>
@@ -353,6 +393,36 @@ async function handleDelete(row: UserItem) {
       <template #footer>
         <el-button @click="roleDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="roleDialogSaving" @click="saveRoles">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="resetPwdVisible"
+      title="重置密码"
+      width="420px"
+      :close-on-click-modal="false"
+      @closed="resetPwdRef?.clearValidate()"
+    >
+      <el-form ref="resetPwdRef" :model="resetPwdForm" :rules="resetPwdRules" label-width="80px">
+        <div class="role-target">
+          用户：<strong>{{ resetPwdTarget?.nickname }}</strong>
+          <span class="role-username">{{ resetPwdTarget?.username }}</span>
+        </div>
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input
+            v-model="resetPwdForm.newPassword"
+            type="password"
+            show-password
+            placeholder="6-72 位，重置后该用户需重新登录"
+            maxlength="72"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="resetPwdVisible = false">取消</el-button>
+        <el-button type="primary" :loading="resetPwdSubmitting" @click="handleResetPassword">
+          确定
+        </el-button>
       </template>
     </el-dialog>
   </div>

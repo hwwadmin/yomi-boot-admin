@@ -49,6 +49,12 @@ export interface LoginResult {
   user: UserInfo
 }
 
+/** 修改自身密码请求体 */
+export interface ChangePasswordPayload {
+  oldPassword: string
+  newPassword: string
+}
+
 /** 菜单视图 */
 export interface MenuItem {
   code: string

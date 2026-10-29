@@ -10,6 +10,8 @@ var (
 	ErrUnbindSelfSuper = errors.NewBiz("ADMIN_CANNOT_UNBIND_SELF_SUPER", "不能解绑自己的超级管理员角色")
 	// ErrManageSuperDenied 只有超管可以停用或删除超管账号
 	ErrManageSuperDenied = errors.NewBiz("ADMIN_ONLY_SUPER_CAN_MANAGE_SUPER", "只有超级管理员可以停用或删除超级管理员账号")
+	// ErrResetPasswordDenied 只有超管可以重置他人密码
+	ErrResetPasswordDenied = errors.NewBiz("ADMIN_ONLY_SUPER_CAN_RESET_PASSWORD", "只有超级管理员可以重置其他用户的密码")
 	// ErrLastSuperAdmin 不能移除最后一名启用状态的超管
 	ErrLastSuperAdmin = errors.NewBiz("ADMIN_LAST_SUPER_ADMIN", "不能移除最后一名启用状态的超级管理员")
 	// ErrSuperAdminBusy 超管变更操作正在进行中

@@ -111,6 +111,21 @@ paths:
       description: 撤销当前请求携带的 token。需携带有效 token（无需 API 权限）。
       responses:
         '200': { $ref: '#/components/responses/VoidResult' }
+  /api/auth/password:
+    post:
+      tags: [认证]
+      operationId: changePassword
+      summary: 修改当前登录用户的密码
+      description: |
+        校验原密码后更新密码，成功后撤销该用户全部 token（含当前会话），需要用新密码重新登录。
+        需携带有效 token（无需 API 权限）；重置他人密码请使用 `/api/system/user/reset-password`。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
   /api/system/user:
     get:
       tags: [用户]
@@ -173,6 +188,21 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/IdRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/user/reset-password:
+    post:
+      tags: [用户]
+      operationId: resetUserPassword
+      summary: 重置用户密码
+      description: |
+        超级管理员为其他用户设置新密码（无需原密码），成功后撤销该用户全部 token，其需要用新密码重新登录。
+        仅启用态超级管理员可执行；重置自己的密码请使用 `/api/auth/password`。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResetPasswordRequest' }
       responses:
         '200': { $ref: '#/components/responses/VoidResult' }
   /api/system/user/role:
@@ -769,6 +799,20 @@ components:
       properties:
         token: { type: string, description: '访问 token，后续请求放入 `Authorization: Bearer` 头' }
         user: { $ref: '#/components/schemas/IdentityView' }
+    ChangePasswordRequest:
+      type: object
+      required: [oldPassword, newPassword]
+      properties:
+        oldPassword: { type: string, description: 原密码，校验失败返回 ADMIN_OLD_PASSWORD_MISMATCH }
+        newPassword:
+          type: string
+          description: 新密码，6-72 字节；与原密码相同返回 ADMIN_PASSWORD_UNCHANGED
+    ResetPasswordRequest:
+      type: object
+      required: [id, newPassword]
+      properties:
+        id: { type: string, description: 目标用户 ID（雪花 ID 字符串），不能是自己 }
+        newPassword: { type: string, description: 新密码，6-72 字节 }
     RoleBrief:
       type: object
       description: 用户列表中的角色摘要

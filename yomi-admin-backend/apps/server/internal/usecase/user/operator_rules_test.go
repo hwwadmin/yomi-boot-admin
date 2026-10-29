@@ -67,6 +67,10 @@ type fakeGuard struct {
 	operatorID int64
 	targetID   int64
 	err        error
+
+	resetCalled     int
+	resetOperatorID int64
+	resetErr        error
 }
 
 func (f *fakeGuard) WithLock(ctx context.Context, fn func(context.Context) error) error {
@@ -79,6 +83,12 @@ func (f *fakeGuard) EnsureCanManageUser(_ context.Context, operatorID, targetUse
 	f.operatorID = operatorID
 	f.targetID = targetUserID
 	return f.err
+}
+
+func (f *fakeGuard) EnsureCanResetPassword(_ context.Context, operatorID int64) error {
+	f.resetCalled++
+	f.resetOperatorID = operatorID
+	return f.resetErr
 }
 
 // fakeTokenService 只实现令牌撤销；可配置前 N 次失败
@@ -248,7 +258,7 @@ func TestUpdateUserTokenRevokeRetries(t *testing.T) {
 func TestUpdateUserTokenRevokeFailsAfterRetries(t *testing.T) {
 	users := &fakeUserService{}
 	guard := &fakeGuard{}
-	tokens := &fakeTokenService{failures: tokenRevokeAttempts}
+	tokens := &fakeTokenService{failures: support.TokenRevokeAttempts}
 	uc := NewUpdateUserUsecase(users, guard, fakeExecutor{}, tokens)
 
 	err := uc.Execute(context.Background(), &UpdateUserInput{
@@ -259,8 +269,8 @@ func TestUpdateUserTokenRevokeFailsAfterRetries(t *testing.T) {
 	if !errors.Is(err, support.ErrTokenRevokeFailed) {
 		t.Fatalf("期望 ErrTokenRevokeFailed，实际 %v", err)
 	}
-	if tokens.attempts != tokenRevokeAttempts {
-		t.Fatalf("撤销尝试次数 = %d, want %d", tokens.attempts, tokenRevokeAttempts)
+	if tokens.attempts != support.TokenRevokeAttempts {
+		t.Fatalf("撤销尝试次数 = %d, want %d", tokens.attempts, support.TokenRevokeAttempts)
 	}
 	if len(tokens.revoked) != 0 {
 		t.Fatalf("失败时不应记录撤销成功: %v", tokens.revoked)
@@ -290,15 +300,15 @@ func TestDeleteUserTokenRevokeFailsAfterRetries(t *testing.T) {
 	users := &fakeUserService{}
 	rbacAdmin := &fakeRbacAdmin{}
 	guard := &fakeGuard{}
-	tokens := &fakeTokenService{failures: tokenRevokeAttempts}
+	tokens := &fakeTokenService{failures: support.TokenRevokeAttempts}
 	uc := NewDeleteUserUsecase(users, rbacAdmin, guard, fakeExecutor{}, tokens)
 
 	err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(8), OperatorID: 1})
 	if !errors.Is(err, support.ErrTokenRevokeFailed) {
 		t.Fatalf("期望 ErrTokenRevokeFailed，实际 %v", err)
 	}
-	if tokens.attempts != tokenRevokeAttempts {
-		t.Fatalf("撤销尝试次数 = %d, want %d", tokens.attempts, tokenRevokeAttempts)
+	if tokens.attempts != support.TokenRevokeAttempts {
+		t.Fatalf("撤销尝试次数 = %d, want %d", tokens.attempts, support.TokenRevokeAttempts)
 	}
 }
 

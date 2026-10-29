@@ -13,10 +13,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RBAC 按接口路径模板校验接口权限；skip 中的路径与 OPTIONS 请求直接放行
+// RBAC 按接口路径模板校验接口权限；skip 中的"方法 + 路径"与 OPTIONS 请求直接放行。
+//
+// skip 由 biz.auth.public_paths 生成，键格式为 "GET /api/auth/login"，
+// 方法与路径都匹配才跳过，避免同名路径的其它方法被顺带放行。
 func RBAC(auth rbaccontract.RbacAuthService, skip map[string]struct{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if _, ok := skip[c.Request.URL.Path]; ok {
+		if _, ok := skip[skipKey(c.Request.Method, c.Request.URL.Path)]; ok {
 			c.Next()
 			return
 		}
@@ -53,4 +56,9 @@ func RBAC(auth rbaccontract.RbacAuthService, skip map[string]struct{}) gin.Handl
 		}
 		c.Next()
 	}
+}
+
+// skipKey 组装跳过清单的键：方法统一大写，路径按请求原始路径
+func skipKey(method, path string) string {
+	return strings.ToUpper(method) + " " + path
 }

@@ -18,6 +18,8 @@ type UserRepo interface {
 	FindByID(ctx context.Context, id int64) (*entity.User, bool, error)
 	// FindCredentialByUsername 按登录名查询验密凭证
 	FindCredentialByUsername(ctx context.Context, username string) (*UserCredential, bool, error)
+	// FindCredentialByID 按主键查询验密凭证
+	FindCredentialByID(ctx context.Context, id int64) (*UserCredential, bool, error)
 	// ExistsByUsername 判断用户名是否存在（包含已软删除记录）
 	ExistsByUsername(ctx context.Context, username string) (bool, error)
 	// Page 分页查询用户
@@ -26,6 +28,8 @@ type UserRepo interface {
 	Create(ctx context.Context, user *entity.User, passwordHash string, operatorID int64) error
 	// Update 更新用户资料与状态
 	Update(ctx context.Context, user *entity.User, operatorID int64) error
+	// UpdatePassword 只更新密码哈希，不动其他字段
+	UpdatePassword(ctx context.Context, id int64, passwordHash string, operatorID int64) error
 	// SoftDelete 软删除用户
 	SoftDelete(ctx context.Context, id int64, operatorID int64) error
 }

@@ -13,10 +13,11 @@ import (
 
 // AuthHandler 认证相关路由
 type AuthHandler struct {
-	loginUC   *authusecase.LoginUsecase
-	captchaUC *authusecase.CaptchaUsecase
-	profileUC *authusecase.ProfileUsecase
-	logoutUC  *authusecase.LogoutUsecase
+	loginUC    *authusecase.LoginUsecase
+	captchaUC  *authusecase.CaptchaUsecase
+	profileUC  *authusecase.ProfileUsecase
+	logoutUC   *authusecase.LogoutUsecase
+	passwordUC *authusecase.ChangePasswordUsecase
 }
 
 // NewAuthHandler 创建认证 Handler
@@ -25,8 +26,15 @@ func NewAuthHandler(
 	captchaUC *authusecase.CaptchaUsecase,
 	profileUC *authusecase.ProfileUsecase,
 	logoutUC *authusecase.LogoutUsecase,
+	passwordUC *authusecase.ChangePasswordUsecase,
 ) *AuthHandler {
-	return &AuthHandler{loginUC: loginUC, captchaUC: captchaUC, profileUC: profileUC, logoutUC: logoutUC}
+	return &AuthHandler{
+		loginUC:    loginUC,
+		captchaUC:  captchaUC,
+		profileUC:  profileUC,
+		logoutUC:   logoutUC,
+		passwordUC: passwordUC,
+	}
 }
 
 // Routes 注册认证路由
@@ -35,6 +43,7 @@ func (h *AuthHandler) Routes(router *gin.RouterGroup) {
 	router.POST("/auth/login", h.login)
 	router.GET("/auth/profile", h.profile)
 	router.POST("/auth/logout", h.logout)
+	router.POST("/auth/password", h.changePassword)
 }
 
 func (h *AuthHandler) captcha(c *gin.Context) {
@@ -67,4 +76,18 @@ func (h *AuthHandler) profile(c *gin.Context) {
 
 func (h *AuthHandler) logout(c *gin.Context) {
 	corehandler.HandleVoid(c, h.logoutUC.Execute)
+}
+
+func (h *AuthHandler) changePassword(c *gin.Context) {
+	in := new(authusecase.ChangePasswordInput)
+	if !corehandler.BindJSON(c, in) {
+		return
+	}
+	operatorID, ok := operatorID(c)
+	if !ok {
+		return
+	}
+	corehandler.HandleVoid(c, func(ctx context.Context) error {
+		return h.passwordUC.Execute(ctx, in, operatorID)
+	})
 }

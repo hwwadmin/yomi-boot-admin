@@ -42,3 +42,17 @@ type DeleteUserInput struct {
 	ID         int64
 	OperatorID int64
 }
+
+// ChangePasswordInput 修改自身密码入参；必须提供原密码
+type ChangePasswordInput struct {
+	ID          int64
+	OldPassword string
+	NewPassword string
+}
+
+// ResetPasswordInput 重置他人密码入参；不需要原密码，权限由调用方在编排层校验
+type ResetPasswordInput struct {
+	ID          int64
+	NewPassword string
+	OperatorID  int64
+}
