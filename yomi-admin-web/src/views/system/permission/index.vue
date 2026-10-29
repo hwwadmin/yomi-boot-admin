@@ -2,6 +2,7 @@
 import { getPermissionPage, setPermissionStatus } from '@/api/rbac'
 import type { PermissionQuery } from '@/api/rbac'
 import type { PermissionItem, Status } from '@/api/types'
+import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemPermissionPage' })
@@ -36,6 +37,17 @@ function handleReset() {
 }
 
 onMounted(fetchList)
+
+/** 启停是危险操作：确认后再提交 */
+function confirmStatusChange(name: string, next: Status): Promise<boolean> {
+  const disabling = next === 'DISABLED'
+  return confirmAction({
+    title: disabling ? '停用权限' : '启用权限',
+    message: disabling
+      ? `确定停用权限「${name}」吗？所有包含该权限的权限组会立即失去它。`
+      : `确定启用权限「${name}」吗？包含该权限的权限组会立即恢复它。`,
+  })
+}
 
 async function handleStatusChange(row: PermissionItem, status: Status) {
   try {
@@ -98,6 +110,7 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
               :model-value="row.status"
               active-value="ENABLED"
               inactive-value="DISABLED"
+              :before-change="() => confirmStatusChange((row as PermissionItem).name, (row as PermissionItem).status === 'ENABLED' ? 'DISABLED' : 'ENABLED')"
               @change="(value: string | number | boolean) => handleStatusChange(row as PermissionItem, value as Status)"
             />
           </template>

@@ -4,6 +4,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { bindUserRoles, getUserRoles } from '@/api/rbac'
 import { createUser, deleteUser, getUserPage, updateUser } from '@/api/user'
 import type { RoleItem, UserItem, UserStatus } from '@/api/types'
+import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemUserPage' })
@@ -41,6 +42,7 @@ onMounted(fetchList)
 const dialogVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<string | null>(null)
+const editingOriginalStatus = ref<UserStatus | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive({
   username: '',
@@ -64,6 +66,7 @@ const rules: FormRules = {
 
 function openCreate() {
   editingId.value = null
+  editingOriginalStatus.value = null
   Object.assign(form, {
     username: '',
     password: '',
@@ -77,6 +80,7 @@ function openCreate() {
 
 function openEdit(row: UserItem) {
   editingId.value = row.id
+  editingOriginalStatus.value = row.status
   Object.assign(form, {
     username: row.username,
     password: '',
@@ -91,6 +95,16 @@ function openEdit(row: UserItem) {
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
+  if (editingOriginalStatus.value && form.status !== editingOriginalStatus.value) {
+    const disabling = form.status === 'DISABLED'
+    const confirmed = await confirmAction({
+      title: disabling ? '停用用户' : '启用用户',
+      message: disabling
+        ? `确定停用用户「${form.nickname.trim()}」吗？停用后该用户的登录状态会被撤销。`
+        : `确定启用用户「${form.nickname.trim()}」吗？`,
+    })
+    if (!confirmed) return
+  }
   submitting.value = true
   try {
     const payload = {
@@ -150,15 +164,12 @@ async function saveRoles() {
 
 // ———————— 删除 ————————
 async function handleDelete(row: UserItem) {
-  try {
-    await ElMessageBox.confirm(`确定删除用户「${row.nickname}」吗？`, '警告', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-    })
-  } catch {
-    return
-  }
+  const confirmed = await confirmAction({
+    title: '删除用户',
+    message: `确定删除用户「${row.nickname}」吗？删除后该用户将无法登录。`,
+    confirmButtonText: '删除',
+  })
+  if (!confirmed) return
   await deleteUser(row.id)
   ElMessage.success('删除成功')
   // 当前页只剩一条时回退一页，避免删除后停留在空页

@@ -16,6 +16,7 @@ import type {
   PermissionItem,
   Status,
 } from '@/api/types'
+import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemPermissionGroupPage' })
@@ -59,6 +60,7 @@ onMounted(fetchList)
 const dialogVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<string | null>(null)
+const editingOriginalStatus = ref<Status | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive({
   code: '',
@@ -77,19 +79,35 @@ const rules: FormRules = {
 
 function openCreate() {
   editingId.value = null
+  editingOriginalStatus.value = null
   Object.assign(form, { code: '', name: '', remark: '', status: 'ENABLED' })
   dialogVisible.value = true
 }
 
 function openEdit(row: PermissionGroupItem) {
   editingId.value = row.id
+  editingOriginalStatus.value = row.status
   Object.assign(form, { code: row.code, name: row.name, remark: row.remark, status: row.status })
   dialogVisible.value = true
+}
+
+/** 启停是危险操作：确认后再提交 */
+function confirmStatusChange(name: string, next: Status): Promise<boolean> {
+  const disabling = next === 'DISABLED'
+  return confirmAction({
+    title: disabling ? '停用权限组' : '启用权限组',
+    message: disabling
+      ? `确定停用权限组「${name}」吗？使用该组的所有角色会立即失去组内权限。`
+      : `确定启用权限组「${name}」吗？组内权限会立即对已绑角色生效。`,
+  })
 }
 
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
+  if (editingOriginalStatus.value && form.status !== editingOriginalStatus.value) {
+    if (!(await confirmStatusChange(form.name.trim(), form.status))) return
+  }
   submitting.value = true
   try {
     if (editingId.value === null) {
@@ -206,6 +224,7 @@ async function savePermissions() {
               :model-value="row.status"
               active-value="ENABLED"
               inactive-value="DISABLED"
+              :before-change="() => confirmStatusChange((row as PermissionGroupItem).name, (row as PermissionGroupItem).status === 'ENABLED' ? 'DISABLED' : 'ENABLED')"
               @change="(value: string | number | boolean) => handleStatusChange(row as PermissionGroupItem, value as Status)"
             />
           </template>

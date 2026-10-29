@@ -18,6 +18,7 @@ import type {
   RolePayload,
   Status,
 } from '@/api/types'
+import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemRolePage' })
@@ -56,6 +57,7 @@ onMounted(fetchList)
 const dialogVisible = ref(false)
 const submitting = ref(false)
 const editingId = ref<string | null>(null)
+const editingOriginalStatus = ref<Status | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive({
   code: '',
@@ -74,19 +76,35 @@ const rules: FormRules = {
 
 function openCreate() {
   editingId.value = null
+  editingOriginalStatus.value = null
   Object.assign(form, { code: '', name: '', remark: '', status: 'ENABLED' })
   dialogVisible.value = true
 }
 
 function openEdit(row: RoleItem) {
   editingId.value = row.id
+  editingOriginalStatus.value = row.status
   Object.assign(form, { code: row.code, name: row.name, remark: row.remark, status: row.status })
   dialogVisible.value = true
+}
+
+/** 启停是危险操作：确认后再提交 */
+function confirmStatusChange(name: string, next: Status): Promise<boolean> {
+  const disabling = next === 'DISABLED'
+  return confirmAction({
+    title: disabling ? '停用角色' : '启用角色',
+    message: disabling
+      ? `确定停用角色「${name}」吗？停用后该角色对应用户的权限会立即失效。`
+      : `确定启用角色「${name}」吗？`,
+  })
 }
 
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
+  if (editingOriginalStatus.value && form.status !== editingOriginalStatus.value) {
+    if (!(await confirmStatusChange(form.name.trim(), form.status))) return
+  }
   submitting.value = true
   try {
     if (editingId.value === null) {
@@ -212,6 +230,7 @@ async function saveGroups() {
               active-value="ENABLED"
               inactive-value="DISABLED"
               :disabled="row.builtin"
+              :before-change="() => confirmStatusChange((row as RoleItem).name, (row as RoleItem).status === 'ENABLED' ? 'DISABLED' : 'ENABLED')"
               @change="(value: string | number | boolean) => handleStatusChange(row as RoleItem, value as Status)"
             />
           </template>
