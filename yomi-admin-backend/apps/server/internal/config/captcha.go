@@ -1,6 +1,3 @@
-// Package config 编排层业务配置段。
-//
-// 只承载本服务自有的 YAML 段；基础设施配置归 yomi-boot 各插件所有。
 package config
 
 import (
@@ -8,12 +5,8 @@ import (
 	"time"
 
 	"gitee.com/hq_project/yomi-boot/component/common/captcha"
-	"gitee.com/hq_project/yomi-boot/component/core/config"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
 )
-
-// SectionKey 是业务配置段 YAML 根 key
-const SectionKey = "biz"
 
 // defaultCaptchaKeyPrefix 是登录验证码默认 Redis 键前缀
 const defaultCaptchaKeyPrefix = "yomi:captcha:login"
@@ -23,12 +16,6 @@ const defaultCaptchaRefreshInterval = 10 * time.Second
 
 // maxCaptchaRefreshIntervalSeconds 是刷新间隔上限（秒）
 const maxCaptchaRefreshIntervalSeconds = 3600
-
-// BootConfig 是 biz 配置段的 YAML 绑定
-type BootConfig struct {
-	Captcha CaptchaConfig `mapstructure:"captcha"`
-	Rbac    RbacConfig    `mapstructure:"rbac"`
-}
 
 // CaptchaConfig 是登录图像验证码配置；零值字段按默认值处理
 type CaptchaConfig struct {
@@ -87,14 +74,4 @@ func (c CaptchaConfig) Validate() error {
 		return errors.Wrap(err, "%s.captcha", SectionKey)
 	}
 	return nil
-}
-
-// ConfigSection 返回 biz 配置段
-func ConfigSection() config.Section {
-	return config.NewSection(SectionKey, &BootConfig{}, func(c *BootConfig, _ *config.Config) error {
-		if err := c.Captcha.Validate(); err != nil {
-			return err
-		}
-		return c.Rbac.Validate()
-	})
 }

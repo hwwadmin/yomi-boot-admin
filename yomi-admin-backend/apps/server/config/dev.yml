@@ -101,6 +101,23 @@ biz:
     ttl_seconds: 180
     key_prefix: yomi:captcha:login
     refresh_interval_seconds: 10
+  # 登录防爆破：IP 尝试配额 + IP/账号失败预算 + 临时锁定
+  login_guard:
+    enabled: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_ENABLED:true}
+    key_prefix: yomi:admin:loginguard
+    ip_max_attempts: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_IP_MAX_ATTEMPTS:20}
+    ip_window_seconds: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_IP_WINDOW_SECONDS:300}
+    ip_max_failures: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_IP_MAX_FAILURES:10}
+    ip_fail_window_seconds: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_IP_FAIL_WINDOW_SECONDS:900}
+    ip_lock_seconds: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_IP_LOCK_SECONDS:600}
+    pair_max_failures: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_PAIR_MAX_FAILURES:5}
+    pair_window_seconds: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_PAIR_WINDOW_SECONDS:600}
+    pair_lock_seconds: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_PAIR_LOCK_SECONDS:600}
+    account_max_failures: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_ACCOUNT_MAX_FAILURES:10}
+    account_window_seconds: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_ACCOUNT_WINDOW_SECONDS:300} # 必须小于 pair_lock_seconds，避免单个 IP 触发账号锁
+    account_lock_seconds: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_ACCOUNT_LOCK_SECONDS:900}
+    account_max_lock_seconds: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_ACCOUNT_MAX_LOCK_SECONDS:3600}
+    level_ttl_seconds: ${YOMI_ADMIN_BIZ_LOGIN_GUARD_LEVEL_TTL_SECONDS:86400}
   rbac:
     cache:
       enabled: ${YOMI_ADMIN_BIZ_RBAC_CACHE_ENABLED:true}

@@ -45,7 +45,14 @@ func (h *AuthHandler) captcha(c *gin.Context) {
 }
 
 func (h *AuthHandler) login(c *gin.Context) {
-	corehandler.BindAndHandle(c, h.loginUC.Execute)
+	in := new(authusecase.LoginInput)
+	if !corehandler.BindJSON(c, in) {
+		return
+	}
+	clientIP := ginutil.ClientIP(c)
+	corehandler.Handle(c, func(ctx context.Context) (*authusecase.LoginOutput, error) {
+		return h.loginUC.Execute(ctx, in, clientIP)
+	})
 }
 
 func (h *AuthHandler) profile(c *gin.Context) {

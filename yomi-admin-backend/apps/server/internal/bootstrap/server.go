@@ -5,6 +5,7 @@ import (
 	"sync"
 	svcconfig "yomi-admin-backend/apps/server/internal/config"
 	"yomi-admin-backend/apps/server/internal/middleware"
+	"yomi-admin-backend/apps/server/internal/support/loginguard"
 	"yomi-admin-backend/apps/server/internal/support/superadmin"
 
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
@@ -55,14 +56,15 @@ func Options() boot.Options {
 
 // container 保存 Wire 与 Middlewares 共用的装配结果
 type container struct {
-	users   userprovider.Module
-	rbac    rbacprovider.Module
-	records httprecordprovider.Module
-	tx      tx.Executor
-	token   token.TokenService
-	captcha *authusecase.CaptchaUsecase
-	appCtx  appctx.AppCtx
-	lock    distlock.DistLockFactory
+	users      userprovider.Module
+	rbac       rbacprovider.Module
+	records    httprecordprovider.Module
+	tx         tx.Executor
+	token      token.TokenService
+	captcha    *authusecase.CaptchaUsecase
+	loginGuard *loginguard.Guard
+	appCtx     appctx.AppCtx
+	lock       distlock.DistLockFactory
 }
 
 var (
@@ -91,6 +93,9 @@ func load(slot *plugin.PluginSlot) container {
 		rateLimitCfg := config.MustSection[redisratelimitplugin.BootConfig](slot.Config, redisratelimitplugin.SectionKey)
 		if bizCfg.Captcha.RefreshInterval() > 0 && !rateLimitCfg.EnabledOrDefault() {
 			panic("yomi-admin: biz.captcha 刷新限流需要启用 ratelimit 插件（ratelimit.enabled=true）")
+		}
+		if bizCfg.LoginGuard.EnabledOrDefault() && !rateLimitCfg.EnabledOrDefault() {
+			panic("yomi-admin: biz.login_guard 需要启用 ratelimit 插件（ratelimit.enabled=true）")
 		}
 
 		captchaStore, err := captcha.NewRedisStore(redisPlugin.Service(), captcha.RedisStoreConfig{
@@ -132,6 +137,11 @@ func load(slot *plugin.PluginSlot) container {
 				bizCfg.Captcha.RefreshInterval(),
 				bizCfg.Captcha.EnabledOrDefault(),
 			),
+			loginGuard: loginguard.New(
+				redisPlugin.Service(),
+				rateLimitPlugin.Limiter(),
+				bizCfg.LoginGuard.ToPolicy(),
+			),
 			appCtx: appCtxPlugin.AppCtx(),
 			lock:   redisPlugin.DistLockFactory(),
 		}
@@ -164,7 +174,7 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	return []router.Registrar{
 		corehandler.NewHealthHandler("/v1/health", "/v1/health/ops", c.appCtx),
 		apphandler.NewAuthHandler(
-			authusecase.NewLoginUsecase(c.users.Users, c.rbac.Auth, c.token, c.captcha),
+			authusecase.NewLoginUsecase(c.users.Users, c.rbac.Auth, c.token, c.captcha, c.loginGuard),
 			c.captcha,
 			authusecase.NewProfileUsecase(c.users.Users, c.rbac.Auth),
 			authusecase.NewLogoutUsecase(c.token),

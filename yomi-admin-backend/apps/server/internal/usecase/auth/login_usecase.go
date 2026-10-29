@@ -3,6 +3,8 @@ package auth
 
 import (
 	"context"
+
+	loginguard "yomi-admin-backend/apps/server/internal/support/loginguard"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 	"yomi-admin-backend/domains/user/service_contract"
 
@@ -10,6 +12,7 @@ import (
 
 	"gitee.com/hq_project/yomi-boot/component/common/token"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"gitee.com/hq_project/yomi-boot/component/core/logger"
 )
 
 // captchaVerifier 校验登录图像验证码
@@ -17,17 +20,31 @@ type captchaVerifier interface {
 	Verify(ctx context.Context, id, code string) error
 }
 
-// LoginUsecase 登录编排：验证码 + 领域鉴权 + 聚合权限 + 签发 Token
+// loginGuard 负责登录失败预算与临时锁定
+type loginGuard interface {
+	BeforeAttempt(ctx context.Context, account, clientIP string) (loginguard.Decision, error)
+	RecordFailure(ctx context.Context, account, clientIP string) (loginguard.Decision, error)
+	RecordSuccess(ctx context.Context, account, clientIP string) error
+}
+
+// LoginUsecase 登录编排：限流锁定 + 验证码 + 领域鉴权 + 聚合权限 + 签发 Token
 type LoginUsecase struct {
 	users   service_contract.UserService
 	auth    rbaccontract.RbacAuthService
 	token   token.TokenService
 	captcha captchaVerifier
+	guard   loginGuard
 }
 
 // NewLoginUsecase 创建登录用例
-func NewLoginUsecase(users service_contract.UserService, auth rbaccontract.RbacAuthService, tokenService token.TokenService, captcha captchaVerifier) *LoginUsecase {
-	return &LoginUsecase{users: users, auth: auth, token: tokenService, captcha: captcha}
+func NewLoginUsecase(
+	users service_contract.UserService,
+	auth rbaccontract.RbacAuthService,
+	tokenService token.TokenService,
+	captcha captchaVerifier,
+	guard loginGuard,
+) *LoginUsecase {
+	return &LoginUsecase{users: users, auth: auth, token: tokenService, captcha: captcha, guard: guard}
 }
 
 // LoginInput HTTP 登录入参
@@ -45,7 +62,18 @@ type LoginOutput struct {
 }
 
 // Execute 编排登录
-func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput) (*LoginOutput, error) {
+func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP string) (*LoginOutput, error) {
+	decision, err := uc.guard.BeforeAttempt(ctx, in.Username, clientIP)
+	if err != nil {
+		return nil, errors.WrapBiz(err, ErrLoginGuardUnavailable.Code, ErrLoginGuardUnavailable.Message)
+	}
+	switch decision.Outcome {
+	case loginguard.OutcomeRateLimited:
+		return nil, errors.Sentinel(ErrLoginRateLimited)
+	case loginguard.OutcomeLocked:
+		return nil, loginLockedError(decision.RetryAfter)
+	}
+
 	if err := uc.captcha.Verify(ctx, in.CaptchaID, in.CaptchaCode); err != nil {
 		return nil, err
 	}
@@ -55,7 +83,25 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput) (*LoginOutp
 		Password: in.Password,
 	})
 	if err != nil {
+		if errors.Is(err, service_contract.ErrInvalidCredential) {
+			failure, guardErr := uc.guard.RecordFailure(ctx, in.Username, clientIP)
+			if guardErr != nil {
+				logger.Warn(ctx, "记录登录失败计数失败", "error", guardErr)
+			} else if failure.Outcome == loginguard.OutcomeLocked {
+				return nil, loginLockedError(failure.RetryAfter)
+			}
+		}
+		if errors.Is(err, service_contract.ErrUserDisabled) {
+			// 密码正确但账号被禁用，不计失败；清空该账号的历史失败计数
+			if guardErr := uc.guard.RecordSuccess(ctx, in.Username, clientIP); guardErr != nil {
+				logger.Warn(ctx, "清空账号登录失败计数失败", "error", guardErr)
+			}
+		}
 		return nil, err
+	}
+
+	if err := uc.guard.RecordSuccess(ctx, in.Username, clientIP); err != nil {
+		logger.Warn(ctx, "清空账号登录失败计数失败", "error", err)
 	}
 
 	identity, err := buildIdentityView(ctx, out.User, uc.auth)
