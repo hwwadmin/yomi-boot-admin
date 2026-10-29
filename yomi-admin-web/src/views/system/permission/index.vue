@@ -317,7 +317,7 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
       width="520px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
         <el-form-item label="权限类型" prop="type">
           <el-radio-group v-model="form.type" :disabled="editingId !== null">
             <el-radio value="MENU">菜单</el-radio>

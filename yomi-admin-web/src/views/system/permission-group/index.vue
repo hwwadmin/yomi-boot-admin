@@ -300,7 +300,7 @@ async function savePermissions() {
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
         <el-form-item label="权限组编码" prop="code">
           <el-input
             v-model="form.code"
