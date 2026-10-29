@@ -80,34 +80,45 @@ func TestWithLockDelegates(t *testing.T) {
 	}
 }
 
-func TestEnsureNotLastSuper(t *testing.T) {
+func TestEnsureCanManageUser(t *testing.T) {
 	ctx := context.Background()
 	users := &fakeUserGetter{users: map[int64]*userentity.User{
 		1: {ID: 1, Status: userenums.UserStatusEnabled},
-		2: {ID: 2, Status: userenums.UserStatusDisabled},
+		2: {ID: 2, Status: userenums.UserStatusEnabled},
+		3: {ID: 3, Status: userenums.UserStatusDisabled},
+		4: {ID: 4, Status: userenums.UserStatusEnabled},
 	}}
 
+	// 超管处置另一名启用超管：放行
+	guard := New(users, &fakeSuperReader{userIDs: []int64{1, 2}}, &fakeLocker{})
+	if err := guard.EnsureCanManageUser(ctx, 1, 2); err != nil {
+		t.Fatalf("超管处置超管应放行: %v", err)
+	}
+
+	// 普通管理员处置启用超管：拒绝
+	if err := guard.EnsureCanManageUser(ctx, 4, 1); !errors.Is(err, ErrManageSuperDenied) {
+		t.Fatalf("非超管处置超管期望 ErrManageSuperDenied，实际 %v", err)
+	}
+
+	// 账号已停用的超管不再受保护，与角色绑定口径一致
+	if err := guard.EnsureCanManageUser(ctx, 4, 3); err != nil {
+		t.Fatalf("处置已停用超管账号不应受限: %v", err)
+	}
+
+	// 超管处置普通用户：放行
+	if err := guard.EnsureCanManageUser(ctx, 1, 4); err != nil {
+		t.Fatalf("超管处置普通用户应放行: %v", err)
+	}
+
 	// 唯一启用超管就是目标：拒绝
-	guard := New(users, &fakeSuperReader{userIDs: []int64{1}}, &fakeLocker{})
-	if err := guard.EnsureNotLastSuper(ctx, 1); !errors.Is(err, ErrLastSuperAdmin) {
+	guard = New(users, &fakeSuperReader{userIDs: []int64{1}}, &fakeLocker{})
+	if err := guard.EnsureCanManageUser(ctx, 1, 1); !errors.Is(err, ErrLastSuperAdmin) {
 		t.Fatalf("唯一超管期望 ErrLastSuperAdmin，实际 %v", err)
-	}
-
-	// 目标不是启用超管：放行
-	if err := guard.EnsureNotLastSuper(ctx, 2); err != nil {
-		t.Fatalf("非超管不应受限: %v", err)
-	}
-
-	// 两名启用超管：放行
-	users.users[3] = &userentity.User{ID: 3, Status: userenums.UserStatusEnabled}
-	guard = New(users, &fakeSuperReader{userIDs: []int64{1, 3}}, &fakeLocker{})
-	if err := guard.EnsureNotLastSuper(ctx, 1); err != nil {
-		t.Fatalf("存在其他超管时应放行: %v", err)
 	}
 
 	// 孤儿关系不计入启用超管
 	guard = New(users, &fakeSuperReader{userIDs: []int64{1, 99}}, &fakeLocker{})
-	if err := guard.EnsureNotLastSuper(ctx, 1); !errors.Is(err, ErrLastSuperAdmin) {
+	if err := guard.EnsureCanManageUser(ctx, 1, 1); !errors.Is(err, ErrLastSuperAdmin) {
 		t.Fatalf("孤儿关系不应计入: %v", err)
 	}
 }

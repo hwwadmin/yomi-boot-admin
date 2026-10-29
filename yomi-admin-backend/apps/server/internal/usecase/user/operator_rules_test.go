@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 	"yomi-admin-backend/apps/server/internal/support"
+	"yomi-admin-backend/apps/server/internal/support/superadmin"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 	"yomi-admin-backend/domains/user/pkg/shared/enums"
 	"yomi-admin-backend/domains/user/service_contract"
@@ -59,10 +60,13 @@ func (fakeExecutor) RunAutonomous(ctx context.Context, _ time.Duration, fn func(
 	return fn(ctx)
 }
 
-// fakeGuard 记录最后一名超管策略和锁的调用次数
+// fakeGuard 记录超管策略与锁的调用，并可注入拒绝
 type fakeGuard struct {
-	called int
-	locks  int
+	called     int
+	locks      int
+	operatorID int64
+	targetID   int64
+	err        error
 }
 
 func (f *fakeGuard) WithLock(ctx context.Context, fn func(context.Context) error) error {
@@ -70,9 +74,11 @@ func (f *fakeGuard) WithLock(ctx context.Context, fn func(context.Context) error
 	return fn(ctx)
 }
 
-func (f *fakeGuard) EnsureNotLastSuper(context.Context, int64) error {
+func (f *fakeGuard) EnsureCanManageUser(_ context.Context, operatorID, targetUserID int64) error {
 	f.called++
-	return nil
+	f.operatorID = operatorID
+	f.targetID = targetUserID
+	return f.err
 }
 
 // fakeTokenService 只实现令牌撤销；可配置前 N 次失败
@@ -274,5 +280,49 @@ func TestDeleteUserTokenRevokeFailsAfterRetries(t *testing.T) {
 	}
 	if tokens.attempts != tokenRevokeAttempts {
 		t.Fatalf("撤销尝试次数 = %d, want %d", tokens.attempts, tokenRevokeAttempts)
+	}
+}
+
+// TestUpdateUserDeniedBySuperAdminGuard 校验普通管理员停用超管时被拒，且不产生任何副作用
+func TestUpdateUserDeniedBySuperAdminGuard(t *testing.T) {
+	users := &fakeUserService{}
+	guard := &fakeGuard{err: superadmin.ErrManageSuperDenied}
+	tokens := &fakeTokenService{}
+	uc := NewUpdateUserUsecase(users, guard, fakeExecutor{}, tokens)
+
+	err := uc.Execute(context.Background(), &UpdateUserInput{
+		ID:         dto.JSONInt64(8),
+		Status:     enums.UserStatusDisabled,
+		OperatorID: 9,
+	})
+	if !errors.Is(err, superadmin.ErrManageSuperDenied) {
+		t.Fatalf("期望 ErrManageSuperDenied，实际 %v", err)
+	}
+	if guard.operatorID != 9 || guard.targetID != 8 {
+		t.Fatalf("策略入参错误: operator=%d target=%d", guard.operatorID, guard.targetID)
+	}
+	if users.updated != nil || len(tokens.revoked) != 0 {
+		t.Fatalf("被拒绝后不应写库或撤令牌: updated=%v revoked=%v", users.updated, tokens.revoked)
+	}
+}
+
+// TestDeleteUserDeniedBySuperAdminGuard 校验普通管理员删除超管时被拒，且不写库、不撤令牌
+func TestDeleteUserDeniedBySuperAdminGuard(t *testing.T) {
+	users := &fakeUserService{}
+	rbacAdmin := &fakeRbacAdmin{}
+	guard := &fakeGuard{err: superadmin.ErrManageSuperDenied}
+	tokens := &fakeTokenService{}
+	uc := NewDeleteUserUsecase(users, rbacAdmin, guard, fakeExecutor{}, tokens)
+
+	err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(8), OperatorID: 9})
+	if !errors.Is(err, superadmin.ErrManageSuperDenied) {
+		t.Fatalf("期望 ErrManageSuperDenied，实际 %v", err)
+	}
+	if guard.operatorID != 9 || guard.targetID != 8 {
+		t.Fatalf("策略入参错误: operator=%d target=%d", guard.operatorID, guard.targetID)
+	}
+	if users.deleted != nil || rbacAdmin.cleanedUserID != 0 || len(tokens.revoked) != 0 {
+		t.Fatalf("被拒绝后不应删除或清理: deleted=%v cleaned=%d revoked=%v",
+			users.deleted, rbacAdmin.cleanedUserID, tokens.revoked)
 	}
 }

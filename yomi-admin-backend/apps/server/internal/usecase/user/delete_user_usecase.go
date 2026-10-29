@@ -24,13 +24,13 @@ type DeleteUserInput struct {
 type DeleteUserUsecase struct {
 	users service_contract.UserService
 	rbac  rbaccontract.RbacAdminService
-	guard lastSuperGuard
+	guard superAdminGuard
 	tx    dbtx.Executor
 	token token.TokenService
 }
 
 // NewDeleteUserUsecase 创建删除用户用例
-func NewDeleteUserUsecase(users service_contract.UserService, rbac rbaccontract.RbacAdminService, guard lastSuperGuard, tx dbtx.Executor, tokenService token.TokenService) *DeleteUserUsecase {
+func NewDeleteUserUsecase(users service_contract.UserService, rbac rbaccontract.RbacAdminService, guard superAdminGuard, tx dbtx.Executor, tokenService token.TokenService) *DeleteUserUsecase {
 	return &DeleteUserUsecase{users: users, rbac: rbac, guard: guard, tx: tx, token: tokenService}
 }
 
@@ -46,7 +46,7 @@ func (uc *DeleteUserUsecase) Execute(ctx context.Context, in *DeleteUserInput) e
 
 	err := uc.guard.WithLock(ctx, func(lockCtx context.Context) error {
 		return uc.tx.Run(lockCtx, func(txCtx context.Context) error {
-			if err := uc.guard.EnsureNotLastSuper(txCtx, id); err != nil {
+			if err := uc.guard.EnsureCanManageUser(txCtx, in.OperatorID, id); err != nil {
 				return err
 			}
 			if err := uc.users.Delete(txCtx, &userinput.DeleteUserInput{

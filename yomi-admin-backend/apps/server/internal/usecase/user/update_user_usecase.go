@@ -27,13 +27,13 @@ type UpdateUserInput struct {
 // UpdateUserUsecase 更新用户编排
 type UpdateUserUsecase struct {
 	users service_contract.UserService
-	guard lastSuperGuard
+	guard superAdminGuard
 	tx    dbtx.Executor
 	token token.TokenService
 }
 
 // NewUpdateUserUsecase 创建更新用户用例
-func NewUpdateUserUsecase(users service_contract.UserService, guard lastSuperGuard, tx dbtx.Executor, tokenService token.TokenService) *UpdateUserUsecase {
+func NewUpdateUserUsecase(users service_contract.UserService, guard superAdminGuard, tx dbtx.Executor, tokenService token.TokenService) *UpdateUserUsecase {
 	return &UpdateUserUsecase{users: users, guard: guard, tx: tx, token: tokenService}
 }
 
@@ -49,7 +49,7 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, in *UpdateUserInput) e
 
 	update := func(txCtx context.Context) error {
 		if in.Status != enums.UserStatusEnabled {
-			if err := uc.guard.EnsureNotLastSuper(txCtx, id); err != nil {
+			if err := uc.guard.EnsureCanManageUser(txCtx, in.OperatorID, id); err != nil {
 				return err
 			}
 		}
@@ -65,7 +65,7 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, in *UpdateUserInput) e
 
 	var err error
 	if in.Status != enums.UserStatusEnabled {
-		// 非启用状态会减少启用态超管集合，必须串行化。
+		// 非启用状态可能移除超管账号或减少启用态超管集合，必须串行化。
 		err = uc.guard.WithLock(ctx, func(lockCtx context.Context) error {
 			return uc.tx.Run(lockCtx, update)
 		})

@@ -1,4 +1,4 @@
-// Package superadmin 供 usecase 复用的超管安全策略：超管角色的授予、回收与最后一名启用超管保护。
+// Package superadmin 供 usecase 复用的超管安全策略：超管角色的授予、回收，以及超管账号的停用、删除与最后一名启用超管保护。
 //
 // 本包属于入口 support 层，只依赖各领域的公开契约与共享类型，不承载协议、存储或单域不变量。
 package superadmin
@@ -57,17 +57,28 @@ func (g *Guard) WithLock(ctx context.Context, fn func(context.Context) error) er
 	return g.lock.WithLock(ctx, fn)
 }
 
-// EnsureNotLastSuper 目标用户是唯一启用态超管时拒绝禁用或删除。
+// EnsureCanManageUser 校验停用或删除目标用户是否允许。
+//
 // 必须在 WithLock 内调用，且锁需覆盖后续写入与提交。
-func (g *Guard) EnsureNotLastSuper(ctx context.Context, targetUserID int64) error {
-	userIDs, err := g.enabledSuperUserIDs(ctx)
+//
+// 规则：
+//   - 目标是启用态超管时，操作者也必须是启用态超管，否则普通管理员可以把超管顶掉；
+//   - 目标是最后一名启用态超管时拒绝，保证启用集合不会因此清空。
+func (g *Guard) EnsureCanManageUser(ctx context.Context, operatorID, targetUserID int64) error {
+	enabledSupers, err := g.enabledSuperUserIDs(ctx)
 	if err != nil {
 		return err
 	}
-	if len(userIDs) == 1 {
-		if _, ok := userIDs[targetUserID]; ok {
-			return errors.Sentinel(ErrLastSuperAdmin)
-		}
+
+	_, targetSuper := enabledSupers[targetUserID]
+	if !targetSuper {
+		return nil
+	}
+	if _, actorSuper := enabledSupers[operatorID]; !actorSuper {
+		return errors.Sentinel(ErrManageSuperDenied)
+	}
+	if len(enabledSupers) == 1 {
+		return errors.Sentinel(ErrLastSuperAdmin)
 	}
 	return nil
 }
