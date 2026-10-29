@@ -138,5 +138,5 @@ make cross-build  # 交叉编译
 ## 依赖
 
 - Go 1.26。
-- yomi-boot v1.2.0.1（`go.mod` 里显示为 `v1.2.1-0.20261028113112-1a7295dd465e`）。
+- yomi-boot v1.2.1。
 - `go.work` 包含 `apps/server` 和三个 domain module。
