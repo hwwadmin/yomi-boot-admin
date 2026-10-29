@@ -126,6 +126,21 @@ export interface RolePayload {
   remark: string
 }
 
+/** 鉴权缓存刷新结果 */
+export interface RbacCacheRefreshResult {
+  /** 投影版本号 */
+  version: string
+  /** 投影构建时间（Unix 毫秒） */
+  builtAt: number
+  roleCount: number
+  permissionCount: number
+  permissionGroupCount: number
+  /** 用户-角色 / 角色-权限组 / 权限组-权限 关系的条目总数 */
+  relationCount: number
+  /** 刷新耗时（毫秒） */
+  durationMs: number
+}
+
 /** 权限目录项 */
 export interface PermissionItem {
   id: string

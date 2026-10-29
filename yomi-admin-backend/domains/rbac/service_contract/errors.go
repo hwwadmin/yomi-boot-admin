@@ -30,4 +30,10 @@ var (
 	ErrRelatedDisabled = errors.NewBiz("ADMIN_RELATED_DISABLED", "关联的角色、权限组或权限已停用")
 	// ErrInvalidInput 参数不合法
 	ErrInvalidInput = errors.NewBiz("ADMIN_INVALID_INPUT", "参数不合法")
+	// ErrCacheDisabled 鉴权缓存未启用
+	ErrCacheDisabled = errors.NewBiz("ADMIN_CACHE_DISABLED", "鉴权缓存未启用")
+	// ErrCacheRefreshBusy 鉴权缓存正在刷新
+	ErrCacheRefreshBusy = errors.NewBiz("ADMIN_CACHE_REFRESH_BUSY", "鉴权缓存正在刷新，请稍后重试")
+	// ErrCacheTooLarge 鉴权缓存体积超过上限
+	ErrCacheTooLarge = errors.NewBiz("ADMIN_CACHE_TOO_LARGE", "鉴权缓存体积超过上限")
 )

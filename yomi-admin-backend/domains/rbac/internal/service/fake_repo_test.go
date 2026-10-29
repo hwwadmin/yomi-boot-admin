@@ -422,7 +422,12 @@ func (r *fakeRepo) ListEnabledMenus(_ context.Context) ([]*entity.Permission, er
 
 func (r *fakeRepo) ListPermissionCodesByUserID(_ context.Context, userID int64) ([]string, error) {
 	codes := make([]string, 0)
+	seen := make(map[string]struct{})
 	for _, permission := range r.enabledPermissionsOf(userID) {
+		if _, ok := seen[permission.Code]; ok {
+			continue
+		}
+		seen[permission.Code] = struct{}{}
 		codes = append(codes, permission.Code)
 	}
 	sort.Strings(codes)
@@ -431,10 +436,16 @@ func (r *fakeRepo) ListPermissionCodesByUserID(_ context.Context, userID int64) 
 
 func (r *fakeRepo) ListEnabledPermissionCodes(_ context.Context) ([]string, error) {
 	codes := make([]string, 0)
+	seen := make(map[string]struct{})
 	for _, permission := range r.permissions {
-		if permission.Status == enums.StatusEnabled {
-			codes = append(codes, permission.Code)
+		if permission.Status != enums.StatusEnabled {
+			continue
 		}
+		if _, ok := seen[permission.Code]; ok {
+			continue
+		}
+		seen[permission.Code] = struct{}{}
+		codes = append(codes, permission.Code)
 	}
 	sort.Strings(codes)
 	return codes, nil
@@ -510,4 +521,53 @@ func paginatePermissions(permissions []*entity.Permission, page, pageSize int) [
 		end = len(permissions)
 	}
 	return permissions[start:end]
+}
+
+var _ repo_contract.AuthGraphReader = (*fakeRepo)(nil)
+
+// LoadAuthGraph 以内存数据构造六表全量视图，顺序与仓储实现保持一致
+func (r *fakeRepo) LoadAuthGraph(_ context.Context) (*repo_contract.AuthGraph, error) {
+	graph := &repo_contract.AuthGraph{
+		UserRoles:        make(map[int64][]int64, len(r.userRoles)),
+		RoleGroups:       make(map[int64][]int64, len(r.roleGroups)),
+		GroupPermissions: make(map[int64][]int64, len(r.groupPermissions)),
+	}
+
+	roleIDs := make([]int64, 0, len(r.roles))
+	for id := range r.roles {
+		roleIDs = append(roleIDs, id)
+	}
+	sort.Slice(roleIDs, func(i, j int) bool { return roleIDs[i] < roleIDs[j] })
+	for _, id := range roleIDs {
+		graph.Roles = append(graph.Roles, r.roles[id])
+	}
+
+	permissionIDs := make([]int64, 0, len(r.permissions))
+	for id := range r.permissions {
+		permissionIDs = append(permissionIDs, id)
+	}
+	sort.Slice(permissionIDs, func(i, j int) bool { return permissionIDs[i] < permissionIDs[j] })
+	for _, id := range permissionIDs {
+		graph.Permissions = append(graph.Permissions, r.permissions[id])
+	}
+
+	groupIDs := make([]int64, 0, len(r.permissionGroups))
+	for id := range r.permissionGroups {
+		groupIDs = append(groupIDs, id)
+	}
+	sort.Slice(groupIDs, func(i, j int) bool { return groupIDs[i] < groupIDs[j] })
+	for _, id := range groupIDs {
+		graph.PermissionGroups = append(graph.PermissionGroups, r.permissionGroups[id])
+	}
+
+	for userID, ids := range r.userRoles {
+		graph.UserRoles[userID] = append([]int64(nil), ids...)
+	}
+	for roleID, ids := range r.roleGroups {
+		graph.RoleGroups[roleID] = append([]int64(nil), ids...)
+	}
+	for groupID, ids := range r.groupPermissions {
+		graph.GroupPermissions[groupID] = append([]int64(nil), ids...)
+	}
+	return graph, nil
 }

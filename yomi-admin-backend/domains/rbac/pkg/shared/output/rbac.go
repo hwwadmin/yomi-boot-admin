@@ -26,3 +26,14 @@ type UserRolesOutput struct {
 	Roles   []*entity.Role // 全部角色，供分配界面展示
 	RoleIDs []int64        // 已绑定角色 ID
 }
+
+// CacheRefreshOutput 鉴权投影刷新结果
+type CacheRefreshOutput struct {
+	Version              string // 投影版本号
+	BuiltAt              int64  // 投影构建时间（Unix 毫秒）
+	RoleCount            int    // 角色数
+	PermissionCount      int    // 权限数
+	PermissionGroupCount int    // 权限组数
+	RelationCount        int    // 三类关系条目总数
+	DurationMS           int64  // 刷新耗时（毫秒）
+}

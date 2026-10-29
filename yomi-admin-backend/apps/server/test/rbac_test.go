@@ -193,6 +193,9 @@ func TestRbacRoleFlow(t *testing.T) {
 	}
 	parseSuccess(t, body)
 
+	// 写操作不自动重建鉴权缓存：刷新后受限用户才会拿到新权限
+	refreshRbacCache(t, adminToken)
+
 	// 删除保护：角色仍绑定用户、权限组仍绑定角色时不可删除
 	body, ok = testclient.Post(API("/system/role/delete"), adminToken, map[string]any{"id": role.ID})
 	if !ok {

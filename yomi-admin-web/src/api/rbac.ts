@@ -11,6 +11,7 @@ import type {
   RoleDetail,
   RoleItem,
   RolePayload,
+  RbacCacheRefreshResult,
   Status,
   UserRoleBinding,
 } from './types'
@@ -212,5 +213,13 @@ export function bindUserRoles(id: string, roleIds: string[]) {
     url: '/system/user/bind-role',
     method: 'post',
     data: { userId: id, roleIds },
+  })
+}
+
+/** 刷新鉴权缓存：从数据库全量重建 RBAC 投影，所有实例即时生效 */
+export function refreshRbacCache() {
+  return request<RbacCacheRefreshResult>({
+    url: '/system/rbac-cache/refresh',
+    method: 'post',
   })
 }

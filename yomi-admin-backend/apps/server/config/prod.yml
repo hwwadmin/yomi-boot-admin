@@ -101,6 +101,15 @@ biz:
     ttl_seconds: 180
     key_prefix: yomi:captcha:login
     refresh_interval_seconds: 10
+  rbac:
+    cache:
+      enabled: ${YOMI_ADMIN_BIZ_RBAC_CACHE_ENABLED:true}
+      key: yomi:admin:rbac:projection
+      lock_key: yomi:admin:rbac:projection:lock
+      bootstrap_warmup: ${YOMI_ADMIN_BIZ_RBAC_CACHE_BOOTSTRAP_WARMUP:true} # 启动时仅当投影不可用才重建
+      refresh_interval_seconds: ${YOMI_ADMIN_BIZ_RBAC_CACHE_REFRESH_INTERVAL_SECONDS:60} # 兜底全量重建间隔（秒），0 表示关闭
+      projection_max_bytes: 8388608
+      lock_wait_seconds: 2
 
 # HTTP 访问记录：中间件采集 + 进程内消费者落库，供后台「访问记录」页面查询
 http_record:

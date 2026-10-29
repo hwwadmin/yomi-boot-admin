@@ -68,6 +68,24 @@ script/dev/         开发脚本
 - 关系表物理删除，不留孤儿关系。
 - Entity 时间是 Unix 毫秒；接口里的 ID 用 `dto.JSONInt64`（字符串）。
 
+## 鉴权缓存（RBAC 投影）
+
+鉴权热路径不查库：服务把六张 RBAC 表压缩成一份全量快照写进 Redis
+（`yomi:admin:rbac:projection`），每个受保护请求读一次投影后内存求值。
+投影不可用（Redis 故障、内容损坏、结构版本不符）时自动降级为 SQL 直查，
+因此缓存故障只影响性能，不会误判权限。
+
+- **写操作不会自动重建投影**：改动最迟一个刷新周期（默认 60 秒）生效；要立即生效就在角色页点
+  「刷新权限缓存」（`POST /api/system/rbac-cache/refresh`），所有实例下一个请求即可见。
+- 定时刷新默认每 60 秒跑一次（`biz.rbac.cache.refresh_interval_seconds`，设为 0 关闭），
+  同时兜住"直接改库"这类绕过接口的变更；多实例靠分布式锁串行，只有一台真正重建。
+- 启动时先探测 Redis 里的投影：存在且可解析就复用，缺失 / 损坏 / 结构版本不符才从数据库重建
+  （`biz.rbac.cache.bootstrap_warmup`），滚动重启不会覆盖已有投影。
+- 投影结构变更时递增 `domains/rbac/internal/snapshot` 的 `Schema`，存量投影会被自动判定为不可用并重建。
+
+配置在 `biz.rbac.cache`：`enabled`、`key`、`lock_key`、`bootstrap_warmup`、
+`refresh_interval_seconds`、`projection_max_bytes`、`lock_wait_seconds`。
+
 ## 常用命令
 
 ```bash

@@ -125,6 +125,7 @@ const permissions: MockPermission[] = [
   { id: 'p23', code: 'system:role:create', name: '创建角色', type: 'API', httpMethod: 'POST', httpPath: '/api/system/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p24', code: 'system:role:update', name: '更新角色', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/role/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p25', code: 'system:role:bind-group', name: '角色绑定权限组', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/role/:id/group', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p26', code: 'system:rbac_cache:refresh', name: '刷新权限缓存', type: 'API', httpMethod: 'POST', httpPath: '/api/system/rbac-cache/refresh', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p31', code: 'system:permission:list', name: '权限列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/permission', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p32', code: 'system:permission:status', name: '权限启停', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/permission/:id/status', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p41', code: 'system:user:role:list', name: '用户角色查询', type: 'API', httpMethod: 'GET', httpPath: '/api/system/user/:id/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
@@ -141,7 +142,7 @@ const permissions: MockPermission[] = [
 // ———————— 权限组 ————————
 const permissionGroups: MockPermissionGroup[] = [
   { id: 'g1', code: 'system_user', name: '用户管理', status: 'ENABLED', remark: '用户菜单、用户 CRUD 与用户角色绑定', permissionIds: ['p1', 'p11', 'p12', 'p13', 'p14', 'p41', 'p42'], createTime: now(), updateTime: now() },
-  { id: 'g2', code: 'system_role', name: '角色管理', status: 'ENABLED', remark: '角色菜单、角色 CRUD 与角色绑定权限组', permissionIds: ['p2', 'p21', 'p22', 'p23', 'p24', 'p25'], createTime: now(), updateTime: now() },
+  { id: 'g2', code: 'system_role', name: '角色管理', status: 'ENABLED', remark: '角色菜单、角色 CRUD 与角色绑定权限组', permissionIds: ['p2', 'p21', 'p22', 'p23', 'p24', 'p25', 'p26'], createTime: now(), updateTime: now() },
   { id: 'g3', code: 'system_permission', name: '权限管理', status: 'ENABLED', remark: '权限目录与权限组的查看、维护', permissionIds: ['p3', 'p5', 'p31', 'p32', 'p61', 'p62', 'p63', 'p64', 'p65'], createTime: now(), updateTime: now() },
   { id: 'g4', code: 'system_http_record', name: '访问记录', status: 'ENABLED', remark: '访问记录菜单、列表与详情', permissionIds: ['p4', 'p51', 'p52'], createTime: now(), updateTime: now() },
 ]
@@ -611,6 +612,30 @@ const routes: MockRoute[] = [
       role.groupIds = [...new Set(groupIds)]
       role.updateTime = now()
       sendJson(res, ok(null))
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/system\/rbac-cache\/refresh$/,
+    handler: async ({ req, res }) => {
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      await delay(120)
+      const relationCount =
+        users.reduce((total, user) => total + user.roles.length, 0) +
+        roles.reduce((total, role) => total + role.groupIds.length, 0) +
+        permissionGroups.reduce((total, group) => total + group.permissionIds.length, 0)
+      sendJson(
+        res,
+        ok({
+          version: String(now()),
+          builtAt: now(),
+          roleCount: roles.length,
+          permissionCount: permissions.length,
+          permissionGroupCount: permissionGroups.length,
+          relationCount,
+          durationMs: 120,
+        }),
+      )
     },
   },
   {

@@ -15,7 +15,7 @@ func TestAuthServiceSuperAdmin(t *testing.T) {
 	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/user", Status: enums.StatusEnabled}
 	repo.permissions[12] = &entity.Permission{ID: 12, Code: "system:role", Type: enums.PermissionTypeMenu, UIPath: "/system/role", Status: enums.StatusEnabled}
 	repo.userRoles[1] = []int64{1}
-	svc := NewRbacAuthService(repo)
+	svc := NewRbacAuthService(repo, nil)
 
 	allowed, err := svc.CanAccessAPI(ctx, 1, "get", "/api/system/user")
 	if err != nil || !allowed {
@@ -53,7 +53,7 @@ func TestAuthServiceNormalUser(t *testing.T) {
 	repo.roleGroups[2] = []int64{2}
 	repo.groupPermissions[1] = []int64{10, 11}
 	repo.groupPermissions[2] = []int64{12}
-	svc := NewRbacAuthService(repo)
+	svc := NewRbacAuthService(repo, nil)
 
 	allowed, err := svc.CanAccessAPI(ctx, 2, "GET", "/api/system/user")
 	if err != nil || !allowed {
@@ -100,7 +100,7 @@ func TestAuthServiceDedupesAcrossRolesAndGroups(t *testing.T) {
 	repo.roleGroups[2] = []int64{2}
 	repo.groupPermissions[1] = []int64{10, 11}
 	repo.groupPermissions[2] = []int64{11}
-	svc := NewRbacAuthService(repo)
+	svc := NewRbacAuthService(repo, nil)
 
 	codes, err := svc.ListPermissionCodes(ctx, 7)
 	if err != nil {

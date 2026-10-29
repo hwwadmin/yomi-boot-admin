@@ -9,6 +9,7 @@ import {
   getRolePage,
   listAllPermissionGroups,
   listAllPermissions,
+  refreshRbacCache,
   setRoleStatus,
   updateRole,
 } from '@/api/rbac'
@@ -48,6 +49,23 @@ function handleReset() {
 }
 
 onMounted(fetchList)
+
+// ———————— 刷新鉴权缓存 ————————
+// 角色、权限组与权限的变更不会自动生效，需从数据库重建一次 RBAC 投影
+const refreshingCache = ref(false)
+
+async function handleRefreshCache() {
+  refreshingCache.value = true
+  try {
+    const result = await refreshRbacCache()
+    ElMessage.success({
+      message: `缓存已刷新：角色 ${result.roleCount} / 权限 ${result.permissionCount} / 权限组 ${result.permissionGroupCount}，耗时 ${result.durationMs}ms`,
+      duration: 5000,
+    })
+  } finally {
+    refreshingCache.value = false
+  }
+}
 
 // ———————— 新增 / 编辑 ————————
 const dialogVisible = ref(false)
@@ -216,6 +234,13 @@ async function saveGroups() {
           @click="openCreate"
         >
           新增角色
+        </el-button>
+        <el-button
+          v-permission="'system:rbac_cache:refresh'"
+          :loading="refreshingCache"
+          @click="handleRefreshCache"
+        >
+          刷新权限缓存
         </el-button>
       </div>
 

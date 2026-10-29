@@ -27,6 +27,7 @@ const maxCaptchaRefreshIntervalSeconds = 3600
 // BootConfig 是 biz 配置段的 YAML 绑定
 type BootConfig struct {
 	Captcha CaptchaConfig `mapstructure:"captcha"`
+	Rbac    RbacConfig    `mapstructure:"rbac"`
 }
 
 // CaptchaConfig 是登录图像验证码配置；零值字段按默认值处理
@@ -91,6 +92,9 @@ func (c CaptchaConfig) Validate() error {
 // ConfigSection 返回 biz 配置段
 func ConfigSection() config.Section {
 	return config.NewSection(SectionKey, &BootConfig{}, func(c *BootConfig, _ *config.Config) error {
-		return c.Captcha.Validate()
+		if err := c.Captcha.Validate(); err != nil {
+			return err
+		}
+		return c.Rbac.Validate()
 	})
 }

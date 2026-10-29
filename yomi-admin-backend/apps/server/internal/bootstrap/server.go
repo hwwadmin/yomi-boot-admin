@@ -100,17 +100,26 @@ func load(slot *plugin.PluginSlot) container {
 			panic(err)
 		}
 
+		rbacModule, err := rbacprovider.Provide(rbacprovider.Deps{
+			DB:          db.DB(),
+			DBType:      db.Type(),
+			IDGenerator: snowflakePlugin.Generator(),
+			Redis:       redisPlugin.Service(),
+			Locks:       redisPlugin.DistLockFactory(),
+			Tx:          txPlugin.Executor(),
+			Cache:       toRbacCacheOptions(bizCfg.Rbac.Cache),
+		})
+		if err != nil {
+			panic(err)
+		}
+
 		appContainer = container{
 			users: userprovider.Provide(userprovider.Deps{
 				DB:          db.DB(),
 				DBType:      db.Type(),
 				IDGenerator: snowflakePlugin.Generator(),
 			}),
-			rbac: rbacprovider.Provide(rbacprovider.Deps{
-				DB:          db.DB(),
-				DBType:      db.Type(),
-				IDGenerator: snowflakePlugin.Generator(),
-			}),
+			rbac: rbacModule,
 			records: httprecordprovider.Provide(httprecordprovider.Deps{
 				DB:          db.DB(),
 				IDGenerator: snowflakePlugin.Generator(),
@@ -126,8 +135,24 @@ func load(slot *plugin.PluginSlot) container {
 			appCtx: appCtxPlugin.AppCtx(),
 			lock:   redisPlugin.DistLockFactory(),
 		}
+
+		// 启动期刷新与定时刷新挂在运行时 context 上，进程退出时自动停止
+		appContainer.rbac.StartBackground(slot.RuntimeContext())
 	})
 	return appContainer
+}
+
+// toRbacCacheOptions 将业务配置段转换为 RBAC 缓存的装配参数
+func toRbacCacheOptions(cfg svcconfig.RbacCacheConfig) rbacprovider.CacheOptions {
+	return rbacprovider.CacheOptions{
+		Enabled:         cfg.EnabledOrDefault(),
+		Key:             cfg.KeyOrDefault(),
+		LockKey:         cfg.LockKeyOrDefault(),
+		MaxBytes:        cfg.MaxBytesOrDefault(),
+		LockWait:        cfg.LockWait(),
+		BootstrapWarmup: cfg.BootstrapWarmupOrDefault(),
+		RefreshInterval: cfg.RefreshInterval(),
+	}
 }
 
 // Wire 根据插件插槽装配 HTTP 服务
@@ -180,6 +205,9 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 		apphandler.NewHttpRecordHandler(
 			httprecoreusecase.NewPageRecordsUsecase(c.records.Records),
 			httprecoreusecase.NewGetRecordUsecase(c.records.Records),
+		),
+		apphandler.NewRbacCacheHandler(
+			rbacusecase.NewRefreshRbacCacheUsecase(c.rbac.Cache),
 		),
 	}
 }
