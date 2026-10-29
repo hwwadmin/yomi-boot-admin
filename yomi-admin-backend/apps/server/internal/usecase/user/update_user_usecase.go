@@ -35,17 +35,17 @@ func NewUpdateUserUsecase(users service_contract.UserService, guard lastSuperGua
 	return &UpdateUserUsecase{users: users, guard: guard, tx: tx, token: tokenService}
 }
 
-// Execute 更新用户；状态改为禁用后在超管锁内校验并撤销该用户全部 Token
+// Execute 更新用户；状态改为非启用后在超管锁内校验并撤销该用户全部 Token
 func (uc *UpdateUserUsecase) Execute(ctx context.Context, id int64, in *UpdateUserInput) error {
 	if id <= 0 {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
-	if id == in.OperatorID && in.Status == enums.UserStatusDisabled {
+	if id == in.OperatorID && in.Status != enums.UserStatusEnabled {
 		return support.ErrCannotOperateSelf
 	}
 
 	update := func(txCtx context.Context) error {
-		if in.Status == enums.UserStatusDisabled {
+		if in.Status != enums.UserStatusEnabled {
 			if err := uc.guard.EnsureNotLastSuper(txCtx, id); err != nil {
 				return err
 			}
@@ -61,8 +61,8 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, id int64, in *UpdateUs
 	}
 
 	var err error
-	if in.Status == enums.UserStatusDisabled {
-		// 禁用会减少启用态超管集合，必须串行化。
+	if in.Status != enums.UserStatusEnabled {
+		// 非启用状态会减少启用态超管集合，必须串行化。
 		err = uc.guard.WithLock(ctx, func(lockCtx context.Context) error {
 			return uc.tx.Run(lockCtx, update)
 		})
@@ -74,7 +74,7 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, id int64, in *UpdateUs
 		return err
 	}
 
-	if in.Status == enums.UserStatusDisabled {
+	if in.Status != enums.UserStatusEnabled {
 		return revokeUserTokens(ctx, uc.token, id)
 	}
 	return nil
