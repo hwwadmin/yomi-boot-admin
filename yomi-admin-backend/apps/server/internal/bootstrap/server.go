@@ -2,6 +2,7 @@
 package bootstrap
 
 import (
+	"fmt"
 	"sync"
 	svcconfig "yomi-admin-backend/apps/server/internal/config"
 	"yomi-admin-backend/apps/server/internal/middleware"
@@ -27,12 +28,14 @@ import (
 	"gitee.com/hq_project/yomi-boot/component/core/appctx"
 	"gitee.com/hq_project/yomi-boot/component/core/config"
 	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
+	"gitee.com/hq_project/yomi-boot/component/core/logger"
 	"gitee.com/hq_project/yomi-boot/component/core/router"
 	"gitee.com/hq_project/yomi-boot/plugin"
 	appctxplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/appctx"
 	dbplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/db"
 	redisplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/redis"
 	redisratelimitplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/redisratelimit"
+	routerplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/router"
 	snowflakeplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/snowflake"
 	tokenplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/token"
 
@@ -225,6 +228,9 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	bizCfg := config.MustSection[svcconfig.BootConfig](slot.Config, svcconfig.SectionKey)
 	if bizCfg.Docs.EnabledOrDefault() {
 		registrars = append(registrars, apphandler.NewApiDocHandler())
+		httpCfg := config.MustSection[routerplugin.BootConfig](slot.Config, routerplugin.SectionKey).ToConfig()
+		logger.Info(slot.RuntimeContext(), "API 文档已启用",
+			"url", fmt.Sprintf("http://127.0.0.1:%d%s/system/api-doc", httpCfg.Port, httpCfg.RouterPrefixClean()))
 	}
 	return registrars
 }
