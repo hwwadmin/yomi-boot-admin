@@ -70,7 +70,6 @@ redis:
   password: "hww350521"
   db: 0
 
-# 调用式限流：验证码生成按 IP 限制刷新频率
 ratelimit:
   enabled: true
   key_prefix: yomi:rl
@@ -81,7 +80,6 @@ token:
   token_ttl_minutes: 120
   store_prefix: "yomi:token:yomi-admin"
   allow_multi_login: true
-  # 免令牌路由统一声明在 biz.auth.public_paths（token: false），启动时注入本段
 
 snowflake:
   worker_id: 1
@@ -96,7 +94,6 @@ biz:
     height: 60
     ttl_seconds: 180
     key_prefix: yomi:captcha:login
-    # 验证码一次性：登录失败后前端会立刻换图，间隔必须很短，否则换图被限流拒绝、页面停在已作废的验证码上
     refresh_interval_seconds: 1
   # 登录防爆破：IP 尝试配额 + IP/账号失败预算 + 临时锁定
   login_guard:
