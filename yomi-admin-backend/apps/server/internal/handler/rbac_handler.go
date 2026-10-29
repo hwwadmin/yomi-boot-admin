@@ -53,16 +53,16 @@ func NewRbacHandler(
 // Routes 注册角色与权限管理路由
 func (h *RbacHandler) Routes(router *gin.RouterGroup) {
 	router.GET("/system/role", h.pageRoles)
-	router.GET("/system/role/:id", h.getRole)
-	router.POST("/system/role", h.createRole)
-	router.PUT("/system/role/:id", h.updateRole)
-	router.PUT("/system/role/:id/group", h.bindRoleGroups)
+	router.GET("/system/role/detail", h.getRole)
+	router.POST("/system/role/create", h.createRole)
+	router.POST("/system/role/update", h.updateRole)
+	router.POST("/system/role/bind-group", h.bindRoleGroups)
 
 	router.GET("/system/permission", h.pagePermissions)
-	router.PUT("/system/permission/:id/status", h.setPermissionStatus)
+	router.POST("/system/permission/set-status", h.setPermissionStatus)
 
-	router.GET("/system/user/:id/role", h.getUserRoles)
-	router.PUT("/system/user/:id/role", h.bindUserRoles)
+	router.GET("/system/user/role", h.getUserRoles)
+	router.POST("/system/user/bind-role", h.bindUserRoles)
 }
 
 func (h *RbacHandler) pageRoles(c *gin.Context) {
@@ -77,7 +77,7 @@ func (h *RbacHandler) pageRoles(c *gin.Context) {
 }
 
 func (h *RbacHandler) getRole(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
+	id, ok := queryID(c, "id")
 	if !ok {
 		return
 	}
@@ -102,10 +102,6 @@ func (h *RbacHandler) createRole(c *gin.Context) {
 }
 
 func (h *RbacHandler) updateRole(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
-	if !ok {
-		return
-	}
 	var in rbacusecase.UpdateRoleInput
 	if !corehandler.BindJSON(c, &in) {
 		return
@@ -116,15 +112,11 @@ func (h *RbacHandler) updateRole(c *gin.Context) {
 	}
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
-		return h.updateRoleUC.Execute(ctx, id, &in)
+		return h.updateRoleUC.Execute(ctx, &in)
 	})
 }
 
 func (h *RbacHandler) bindRoleGroups(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
-	if !ok {
-		return
-	}
 	var in rbacusecase.BindRoleGroupsInput
 	if !corehandler.BindJSON(c, &in) {
 		return
@@ -135,7 +127,7 @@ func (h *RbacHandler) bindRoleGroups(c *gin.Context) {
 	}
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
-		return h.bindGroupsUC.Execute(ctx, id, &in)
+		return h.bindGroupsUC.Execute(ctx, &in)
 	})
 }
 
@@ -152,10 +144,6 @@ func (h *RbacHandler) pagePermissions(c *gin.Context) {
 }
 
 func (h *RbacHandler) setPermissionStatus(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
-	if !ok {
-		return
-	}
 	var in rbacusecase.SetPermissionStatusInput
 	if !corehandler.BindJSON(c, &in) {
 		return
@@ -166,25 +154,21 @@ func (h *RbacHandler) setPermissionStatus(c *gin.Context) {
 	}
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
-		return h.setPermissionStatusUC.Execute(ctx, id, &in)
+		return h.setPermissionStatusUC.Execute(ctx, &in)
 	})
 }
 
 func (h *RbacHandler) getUserRoles(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
+	userID, ok := queryID(c, "userId")
 	if !ok {
 		return
 	}
 	corehandler.Handle(c, func(ctx context.Context) (*rbacusecase.UserRolesOutput, error) {
-		return h.getUserRolesUC.Execute(ctx, id)
+		return h.getUserRolesUC.Execute(ctx, userID)
 	})
 }
 
 func (h *RbacHandler) bindUserRoles(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
-	if !ok {
-		return
-	}
 	var in rbacusecase.BindUserRolesInput
 	if !corehandler.BindJSON(c, &in) {
 		return
@@ -195,6 +179,6 @@ func (h *RbacHandler) bindUserRoles(c *gin.Context) {
 	}
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
-		return h.bindUserRolesUC.Execute(ctx, id, &in)
+		return h.bindUserRolesUC.Execute(ctx, &in)
 	})
 }

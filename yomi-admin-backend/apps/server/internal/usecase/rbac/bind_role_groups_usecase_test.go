@@ -47,7 +47,8 @@ func TestBindRoleGroupsRunsInTransaction(t *testing.T) {
 	tx := &fakeTxExecutor{}
 	uc := NewBindRoleGroupsUsecase(rbac, tx)
 
-	err := uc.Execute(context.Background(), 7, &BindRoleGroupsInput{
+	err := uc.Execute(context.Background(), &BindRoleGroupsInput{
+		RoleID:     dto.JSONInt64(7),
 		GroupIDs:   dto.NewJSONInt64Slice([]int64{20, 21}),
 		OperatorID: 9,
 	})
@@ -73,7 +74,7 @@ func TestBindRoleGroupsPropagatesDomainError(t *testing.T) {
 	tx := &fakeTxExecutor{}
 	uc := NewBindRoleGroupsUsecase(rbac, tx)
 
-	err := uc.Execute(context.Background(), 7, &BindRoleGroupsInput{})
+	err := uc.Execute(context.Background(), &BindRoleGroupsInput{RoleID: dto.JSONInt64(7)})
 	if !errors.Is(err, rbaccontract.ErrRoleNotFound) {
 		t.Fatalf("期望 ErrRoleNotFound，实际 %v", err)
 	}
@@ -87,7 +88,7 @@ func TestBindRoleGroupsRejectsInvalidRoleID(t *testing.T) {
 	tx := &fakeTxExecutor{}
 	uc := NewBindRoleGroupsUsecase(rbac, tx)
 
-	err := uc.Execute(context.Background(), 0, &BindRoleGroupsInput{})
+	err := uc.Execute(context.Background(), &BindRoleGroupsInput{})
 	if !errors.Is(err, rbaccontract.ErrInvalidInput) {
 		t.Fatalf("期望 ErrInvalidInput，实际 %v", err)
 	}

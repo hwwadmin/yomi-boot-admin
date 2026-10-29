@@ -63,7 +63,7 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 		Name:           "用户列表",
 		PermissionType: enums.PermissionTypeAPI,
 		HTTPMethod:     ptrutil.PtrFromString("GET"),
-		HTTPPath:       ptrutil.PtrFromString("/api/system/users"),
+		HTTPPath:       ptrutil.PtrFromString("/api/system/user"),
 		Status:         enums.StatusEnabled,
 	}
 	api.ID = 11
@@ -85,8 +85,8 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 		Code:           "system:user:delete",
 		Name:           "删除用户",
 		PermissionType: enums.PermissionTypeAPI,
-		HTTPMethod:     ptrutil.PtrFromString("DELETE"),
-		HTTPPath:       ptrutil.PtrFromString("/api/system/users/:id"),
+		HTTPMethod:     ptrutil.PtrFromString("POST"),
+		HTTPPath:       ptrutil.PtrFromString("/api/system/user/delete"),
 		Status:         enums.StatusDisabled,
 	}
 	disabled.ID = 13
@@ -190,10 +190,10 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	}
 
 	// 鉴权链：接口精确匹配、菜单并集、编码并集；禁用权限组不生效
-	if ok, err := r.ExistsRouteAccess(ctx, 7, "GET", "/api/system/users"); err != nil || !ok {
+	if ok, err := r.ExistsRouteAccess(ctx, 7, "GET", "/api/system/user"); err != nil || !ok {
 		t.Fatalf("已授权接口应放行: ok=%v err=%v", ok, err)
 	}
-	if ok, err := r.ExistsRouteAccess(ctx, 7, "POST", "/api/system/users"); err != nil || ok {
+	if ok, err := r.ExistsRouteAccess(ctx, 7, "POST", "/api/system/user"); err != nil || ok {
 		t.Fatalf("未授权方法不应放行: ok=%v err=%v", ok, err)
 	}
 	menus, err := r.ListMenusByUserID(ctx, 7)

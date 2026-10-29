@@ -31,10 +31,10 @@ func NewUserHandler(
 
 // Routes 注册系统用户路由
 func (h *UserHandler) Routes(router *gin.RouterGroup) {
-	router.GET("/system/users", h.page)
-	router.POST("/system/users", h.create)
-	router.PUT("/system/users/:id", h.update)
-	router.DELETE("/system/users/:id", h.delete)
+	router.GET("/system/user", h.page)
+	router.POST("/system/user/create", h.create)
+	router.POST("/system/user/update", h.update)
+	router.POST("/system/user/delete", h.delete)
 }
 
 func (h *UserHandler) page(c *gin.Context) {
@@ -63,10 +63,6 @@ func (h *UserHandler) create(c *gin.Context) {
 }
 
 func (h *UserHandler) update(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
-	if !ok {
-		return
-	}
 	var in userusecase.UpdateUserInput
 	if !corehandler.BindJSON(c, &in) {
 		return
@@ -77,20 +73,21 @@ func (h *UserHandler) update(c *gin.Context) {
 	}
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
-		return h.updateUC.Execute(ctx, id, &in)
+		return h.updateUC.Execute(ctx, &in)
 	})
 }
 
 func (h *UserHandler) delete(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
-	if !ok {
+	var in userusecase.DeleteUserInput
+	if !corehandler.BindJSON(c, &in) {
 		return
 	}
 	opID, ok := operatorID(c)
 	if !ok {
 		return
 	}
+	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
-		return h.deleteUC.Execute(ctx, id, opID)
+		return h.deleteUC.Execute(ctx, &in)
 	})
 }

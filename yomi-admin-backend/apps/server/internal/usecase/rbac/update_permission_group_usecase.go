@@ -8,10 +8,12 @@ import (
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
 // UpdatePermissionGroupInput HTTP 更新权限组入参；编码不可变
 type UpdatePermissionGroupInput struct {
+	ID         dto.JSONInt64    `json:"id"`
 	Name       string           `json:"name"`
 	Remark     string           `json:"remark"`
 	Status     rbacenums.Status `json:"status"`
@@ -29,7 +31,8 @@ func NewUpdatePermissionGroupUsecase(rbac rbaccontract.RbacAdminService) *Update
 }
 
 // Execute 更新权限组
-func (uc *UpdatePermissionGroupUsecase) Execute(ctx context.Context, id int64, in *UpdatePermissionGroupInput) error {
+func (uc *UpdatePermissionGroupUsecase) Execute(ctx context.Context, in *UpdatePermissionGroupInput) error {
+	id := in.ID.Int64()
 	if id <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
 	}

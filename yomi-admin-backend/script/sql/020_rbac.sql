@@ -115,8 +115,8 @@ CREATE TABLE IF NOT EXISTS `t_rbac_group_permission_rel` (
 INSERT IGNORE INTO `t_rbac_role` (`id`, `code`, `name`, `builtin`, `status`, `remark`)
 VALUES (100000000000000101, 'super_admin', '超级管理员', 1, 'ENABLED', '内置角色，拥有全部权限');
 
--- 旧的「角色绑定权限」权限码已被「角色绑定权限组」取代，先清理保证种子可重复执行
-DELETE FROM `t_rbac_permission` WHERE `code` = 'system:role:bind-permission';
+-- 接口权限目录以种子为唯一来源，先清空保证路由调整后不留旧记录
+DELETE FROM `t_rbac_permission` WHERE `permission_type` = 'API';
 
 -- 菜单权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
@@ -132,55 +132,55 @@ VALUES (100000000000001005, 'system:permission-group', '权限组', 'MENU', '/sy
 
 -- 用户接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001011, 'system:user:list', '用户列表', 'API', NULL, 'GET', '/api/system/users', 'ENABLED');
+VALUES (100000000000001011, 'system:user:list', '用户列表', 'API', NULL, 'GET', '/api/system/user', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001012, 'system:user:create', '创建用户', 'API', NULL, 'POST', '/api/system/users', 'ENABLED');
+VALUES (100000000000001012, 'system:user:create', '创建用户', 'API', NULL, 'POST', '/api/system/user/create', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001013, 'system:user:update', '更新用户', 'API', NULL, 'PUT', '/api/system/users/:id', 'ENABLED');
+VALUES (100000000000001013, 'system:user:update', '更新用户', 'API', NULL, 'POST', '/api/system/user/update', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001014, 'system:user:delete', '删除用户', 'API', NULL, 'DELETE', '/api/system/users/:id', 'ENABLED');
+VALUES (100000000000001014, 'system:user:delete', '删除用户', 'API', NULL, 'POST', '/api/system/user/delete', 'ENABLED');
 
 -- 角色接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001021, 'system:role:list', '角色列表', 'API', NULL, 'GET', '/api/system/role', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001022, 'system:role:detail', '角色详情', 'API', NULL, 'GET', '/api/system/role/:id', 'ENABLED');
+VALUES (100000000000001022, 'system:role:detail', '角色详情', 'API', NULL, 'GET', '/api/system/role/detail', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001023, 'system:role:create', '创建角色', 'API', NULL, 'POST', '/api/system/role', 'ENABLED');
+VALUES (100000000000001023, 'system:role:create', '创建角色', 'API', NULL, 'POST', '/api/system/role/create', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001024, 'system:role:update', '更新角色', 'API', NULL, 'PUT', '/api/system/role/:id', 'ENABLED');
+VALUES (100000000000001024, 'system:role:update', '更新角色', 'API', NULL, 'POST', '/api/system/role/update', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001025, 'system:role:bind-group', '角色绑定权限组', 'API', NULL, 'PUT', '/api/system/role/:id/group', 'ENABLED');
+VALUES (100000000000001025, 'system:role:bind-group', '角色绑定权限组', 'API', NULL, 'POST', '/api/system/role/bind-group', 'ENABLED');
 
 -- 权限目录接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001031, 'system:permission:list', '权限列表', 'API', NULL, 'GET', '/api/system/permission', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001032, 'system:permission:status', '权限启停', 'API', NULL, 'PUT', '/api/system/permission/:id/status', 'ENABLED');
+VALUES (100000000000001032, 'system:permission:status', '权限启停', 'API', NULL, 'POST', '/api/system/permission/set-status', 'ENABLED');
 
 -- 用户角色接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001041, 'system:user:role:list', '用户角色查询', 'API', NULL, 'GET', '/api/system/user/:id/role', 'ENABLED');
+VALUES (100000000000001041, 'system:user:role:list', '用户角色查询', 'API', NULL, 'GET', '/api/system/user/role', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001042, 'system:user:role:bind', '用户角色绑定', 'API', NULL, 'PUT', '/api/system/user/:id/role', 'ENABLED');
+VALUES (100000000000001042, 'system:user:role:bind', '用户角色绑定', 'API', NULL, 'POST', '/api/system/user/bind-role', 'ENABLED');
 
 -- 访问记录接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001051, 'system:http-record:list', '访问记录列表', 'API', NULL, 'GET', '/api/system/http-records', 'ENABLED');
+VALUES (100000000000001051, 'system:http-record:list', '访问记录列表', 'API', NULL, 'GET', '/api/system/http-record', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001052, 'system:http-record:detail', '访问记录详情', 'API', NULL, 'GET', '/api/system/http-records/:id', 'ENABLED');
+VALUES (100000000000001052, 'system:http-record:detail', '访问记录详情', 'API', NULL, 'GET', '/api/system/http-record/detail', 'ENABLED');
 
 -- 权限组接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001061, 'system:permission-group:list', '权限组列表', 'API', NULL, 'GET', '/api/system/permission-group', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001062, 'system:permission-group:detail', '权限组详情', 'API', NULL, 'GET', '/api/system/permission-group/:id', 'ENABLED');
+VALUES (100000000000001062, 'system:permission-group:detail', '权限组详情', 'API', NULL, 'GET', '/api/system/permission-group/detail', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001063, 'system:permission-group:create', '创建权限组', 'API', NULL, 'POST', '/api/system/permission-group', 'ENABLED');
+VALUES (100000000000001063, 'system:permission-group:create', '创建权限组', 'API', NULL, 'POST', '/api/system/permission-group/create', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001064, 'system:permission-group:update', '更新权限组', 'API', NULL, 'PUT', '/api/system/permission-group/:id', 'ENABLED');
+VALUES (100000000000001064, 'system:permission-group:update', '更新权限组', 'API', NULL, 'POST', '/api/system/permission-group/update', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001065, 'system:permission-group:bind-permission', '权限组绑定权限', 'API', NULL, 'PUT', '/api/system/permission-group/:id/permission', 'ENABLED');
+VALUES (100000000000001065, 'system:permission-group:bind-permission', '权限组绑定权限', 'API', NULL, 'POST', '/api/system/permission-group/bind-permission', 'ENABLED');
 
 -- 种子权限组：按现有菜单域给出可直接使用的权限包
 INSERT IGNORE INTO `t_rbac_permission_group` (`id`, `code`, `name`, `status`, `remark`)

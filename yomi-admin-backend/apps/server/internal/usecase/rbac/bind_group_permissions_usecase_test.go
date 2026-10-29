@@ -30,7 +30,8 @@ func TestBindGroupPermissionsRunsInTransaction(t *testing.T) {
 	tx := &fakeTxExecutor{}
 	uc := NewBindGroupPermissionsUsecase(admin, tx)
 
-	err := uc.Execute(context.Background(), 20, &BindGroupPermissionsInput{
+	err := uc.Execute(context.Background(), &BindGroupPermissionsInput{
+		GroupID:       dto.JSONInt64(20),
 		PermissionIDs: dto.NewJSONInt64Slice([]int64{10, 11}),
 		OperatorID:    9,
 	})
@@ -53,7 +54,7 @@ func TestBindGroupPermissionsRejectsInvalidGroupID(t *testing.T) {
 	tx := &fakeTxExecutor{}
 	uc := NewBindGroupPermissionsUsecase(admin, tx)
 
-	err := uc.Execute(context.Background(), 0, &BindGroupPermissionsInput{})
+	err := uc.Execute(context.Background(), &BindGroupPermissionsInput{})
 	if !errors.Is(err, rbaccontract.ErrInvalidInput) {
 		t.Fatalf("期望 ErrInvalidInput，实际 %v", err)
 	}

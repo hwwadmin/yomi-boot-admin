@@ -26,12 +26,12 @@ func TestHttpRecordPageAndDetail(t *testing.T) {
 	requireServer(t)
 	adminToken := login(t, adminUsername, adminPassword)
 
-	keyword := url.QueryEscape("/api/system/http-records")
+	keyword := url.QueryEscape("/api/system/http-record")
 	deadline := time.Now().Add(5 * time.Second)
 	var record httpRecordItem
 
 	for {
-		body, ok := testclient.Get(API("/system/http-records?page=1&pageSize=10&keyword="+keyword), adminToken)
+		body, ok := testclient.Get(API("/system/http-record?page=1&pageSize=10&keyword="+keyword), adminToken)
 		if !ok {
 			t.Fatalf("访问记录列表接口不可达: %s", body)
 		}
@@ -54,11 +54,11 @@ func TestHttpRecordPageAndDetail(t *testing.T) {
 	if record.ID == "" || record.RequestAt == 0 {
 		t.Fatalf("访问记录字段不完整: %+v", record)
 	}
-	if record.Method != "GET" || !strings.HasPrefix(record.Path, "/api/system/http-records") {
+	if record.Method != "GET" || !strings.HasPrefix(record.Path, "/api/system/http-record") {
 		t.Fatalf("访问记录内容不符合预期: %+v", record)
 	}
 
-	body, ok := testclient.Get(API("/system/http-records/"+record.ID), adminToken)
+	body, ok := testclient.Get(API("/system/http-record/detail?id="+record.ID), adminToken)
 	if !ok {
 		t.Fatalf("访问记录详情接口不可达: %s", body)
 	}
@@ -83,7 +83,7 @@ func TestHttpRecordPageRejectsInvalidStatusClass(t *testing.T) {
 	requireServer(t)
 	adminToken := login(t, adminUsername, adminPassword)
 
-	body, ok := testclient.Get(API("/system/http-records?statusClass=6xx"), adminToken)
+	body, ok := testclient.Get(API("/system/http-record?statusClass=6xx"), adminToken)
 	if !ok {
 		t.Fatalf("访问记录列表接口不可达: %s", body)
 	}

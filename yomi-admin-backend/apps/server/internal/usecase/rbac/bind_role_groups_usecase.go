@@ -13,6 +13,7 @@ import (
 
 // BindRoleGroupsInput HTTP 角色权限组绑定入参
 type BindRoleGroupsInput struct {
+	RoleID     dto.JSONInt64      `json:"roleId"`
 	GroupIDs   dto.JSONInt64Slice `json:"groupIds"`
 	OperatorID int64              `json:"-"`
 }
@@ -29,7 +30,8 @@ func NewBindRoleGroupsUsecase(rbac rbaccontract.RbacAdminService, tx dbtx.Execut
 }
 
 // Execute 在事务中覆盖角色权限组
-func (uc *BindRoleGroupsUsecase) Execute(ctx context.Context, roleID int64, in *BindRoleGroupsInput) error {
+func (uc *BindRoleGroupsUsecase) Execute(ctx context.Context, in *BindRoleGroupsInput) error {
+	roleID := in.RoleID.Int64()
 	if roleID <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
 	}

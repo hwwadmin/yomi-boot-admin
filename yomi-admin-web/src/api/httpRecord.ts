@@ -6,7 +6,7 @@ export async function getHttpRecordPage(
   params: HttpRecordQuery,
 ): Promise<PageResult<HttpRecordItem>> {
   const { list, total } = await requestPage<HttpRecordItem>({
-    url: '/system/http-records',
+    url: '/system/http-record',
     method: 'get',
     params,
   })
@@ -15,5 +15,5 @@ export async function getHttpRecordPage(
 
 /** 查询访问记录详情 */
 export function getHttpRecordDetail(id: string) {
-  return request<HttpRecordDetail>({ url: `/system/http-records/${id}`, method: 'get' })
+  return request<HttpRecordDetail>({ url: '/system/http-record/detail', method: 'get', params: { id } })
 }

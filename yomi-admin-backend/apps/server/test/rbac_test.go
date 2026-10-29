@@ -28,7 +28,7 @@ func TestRbacRoleFlow(t *testing.T) {
 	groupName := "只读权限组"
 
 	// 创建角色
-	body, ok := testclient.Post(API("/system/role"), adminToken, map[string]any{
+	body, ok := testclient.Post(API("/system/role/create"), adminToken, map[string]any{
 		"code":   roleCode,
 		"name":   roleName,
 		"remark": "集成测试角色",
@@ -44,7 +44,8 @@ func TestRbacRoleFlow(t *testing.T) {
 		t.Fatalf("解析角色 ID 失败: %v body=%s", err, body)
 	}
 	t.Cleanup(func() {
-		_, _ = testclient.Put(API("/system/role/"+role.ID), adminToken, map[string]any{
+		_, _ = testclient.Post(API("/system/role/update"), adminToken, map[string]any{
+			"id":     role.ID,
 			"name":   roleName,
 			"remark": "集成测试角色",
 			"status": "DISABLED",
@@ -72,7 +73,7 @@ func TestRbacRoleFlow(t *testing.T) {
 	}
 
 	// 创建权限组并绑定权限
-	body, ok = testclient.Post(API("/system/permission-group"), adminToken, map[string]any{
+	body, ok = testclient.Post(API("/system/permission-group/create"), adminToken, map[string]any{
 		"code":   groupCode,
 		"name":   groupName,
 		"remark": "集成测试权限组",
@@ -88,14 +89,16 @@ func TestRbacRoleFlow(t *testing.T) {
 		t.Fatalf("解析权限组 ID 失败: %v body=%s", err, body)
 	}
 	t.Cleanup(func() {
-		_, _ = testclient.Put(API("/system/permission-group/"+group.ID), adminToken, map[string]any{
+		_, _ = testclient.Post(API("/system/permission-group/update"), adminToken, map[string]any{
+			"id":     group.ID,
 			"name":   groupName,
 			"remark": "集成测试权限组",
 			"status": "DISABLED",
 		})
 	})
 
-	body, ok = testclient.Put(API("/system/permission-group/"+group.ID+"/permission"), adminToken, map[string]any{
+	body, ok = testclient.Post(API("/system/permission-group/bind-permission"), adminToken, map[string]any{
+		"groupId":       group.ID,
 		"permissionIds": permissionIDs,
 	})
 	if !ok {
@@ -104,7 +107,8 @@ func TestRbacRoleFlow(t *testing.T) {
 	parseSuccess(t, body)
 
 	// 角色绑定权限组
-	body, ok = testclient.Put(API("/system/role/"+role.ID+"/group"), adminToken, map[string]any{
+	body, ok = testclient.Post(API("/system/role/bind-group"), adminToken, map[string]any{
+		"roleId":   role.ID,
 		"groupIds": []string{group.ID},
 	})
 	if !ok {
@@ -113,7 +117,7 @@ func TestRbacRoleFlow(t *testing.T) {
 	parseSuccess(t, body)
 
 	// 角色详情返回已绑组与聚合权限
-	body, ok = testclient.Get(API("/system/role/"+role.ID), adminToken)
+	body, ok = testclient.Get(API("/system/role/detail?id="+role.ID), adminToken)
 	if !ok {
 		t.Fatalf("角色详情接口不可达: %s", body)
 	}
@@ -134,7 +138,7 @@ func TestRbacRoleFlow(t *testing.T) {
 
 	// 创建用户并绑定角色
 	username := fmt.Sprintf("rbac_%d", suffix)
-	body, ok = testclient.Post(API("/system/users"), adminToken, map[string]any{
+	body, ok = testclient.Post(API("/system/user/create"), adminToken, map[string]any{
 		"username": username,
 		"password": "test1234",
 		"nickname": "RBAC 测试用户",
@@ -149,10 +153,11 @@ func TestRbacRoleFlow(t *testing.T) {
 
 	userID := findUserID(t, adminToken, username)
 	t.Cleanup(func() {
-		_, _ = testclient.Delete(API("/system/users/"+userID), adminToken)
+		_, _ = testclient.Post(API("/system/user/delete"), adminToken, map[string]any{"id": userID})
 	})
 
-	body, ok = testclient.Put(API("/system/user/"+userID+"/role"), adminToken, map[string]any{
+	body, ok = testclient.Post(API("/system/user/bind-role"), adminToken, map[string]any{
+		"userId":  userID,
 		"roleIds": []string{role.ID},
 	})
 	if !ok {
@@ -187,7 +192,7 @@ func TestRbacRoleFlow(t *testing.T) {
 		t.Fatalf("受限用户不应看到角色菜单: %+v", profileData.Menus)
 	}
 
-	body, ok = testclient.Get(API("/system/users?page=1&pageSize=10"), userToken)
+	body, ok = testclient.Get(API("/system/user?page=1&pageSize=10"), userToken)
 	if !ok {
 		t.Fatalf("受限用户访问已授权接口不可达: %s", body)
 	}

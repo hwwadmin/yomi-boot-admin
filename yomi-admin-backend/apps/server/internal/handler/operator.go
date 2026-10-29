@@ -22,9 +22,9 @@ func operatorID(c *gin.Context) (int64, bool) {
 	return id, true
 }
 
-// parsePathID 解析路径参数中的雪花 ID
-func parsePathID(c *gin.Context, name string) (int64, bool) {
-	id, err := strconv.ParseInt(c.Param(name), 10, 64)
+// queryID 解析查询参数中的雪花 ID
+func queryID(c *gin.Context, name string) (int64, bool) {
+	id, err := strconv.ParseInt(c.Query(name), 10, 64)
 	if err != nil || id <= 0 {
 		corehandler.WriteBusinessError(c, errors.Sentinel(sharederr.ErrInvalidInput))
 		return 0, false

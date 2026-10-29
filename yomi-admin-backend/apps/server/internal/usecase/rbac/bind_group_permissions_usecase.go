@@ -13,6 +13,7 @@ import (
 
 // BindGroupPermissionsInput HTTP 权限组权限绑定入参
 type BindGroupPermissionsInput struct {
+	GroupID       dto.JSONInt64      `json:"groupId"`
 	PermissionIDs dto.JSONInt64Slice `json:"permissionIds"`
 	OperatorID    int64              `json:"-"`
 }
@@ -29,7 +30,8 @@ func NewBindGroupPermissionsUsecase(rbac rbaccontract.RbacAdminService, tx dbtx.
 }
 
 // Execute 在事务中覆盖权限组权限
-func (uc *BindGroupPermissionsUsecase) Execute(ctx context.Context, groupID int64, in *BindGroupPermissionsInput) error {
+func (uc *BindGroupPermissionsUsecase) Execute(ctx context.Context, in *BindGroupPermissionsInput) error {
+	groupID := in.GroupID.Int64()
 	if groupID <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
 	}

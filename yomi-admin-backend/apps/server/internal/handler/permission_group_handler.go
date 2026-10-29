@@ -41,10 +41,10 @@ func NewPermissionGroupHandler(
 // Routes 注册权限组管理路由
 func (h *PermissionGroupHandler) Routes(router *gin.RouterGroup) {
 	router.GET("/system/permission-group", h.page)
-	router.GET("/system/permission-group/:id", h.get)
-	router.POST("/system/permission-group", h.create)
-	router.PUT("/system/permission-group/:id", h.update)
-	router.PUT("/system/permission-group/:id/permission", h.bindPermissions)
+	router.GET("/system/permission-group/detail", h.get)
+	router.POST("/system/permission-group/create", h.create)
+	router.POST("/system/permission-group/update", h.update)
+	router.POST("/system/permission-group/bind-permission", h.bindPermissions)
 }
 
 func (h *PermissionGroupHandler) page(c *gin.Context) {
@@ -59,7 +59,7 @@ func (h *PermissionGroupHandler) page(c *gin.Context) {
 }
 
 func (h *PermissionGroupHandler) get(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
+	id, ok := queryID(c, "id")
 	if !ok {
 		return
 	}
@@ -84,10 +84,6 @@ func (h *PermissionGroupHandler) create(c *gin.Context) {
 }
 
 func (h *PermissionGroupHandler) update(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
-	if !ok {
-		return
-	}
 	var in rbacusecase.UpdatePermissionGroupInput
 	if !corehandler.BindJSON(c, &in) {
 		return
@@ -98,15 +94,11 @@ func (h *PermissionGroupHandler) update(c *gin.Context) {
 	}
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
-		return h.updateUC.Execute(ctx, id, &in)
+		return h.updateUC.Execute(ctx, &in)
 	})
 }
 
 func (h *PermissionGroupHandler) bindPermissions(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
-	if !ok {
-		return
-	}
 	var in rbacusecase.BindGroupPermissionsInput
 	if !corehandler.BindJSON(c, &in) {
 		return
@@ -117,6 +109,6 @@ func (h *PermissionGroupHandler) bindPermissions(c *gin.Context) {
 	}
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
-		return h.bindPermissionsUC.Execute(ctx, id, &in)
+		return h.bindPermissionsUC.Execute(ctx, &in)
 	})
 }

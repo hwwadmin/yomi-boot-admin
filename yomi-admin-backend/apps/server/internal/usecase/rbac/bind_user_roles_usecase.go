@@ -13,6 +13,7 @@ import (
 
 // BindUserRolesInput HTTP 用户角色绑定入参
 type BindUserRolesInput struct {
+	UserID     dto.JSONInt64      `json:"userId"`
 	RoleIDs    dto.JSONInt64Slice `json:"roleIds"`
 	OperatorID int64              `json:"-"`
 }
@@ -36,7 +37,8 @@ func NewBindUserRolesUsecase(rbac rbaccontract.RbacAdminService, guard superAdmi
 }
 
 // Execute 在超管锁内覆盖用户角色
-func (uc *BindUserRolesUsecase) Execute(ctx context.Context, userID int64, in *BindUserRolesInput) error {
+func (uc *BindUserRolesUsecase) Execute(ctx context.Context, in *BindUserRolesInput) error {
+	userID := in.UserID.Int64()
 	if userID <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
 	}

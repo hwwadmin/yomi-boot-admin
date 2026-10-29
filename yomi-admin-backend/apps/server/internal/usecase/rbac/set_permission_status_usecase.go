@@ -8,10 +8,12 @@ import (
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
 // SetPermissionStatusInput HTTP 权限启停入参
 type SetPermissionStatusInput struct {
+	ID         dto.JSONInt64    `json:"id"`
 	Status     rbacenums.Status `json:"status"`
 	OperatorID int64            `json:"-"`
 }
@@ -27,7 +29,8 @@ func NewSetPermissionStatusUsecase(rbac rbaccontract.RbacAdminService) *SetPermi
 }
 
 // Execute 设置权限启停
-func (uc *SetPermissionStatusUsecase) Execute(ctx context.Context, id int64, in *SetPermissionStatusInput) error {
+func (uc *SetPermissionStatusUsecase) Execute(ctx context.Context, in *SetPermissionStatusInput) error {
+	id := in.ID.Int64()
 	if id <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
 	}

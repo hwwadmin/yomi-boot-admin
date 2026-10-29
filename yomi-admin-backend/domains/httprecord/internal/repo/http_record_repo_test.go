@@ -25,8 +25,8 @@ func TestRecordRepoCreateAndPage(t *testing.T) {
 		RequestAt:   base.UnixMilli(),
 		DurationMS:  12,
 		Method:      "GET",
-		Path:        "/api/system/users",
-		Route:       "/api/system/users",
+		Path:        "/api/system/user",
+		Route:       "/api/system/user",
 		Query:       "page=1",
 		ClientIP:    "127.0.0.1",
 		UserID:      100,
@@ -75,7 +75,7 @@ func TestRecordRepoCreateAndPage(t *testing.T) {
 		want   int64
 	}{
 		{name: "全部", filter: repo_contract.RecordFilter{Page: 1, PageSize: 10}, want: 2},
-		{name: "关键字命中路径", filter: repo_contract.RecordFilter{Keyword: "users", Page: 1, PageSize: 10}, want: 1},
+		{name: "关键字命中路径", filter: repo_contract.RecordFilter{Keyword: "user", Page: 1, PageSize: 10}, want: 1},
 		{name: "方法", filter: repo_contract.RecordFilter{Method: "POST", Page: 1, PageSize: 10}, want: 1},
 		{name: "状态分段", filter: repo_contract.RecordFilter{StatusClass: "5xx", Page: 1, PageSize: 10}, want: 1},
 		{name: "用户", filter: repo_contract.RecordFilter{UserID: 100, Page: 1, PageSize: 10}, want: 1},

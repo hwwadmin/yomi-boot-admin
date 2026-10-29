@@ -27,8 +27,8 @@ func NewHttpRecordHandler(
 
 // Routes 注册 HTTP 访问记录路由
 func (h *HttpRecordHandler) Routes(router *gin.RouterGroup) {
-	router.GET("/system/http-records", h.page)
-	router.GET("/system/http-records/:id", h.get)
+	router.GET("/system/http-record", h.page)
+	router.GET("/system/http-record/detail", h.get)
 }
 
 func (h *HttpRecordHandler) page(c *gin.Context) {
@@ -47,7 +47,7 @@ func (h *HttpRecordHandler) page(c *gin.Context) {
 }
 
 func (h *HttpRecordHandler) get(c *gin.Context) {
-	id, ok := parsePathID(c, "id")
+	id, ok := queryID(c, "id")
 	if !ok {
 		return
 	}

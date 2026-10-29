@@ -13,6 +13,7 @@ import (
 
 	"gitee.com/hq_project/yomi-boot/component/common/token"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
 // fakeUserService 只实现编排会调用到的用户契约方法
@@ -85,7 +86,8 @@ func TestUpdateUserCannotDisableSelf(t *testing.T) {
 	tokens := &fakeTokenService{}
 	uc := NewUpdateUserUsecase(users, guard, fakeExecutor{}, tokens)
 
-	err := uc.Execute(context.Background(), 7, &UpdateUserInput{
+	err := uc.Execute(context.Background(), &UpdateUserInput{
+		ID:         dto.JSONInt64(7),
 		Status:     enums.UserStatusDisabled,
 		OperatorID: 7,
 	})
@@ -103,7 +105,8 @@ func TestUpdateOtherUserDisableRevokesToken(t *testing.T) {
 	tokens := &fakeTokenService{}
 	uc := NewUpdateUserUsecase(users, guard, fakeExecutor{}, tokens)
 
-	if err := uc.Execute(context.Background(), 8, &UpdateUserInput{
+	if err := uc.Execute(context.Background(), &UpdateUserInput{
+		ID:         dto.JSONInt64(8),
 		Nickname:   "新昵称",
 		Status:     enums.UserStatusDisabled,
 		OperatorID: 1,
@@ -130,7 +133,8 @@ func TestUpdateSelfEnableAllowed(t *testing.T) {
 	tokens := &fakeTokenService{}
 	uc := NewUpdateUserUsecase(users, guard, fakeExecutor{}, tokens)
 
-	if err := uc.Execute(context.Background(), 7, &UpdateUserInput{
+	if err := uc.Execute(context.Background(), &UpdateUserInput{
+		ID:         dto.JSONInt64(7),
 		Status:     enums.UserStatusEnabled,
 		OperatorID: 7,
 	}); err != nil {
@@ -147,7 +151,7 @@ func TestDeleteUserCannotDeleteSelf(t *testing.T) {
 	tokens := &fakeTokenService{}
 	uc := NewDeleteUserUsecase(users, guard, fakeExecutor{}, tokens)
 
-	if err := uc.Execute(context.Background(), 7, 7); !errors.Is(err, support.ErrCannotOperateSelf) {
+	if err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(7), OperatorID: 7}); !errors.Is(err, support.ErrCannotOperateSelf) {
 		t.Fatalf("删除自己期望 ErrCannotOperateSelf，实际 %v", err)
 	}
 	if users.deleted != nil || guard.called != 0 || guard.locks != 0 || len(tokens.revoked) != 0 {
@@ -161,7 +165,7 @@ func TestDeleteOtherUserRevokesToken(t *testing.T) {
 	tokens := &fakeTokenService{}
 	uc := NewDeleteUserUsecase(users, guard, fakeExecutor{}, tokens)
 
-	if err := uc.Execute(context.Background(), 8, 1); err != nil {
+	if err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(8), OperatorID: 1}); err != nil {
 		t.Fatalf("删除他人失败: %v", err)
 	}
 	if guard.called != 1 {
@@ -184,7 +188,8 @@ func TestUpdateUserTokenRevokeRetries(t *testing.T) {
 	tokens := &fakeTokenService{failures: 1}
 	uc := NewUpdateUserUsecase(users, guard, fakeExecutor{}, tokens)
 
-	if err := uc.Execute(context.Background(), 8, &UpdateUserInput{
+	if err := uc.Execute(context.Background(), &UpdateUserInput{
+		ID:         dto.JSONInt64(8),
 		Status:     enums.UserStatusDisabled,
 		OperatorID: 1,
 	}); err != nil {
@@ -204,7 +209,8 @@ func TestUpdateUserTokenRevokeFailsAfterRetries(t *testing.T) {
 	tokens := &fakeTokenService{failures: tokenRevokeAttempts}
 	uc := NewUpdateUserUsecase(users, guard, fakeExecutor{}, tokens)
 
-	err := uc.Execute(context.Background(), 8, &UpdateUserInput{
+	err := uc.Execute(context.Background(), &UpdateUserInput{
+		ID:         dto.JSONInt64(8),
 		Status:     enums.UserStatusDisabled,
 		OperatorID: 1,
 	})
@@ -225,7 +231,7 @@ func TestDeleteUserRevokesTokenWhenAlreadyDeleted(t *testing.T) {
 	tokens := &fakeTokenService{}
 	uc := NewDeleteUserUsecase(users, guard, fakeExecutor{}, tokens)
 
-	err := uc.Execute(context.Background(), 8, 1)
+	err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(8), OperatorID: 1})
 	if !errors.Is(err, service_contract.ErrUserNotFound) {
 		t.Fatalf("期望 ErrUserNotFound，实际 %v", err)
 	}
@@ -243,7 +249,7 @@ func TestDeleteUserTokenRevokeFailsAfterRetries(t *testing.T) {
 	tokens := &fakeTokenService{failures: tokenRevokeAttempts}
 	uc := NewDeleteUserUsecase(users, guard, fakeExecutor{}, tokens)
 
-	err := uc.Execute(context.Background(), 8, 1)
+	err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(8), OperatorID: 1})
 	if !errors.Is(err, support.ErrTokenRevokeFailed) {
 		t.Fatalf("期望 ErrTokenRevokeFailed，实际 %v", err)
 	}

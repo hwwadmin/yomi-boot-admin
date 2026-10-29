@@ -12,12 +12,12 @@ func TestAuthServiceSuperAdmin(t *testing.T) {
 	repo := newFakeRepo()
 	repo.roles[1] = &entity.Role{ID: 1, Code: enums.RoleCodeSuperAdmin, Status: enums.StatusEnabled}
 	repo.permissions[10] = &entity.Permission{ID: 10, Code: "system:user", Type: enums.PermissionTypeMenu, UIPath: "/system/user", Status: enums.StatusEnabled}
-	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/users", Status: enums.StatusEnabled}
+	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/user", Status: enums.StatusEnabled}
 	repo.permissions[12] = &entity.Permission{ID: 12, Code: "system:role", Type: enums.PermissionTypeMenu, UIPath: "/system/role", Status: enums.StatusEnabled}
 	repo.userRoles[1] = []int64{1}
 	svc := NewRbacAuthService(repo)
 
-	allowed, err := svc.CanAccessAPI(ctx, 1, "get", "/api/system/users")
+	allowed, err := svc.CanAccessAPI(ctx, 1, "get", "/api/system/user")
 	if err != nil || !allowed {
 		t.Fatalf("超管应放行任意路由: allowed=%v err=%v", allowed, err)
 	}
@@ -45,7 +45,7 @@ func TestAuthServiceNormalUser(t *testing.T) {
 	repo.permissionGroups[1] = &entity.PermissionGroup{ID: 1, Code: "user_group", Status: enums.StatusEnabled}
 	repo.permissionGroups[2] = &entity.PermissionGroup{ID: 2, Code: "role_group", Status: enums.StatusDisabled}
 	repo.permissions[10] = &entity.Permission{ID: 10, Code: "system:user", Type: enums.PermissionTypeMenu, UIPath: "/system/user", Status: enums.StatusEnabled}
-	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/users", Status: enums.StatusEnabled}
+	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/user", Status: enums.StatusEnabled}
 	repo.permissions[12] = &entity.Permission{ID: 12, Code: "system:role", Type: enums.PermissionTypeMenu, UIPath: "/system/role", Status: enums.StatusEnabled}
 	repo.userRoles[2] = []int64{1}
 	repo.userRoles[3] = []int64{2}
@@ -55,15 +55,15 @@ func TestAuthServiceNormalUser(t *testing.T) {
 	repo.groupPermissions[2] = []int64{12}
 	svc := NewRbacAuthService(repo)
 
-	allowed, err := svc.CanAccessAPI(ctx, 2, "GET", "/api/system/users")
+	allowed, err := svc.CanAccessAPI(ctx, 2, "GET", "/api/system/user")
 	if err != nil || !allowed {
 		t.Fatalf("授权接口应放行: allowed=%v err=%v", allowed, err)
 	}
-	allowed, _ = svc.CanAccessAPI(ctx, 2, "POST", "/api/system/users")
+	allowed, _ = svc.CanAccessAPI(ctx, 2, "POST", "/api/system/user")
 	if allowed {
 		t.Fatal("未授权方法不应放行")
 	}
-	allowed, _ = svc.CanAccessAPI(ctx, 3, "GET", "/api/system/users")
+	allowed, _ = svc.CanAccessAPI(ctx, 3, "GET", "/api/system/user")
 	if allowed {
 		t.Fatal("禁用角色不应放行")
 	}
@@ -80,7 +80,7 @@ func TestAuthServiceNormalUser(t *testing.T) {
 		t.Fatalf("禁用权限组用户不应有菜单: %+v", menus)
 	}
 
-	allowed, _ = svc.CanAccessAPI(ctx, 0, "GET", "/api/system/users")
+	allowed, _ = svc.CanAccessAPI(ctx, 0, "GET", "/api/system/user")
 	if allowed {
 		t.Fatal("非法用户不应放行")
 	}
@@ -94,7 +94,7 @@ func TestAuthServiceDedupesAcrossRolesAndGroups(t *testing.T) {
 	repo.permissionGroups[1] = &entity.PermissionGroup{ID: 1, Code: "user_group", Status: enums.StatusEnabled}
 	repo.permissionGroups[2] = &entity.PermissionGroup{ID: 2, Code: "user_read_group", Status: enums.StatusEnabled}
 	repo.permissions[10] = &entity.Permission{ID: 10, Code: "system:user", Type: enums.PermissionTypeMenu, UIPath: "/system/user", Status: enums.StatusEnabled}
-	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/users", Status: enums.StatusEnabled}
+	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/user", Status: enums.StatusEnabled}
 	repo.userRoles[7] = []int64{1, 2}
 	repo.roleGroups[1] = []int64{1, 2}
 	repo.roleGroups[2] = []int64{2}

@@ -10,7 +10,14 @@ import (
 	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
 	"gitee.com/hq_project/yomi-boot/component/common/token"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
+
+// DeleteUserInput HTTP 删除用户入参
+type DeleteUserInput struct {
+	ID         dto.JSONInt64 `json:"id"`
+	OperatorID int64         `json:"-"`
+}
 
 // DeleteUserUsecase 删除用户编排
 type DeleteUserUsecase struct {
@@ -26,11 +33,12 @@ func NewDeleteUserUsecase(users service_contract.UserService, guard lastSuperGua
 }
 
 // Execute 在超管锁内软删除用户，并撤销其全部 Token
-func (uc *DeleteUserUsecase) Execute(ctx context.Context, id, operatorID int64) error {
+func (uc *DeleteUserUsecase) Execute(ctx context.Context, in *DeleteUserInput) error {
+	id := in.ID.Int64()
 	if id <= 0 {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
-	if id == operatorID {
+	if id == in.OperatorID {
 		return support.ErrCannotOperateSelf
 	}
 
@@ -41,7 +49,7 @@ func (uc *DeleteUserUsecase) Execute(ctx context.Context, id, operatorID int64) 
 			}
 			return uc.users.Delete(txCtx, &userinput.DeleteUserInput{
 				ID:         id,
-				OperatorID: operatorID,
+				OperatorID: in.OperatorID,
 			})
 		})
 	})

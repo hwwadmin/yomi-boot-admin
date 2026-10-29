@@ -11,10 +11,12 @@ import (
 	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
 	"gitee.com/hq_project/yomi-boot/component/common/token"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
 // UpdateUserInput HTTP 更新用户入参；用户名不可变
 type UpdateUserInput struct {
+	ID         dto.JSONInt64    `json:"id"`
 	Nickname   string           `json:"nickname"`
 	Email      string           `json:"email"`
 	Phone      string           `json:"phone"`
@@ -36,7 +38,8 @@ func NewUpdateUserUsecase(users service_contract.UserService, guard lastSuperGua
 }
 
 // Execute 更新用户；状态改为非启用后在超管锁内校验并撤销该用户全部 Token
-func (uc *UpdateUserUsecase) Execute(ctx context.Context, id int64, in *UpdateUserInput) error {
+func (uc *UpdateUserUsecase) Execute(ctx context.Context, in *UpdateUserInput) error {
+	id := in.ID.Int64()
 	if id <= 0 {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}

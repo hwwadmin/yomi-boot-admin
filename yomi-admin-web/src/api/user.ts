@@ -8,7 +8,7 @@ export interface UserQuery extends PageQuery {
 /** 分页查询用户 */
 export async function getUserPage(params: UserQuery): Promise<PageResult<UserItem>> {
   const { list, total } = await requestPage<UserItem>({
-    url: '/system/users',
+    url: '/system/user',
     method: 'get',
     params,
   })
@@ -17,15 +17,15 @@ export async function getUserPage(params: UserQuery): Promise<PageResult<UserIte
 
 /** 新增用户 */
 export function createUser(data: CreateUserPayload) {
-  return request<null>({ url: '/system/users', method: 'post', data })
+  return request<null>({ url: '/system/user/create', method: 'post', data })
 }
 
 /** 编辑用户 */
 export function updateUser(id: string, data: Partial<UserPayload>) {
-  return request<null>({ url: `/system/users/${id}`, method: 'put', data })
+  return request<null>({ url: '/system/user/update', method: 'post', data: { id, ...data } })
 }
 
 /** 删除用户 */
 export function deleteUser(id: string) {
-  return request<null>({ url: `/system/users/${id}`, method: 'delete' })
+  return request<null>({ url: '/system/user/delete', method: 'post', data: { id } })
 }

@@ -62,6 +62,14 @@ script/dev/         开发脚本
 简单说：`handler` 只接参数；`usecase` 管流程、事务和鉴权；`domain` 管业务规则和存储；
 `support` 放多个模块共用的小规则，比如超管保护。三个 domain 都是独立的 Go module，可以单独复用。
 
+## HTTP 接口约定
+
+- 对外接口只用 `GET` 和 `POST`：查询用 `GET`（参数走 Query），变更用 `POST`（参数走 JSON Body）。
+- 不使用路径参数，ID 放在 Query 或 Body 里；路径资源段用单数名词。
+- 变更接口统一为 `POST /api/{resource}/{action}`，ID 用 Body 里的 `id` / `{resource}Id`。
+- 查询接口：分页 `GET /api/{resource}`，详情 `GET /api/{resource}/detail?id=`。
+
+
 ## 登录验证码
 
 - 登录前需要图形验证码（yomi-boot `component/common/captcha`）：`GET /api/auth/captcha`
@@ -96,7 +104,7 @@ script/dev/         开发脚本
 - 角色详情里的 `permissionIds` 是结构聚合（只看绑定关系，不看启停），
   用于管理端展示；运行时鉴权会再叠加状态过滤。
 - `MENU` 权限对应前端路由；`API` 权限对应 `HTTP method + 路由模板`，
-  例如 `GET /api/system/users/:id`。鉴权按请求方法 + `c.FullPath()` 匹配 API 权限；
+  例如 `GET /api/system/user`。鉴权按请求方法 + `c.FullPath()` 匹配 API 权限；
   内置超管 `super_admin` 直接放行，不依赖权限组。
 - 登录和 profile 返回用户可见菜单，前端用它过滤路由和侧栏。
 - 权限目录由 SQL 种子维护，管理端只读。新增路由要同时补 `020_rbac.sql` 的权限与
@@ -120,7 +128,7 @@ script/dev/         开发脚本
   并启用对应插件。
 - 请求体、响应体、请求头按 `masking` 配置脱敏，密码和令牌不会明文落库。
 - 落库按 `trace_id + request_at` 去重，消费重投不会重复写入。
-- 查询接口：`GET /api/system/http-records`、`GET /api/system/http-records/:id`，
+- 查询接口：`GET /api/system/http-record`、`GET /api/system/http-record/detail?id=`，
   菜单权限 `system:http-record`。记录会一直增长，生产环境记得定期归档或清理。
 
 ## 常用命令

@@ -46,7 +46,8 @@ func TestBindUserRolesRunsUnderLockAndTx(t *testing.T) {
 	tx := &fakeTxExecutor{}
 	uc := NewBindUserRolesUsecase(admin, guard, tx)
 
-	err := uc.Execute(context.Background(), 5, &BindUserRolesInput{
+	err := uc.Execute(context.Background(), &BindUserRolesInput{
+		UserID:     dto.JSONInt64(5),
 		RoleIDs:    dto.NewJSONInt64Slice([]int64{1, 2}),
 		OperatorID: 9,
 	})
@@ -70,7 +71,7 @@ func TestBindUserRolesRejectsInvalidUserID(t *testing.T) {
 	tx := &fakeTxExecutor{}
 	uc := NewBindUserRolesUsecase(admin, guard, tx)
 
-	err := uc.Execute(context.Background(), 0, &BindUserRolesInput{})
+	err := uc.Execute(context.Background(), &BindUserRolesInput{})
 	if !errors.Is(err, rbaccontract.ErrInvalidInput) {
 		t.Fatalf("期望 ErrInvalidInput，实际 %v", err)
 	}
