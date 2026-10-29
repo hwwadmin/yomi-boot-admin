@@ -7,7 +7,7 @@ import {
   deletePermissionGroup,
   getPermissionGroupDetail,
   getPermissionGroupPage,
-  getPermissionPage,
+  listAllPermissions,
   setPermissionGroupStatus,
   updatePermissionGroup,
 } from '@/api/rbac'
@@ -158,21 +158,40 @@ const permissionTarget = ref<PermissionGroupItem | null>(null)
 const permissions = ref<PermissionItem[]>([])
 const selectedPermissionIds = ref<string[]>([])
 const permissionTab = ref<'MENU' | 'API'>('MENU')
+const permissionKeyword = ref('')
 
-const menuPermissions = computed(() => permissions.value.filter((item) => item.type === 'MENU'))
-const apiPermissions = computed(() => permissions.value.filter((item) => item.type === 'API'))
+/** 按名称、编码、路径做前端模糊匹配 */
+function matchPermission(item: PermissionItem, keyword: string): boolean {
+  const normalized = keyword.trim().toLowerCase()
+  if (!normalized) return true
+  return [item.name, item.code, item.uiPath, item.httpPath].some((value) =>
+    (value ?? '').toLowerCase().includes(normalized),
+  )
+}
+
+const menuPermissions = computed(() =>
+  permissions.value.filter(
+    (item) => item.type === 'MENU' && matchPermission(item, permissionKeyword.value),
+  ),
+)
+const apiPermissions = computed(() =>
+  permissions.value.filter(
+    (item) => item.type === 'API' && matchPermission(item, permissionKeyword.value),
+  ),
+)
 
 async function openPermissionDrawer(row: PermissionGroupItem) {
   permissionTarget.value = row
   permissionDrawerVisible.value = true
   permissionLoading.value = true
   permissionTab.value = 'MENU'
+  permissionKeyword.value = ''
   try {
-    const [detail, page] = await Promise.all([
+    const [detail, allPermissions] = await Promise.all([
       getPermissionGroupDetail(row.id),
-      getPermissionPage({ page: 1, pageSize: 200 }),
+      listAllPermissions(),
     ])
-    permissions.value = page.list
+    permissions.value = allPermissions
     selectedPermissionIds.value = detail.permissionIds
   } finally {
     permissionLoading.value = false
@@ -327,7 +346,14 @@ async function savePermissions() {
         <div class="permission-meta">
           权限组：<strong>{{ permissionTarget?.name }}</strong>
           <span class="muted">{{ permissionTarget?.code }}</span>
+          <span class="muted">已选 {{ selectedPermissionIds.length }} 项</span>
         </div>
+        <el-input
+          v-model="permissionKeyword"
+          class="permission-search"
+          placeholder="按名称 / 编码 / 路径搜索"
+          clearable
+        />
         <el-tabs v-model="permissionTab">
           <el-tab-pane label="菜单权限" name="MENU">
             <el-checkbox-group v-model="selectedPermissionIds" class="permission-list">
@@ -342,6 +368,11 @@ async function savePermissions() {
                 <el-tag v-if="item.status === 'DISABLED'" type="info" size="small">已停用</el-tag>
               </el-checkbox>
             </el-checkbox-group>
+            <el-empty
+              v-if="!permissionLoading && menuPermissions.length === 0"
+              :description="permissionKeyword ? '没有匹配的菜单权限' : '暂无菜单权限'"
+              :image-size="60"
+            />
           </el-tab-pane>
           <el-tab-pane label="接口权限" name="API">
             <el-checkbox-group v-model="selectedPermissionIds" class="permission-list">
@@ -356,6 +387,11 @@ async function savePermissions() {
                 <el-tag v-if="item.status === 'DISABLED'" type="info" size="small">已停用</el-tag>
               </el-checkbox>
             </el-checkbox-group>
+            <el-empty
+              v-if="!permissionLoading && apiPermissions.length === 0"
+              :description="permissionKeyword ? '没有匹配的接口权限' : '暂无接口权限'"
+              :image-size="60"
+            />
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -401,6 +437,10 @@ async function savePermissions() {
 .permission-meta {
   margin-bottom: 12px;
   color: var(--el-text-color-regular);
+}
+
+.permission-search {
+  margin-bottom: 4px;
 }
 
 .permission-list {

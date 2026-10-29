@@ -96,6 +96,18 @@ export function getPermissionGroupDetail(id: string) {
   })
 }
 
+/** 拉取完整权限组列表，供角色分配等场景展示 */
+export async function listAllPermissionGroups(): Promise<PermissionGroupItem[]> {
+  const pageSize = 100
+  const items: PermissionGroupItem[] = []
+  for (let page = 1; ; page += 1) {
+    const { list, total } = await getPermissionGroupPage({ page, pageSize })
+    items.push(...list)
+    if (list.length === 0 || items.length >= total) break
+  }
+  return items
+}
+
 /** 创建权限组 */
 export function createPermissionGroup(data: PermissionGroupPayload) {
   return request<PermissionGroupItem>({
@@ -147,6 +159,18 @@ export async function getPermissionPage(
     params,
   })
   return { list, total, page: params.page, pageSize: params.pageSize }
+}
+
+/** 拉取完整权限目录，供分配抽屉等场景做前端筛选 */
+export async function listAllPermissions(): Promise<PermissionItem[]> {
+  const pageSize = 100
+  const items: PermissionItem[] = []
+  for (let page = 1; ; page += 1) {
+    const { list, total } = await getPermissionPage({ page, pageSize })
+    items.push(...list)
+    if (list.length === 0 || items.length >= total) break
+  }
+  return items
 }
 
 /** 创建权限 */

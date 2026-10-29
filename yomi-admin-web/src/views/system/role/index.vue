@@ -5,10 +5,10 @@ import {
   bindRoleGroups,
   createRole,
   deleteRole,
-  getPermissionGroupPage,
-  getPermissionPage,
   getRoleDetail,
   getRolePage,
+  listAllPermissionGroups,
+  listAllPermissions,
   setRoleStatus,
   updateRole,
 } from '@/api/rbac'
@@ -163,13 +163,13 @@ async function openGroupDrawer(row: RoleItem) {
   groupDrawerVisible.value = true
   groupLoading.value = true
   try {
-    const [detail, groupPage, permissionPage] = await Promise.all([
+    const [detail, allGroups, allPermissions] = await Promise.all([
       getRoleDetail(row.id),
-      getPermissionGroupPage({ page: 1, pageSize: 200 }),
-      getPermissionPage({ page: 1, pageSize: 200 }),
+      listAllPermissionGroups(),
+      listAllPermissions(),
     ])
-    groups.value = groupPage.list
-    permissions.value = permissionPage.list
+    groups.value = allGroups
+    permissions.value = allPermissions
     selectedGroupIds.value = detail.groupIds
     aggregatedPermissionIds.value = detail.permissionIds
   } finally {
