@@ -162,6 +162,7 @@ func toRbacCacheOptions(cfg svcconfig.RbacCacheConfig) rbacprovider.CacheOptions
 		LockWait:        cfg.LockWait(),
 		BootstrapWarmup: cfg.BootstrapWarmupOrDefault(),
 		RefreshInterval: cfg.RefreshInterval(),
+		MemorySync:      cfg.MemorySyncOrDefault(),
 	}
 }
 

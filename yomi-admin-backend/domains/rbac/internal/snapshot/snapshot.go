@@ -162,3 +162,12 @@ func (s *Snapshot) ensureIndex() *index {
 	})
 	return s.index
 }
+
+// PrebuildIndex 预构建求值索引；幂等。
+// 供后台同步在发布快照前调用，把索引构建成本从请求路径挪到后台。
+func (s *Snapshot) PrebuildIndex() {
+	if s == nil {
+		return
+	}
+	s.ensureIndex()
+}

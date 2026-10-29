@@ -1,7 +1,8 @@
 // Package projection 维护 RBAC 授权投影：Redis 中的全量快照，供鉴权热路径内存求值。
 //
-// 投影是唯一缓存层，进程内不保留副本：读路径每次取 Redis，因此刷新后所有实例立即生效。
-// 任何缓存故障都向上返回错误，由调用方降级到 SQL 直查。
+// 缓存分两层：进程内保留一份最近从 Redis 读到的快照（按 MemorySync 周期切换指针，
+// 读路径命中后不再访问 Redis），Redis 是唯一事实源；任何一层不可用都向上返回错误，
+// 由调用方降级到 SQL 直查。
 package projection
 
 import (
@@ -49,6 +50,7 @@ type Config struct {
 	LockWait        time.Duration // 获取刷新锁的最长等待
 	BootstrapWarmup bool          // 启动时投影不可用才构建
 	RefreshInterval time.Duration // 定时刷新间隔，<=0 表示关闭
+	MemorySync      time.Duration // 内存快照同步周期；<=0 表示关闭内存层，热路径直接读 Redis
 }
 
 // Loader 提供六表全量数据
@@ -67,9 +69,13 @@ type Store struct {
 	ids    snowflake.Generator
 	now    func() time.Time
 
+	// mem 缓存最近一份从 Redis 读到的快照：热路径命中后不再访问 Redis。
+	// 写入方只有同步循环与 buildAndStore，指针切换前后都是完整可用的快照；nil 表示内存层未就绪。
+	mem atomic.Pointer[snapshot.Snapshot]
+
 	// mu 保证本实例同一时刻只有一个重建在跑；用 TryLock 而非 Lock，竞争期间直接降级
 	mu sync.Mutex
-	// lastFallbackWarn 记录上次降级告警时间（Unix 纳秒）
+	// lastFallbackWarn 记录上次降级告警的时间（Unix 纳秒）
 	lastFallbackWarn atomic.Int64
 }
 
@@ -94,8 +100,14 @@ func NewStore(cfg Config, rds redis.RedisService, locks distlock.DistLockFactory
 	}, nil
 }
 
-// Load 读取投影；未命中时尝试重建，重建不成功则返回错误由调用方降级
+// Load 读取投影；优先命中内存，未就绪时读 Redis，缺失时尝试重建，重建不成功则返回错误由调用方降级。
+//
+// 内存未就绪时的 Redis 读取是一次性降级：只读不回填内存、不触发同步，内存由同步循环按周期补齐。
 func (s *Store) Load(ctx context.Context) (*snapshot.Snapshot, error) {
+	if snap := s.mem.Load(); snap != nil {
+		return snap, nil
+	}
+
 	snap, hit, err := s.read(ctx)
 	if err != nil {
 		return nil, err
@@ -147,7 +159,7 @@ func (s *Store) Refresh(ctx context.Context) (*snapshot.Snapshot, error) {
 	return s.buildAndStore(ctx)
 }
 
-// StartBackground 启动预热与定时刷新；ctx 取消后定时刷新退出
+// StartBackground 启动预热、内存同步与定时刷新；ctx 取消后全部退出
 func (s *Store) StartBackground(ctx context.Context) {
 	if s.cfg.BootstrapWarmup {
 		go func() {
@@ -157,11 +169,59 @@ func (s *Store) StartBackground(ctx context.Context) {
 			}
 		}()
 	}
+	if s.cfg.MemorySync > 0 {
+		go func() {
+			// 先同步一次：滚动重启后第一个请求即可命中内存，失败由循环按周期重试
+			if err := s.syncMemoryOnce(ctx); err != nil {
+				logger.Warn(ctx, "[RBAC] 启动期同步内存投影失败", "error", err)
+			}
+			s.memLoop(ctx)
+		}()
+	}
 	if s.cfg.RefreshInterval <= 0 {
 		return
 	}
 	logger.Info(ctx, "[RBAC] 定时刷新授权投影已启用", "interval", s.cfg.RefreshInterval.String())
 	go s.refreshLoop(ctx)
+}
+
+// memLoop 按固定周期把 Redis 中的投影切换进内存；失败保留旧快照，由下个周期重试
+func (s *Store) memLoop(ctx context.Context) {
+	ticker := time.NewTicker(s.cfg.MemorySync)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			// 失败已在内部限流告警，保留旧快照继续服务
+			_ = s.syncMemoryOnce(ctx)
+		}
+	}
+}
+
+// syncMemoryOnce 从 Redis 读取一份投影并切换进内存，只读不重建：
+// Redis 缺失或载荷损坏都不在这里抢锁修复，交给预热与定时刷新链路。
+func (s *Store) syncMemoryOnce(ctx context.Context) error {
+	raw, exists, err := s.redis.OpsStr4Get(ctx, s.cfg.Key)
+	if err != nil {
+		s.warnFallback(ctx, "同步内存投影失败", err)
+		return err
+	}
+	if !exists {
+		return nil
+	}
+
+	snap, err := snapshot.Decode([]byte(raw))
+	if err != nil {
+		// 载荷不可用：保留旧内存，等刷新链路重写 Redis 后自动接上
+		s.warnFallback(ctx, "内存投影同步跳过：Redis 载荷不可用", err)
+		return nil
+	}
+	snap.PrebuildIndex()
+	s.mem.Store(snap)
+	return nil
 }
 
 // WarmUp 启动预热：投影可用时直接复用，缺失、损坏或结构版本不符时才从数据库重建。
@@ -256,6 +316,11 @@ func (s *Store) buildAndStore(ctx context.Context) (*snapshot.Snapshot, error) {
 	if err := s.redis.OpsStr4Set(ctx, s.cfg.Key, string(payload), 0); err != nil {
 		return nil, err
 	}
+	// 新投影即刻切换进内存：手动刷新在本实例立即生效，其它实例随同步循环（≤ 一个同步周期）跟进
+	if s.cfg.MemorySync > 0 {
+		snap.PrebuildIndex()
+		s.mem.Store(snap)
+	}
 	return snap, nil
 }
 
@@ -313,6 +378,9 @@ func (c Config) withDefaults() (Config, error) {
 	}
 	if c.LockWait <= 0 {
 		c.LockWait = 2 * time.Second
+	}
+	if c.MemorySync < 0 {
+		return Config{}, errors.New("rbac projection: 内存同步周期不能为负数")
 	}
 	if c.RefreshInterval < 0 {
 		c.RefreshInterval = 0

@@ -29,6 +29,9 @@ func TestRbacCacheConfigDefaults(t *testing.T) {
 	if got := cfg.RefreshInterval(); got != 60*time.Second {
 		t.Fatalf("默认定时刷新间隔应为 60s，实际 %s", got)
 	}
+	if got := cfg.MemorySyncOrDefault(); got != 5*time.Second {
+		t.Fatalf("默认内存同步周期应为 5s，实际 %s", got)
+	}
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("零值配置应合法: %v", err)
 	}
@@ -77,6 +80,39 @@ func TestRbacCacheConfigRejectsInvalidValues(t *testing.T) {
 		"负锁等待":    {LockWaitSeconds: -1},
 	}
 	for name, cfg := range cases {
+		t.Run(name, func(t *testing.T) {
+			if err := cfg.Validate(); err == nil {
+				t.Fatal("非法配置应校验失败")
+			}
+		})
+	}
+}
+
+func TestRbacCacheConfigMemorySync(t *testing.T) {
+	// 显式 0 关闭内存层
+	zero := 0
+	disabled := RbacCacheConfig{MemorySyncSeconds: &zero}
+	if got := disabled.MemorySyncOrDefault(); got != 0 {
+		t.Fatalf("显式 0 应关闭内存层，实际 %s", got)
+	}
+	if err := disabled.Validate(); err != nil {
+		t.Fatalf("关闭内存层应合法: %v", err)
+	}
+
+	// 显式周期生效
+	ten := 10
+	enabled := RbacCacheConfig{MemorySyncSeconds: &ten}
+	if got := enabled.MemorySyncOrDefault(); got != 10*time.Second {
+		t.Fatalf("显式内存同步周期应生效: %s", got)
+	}
+
+	// 越界拒绝
+	negative := -1
+	tooLarge := maxRbacMemorySyncSeconds + 1
+	for name, cfg := range map[string]RbacCacheConfig{
+		"负内存同步周期":  {MemorySyncSeconds: &negative},
+		"超限内存同步周期": {MemorySyncSeconds: &tooLarge},
+	} {
 		t.Run(name, func(t *testing.T) {
 			if err := cfg.Validate(); err == nil {
 				t.Fatal("非法配置应校验失败")

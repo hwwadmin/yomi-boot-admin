@@ -71,12 +71,15 @@ script/dev/         开发脚本
 ## 鉴权缓存（RBAC 投影）
 
 鉴权热路径不查库：服务把六张 RBAC 表压缩成一份全量快照写进 Redis
-（`yomi:admin:rbac:projection`），每个受保护请求读一次投影后内存求值。
-投影不可用（Redis 故障、内容损坏、结构版本不符）时自动降级为 SQL 直查，
+（`yomi:admin:rbac:projection`），进程内再保留一份最近读到的快照（默认每 5 秒
+从 Redis 同步一次、原子切换指针，`biz.rbac.cache.memory_sync_seconds`，设为 0 关闭），
+命中内存的请求不再访问 Redis。内存未就绪时降级为一次性读 Redis，
+Redis 不可用 / 内容损坏 / 结构版本不符时再降级为 SQL 直查，
 因此缓存故障只影响性能，不会误判权限。
 
 - **写操作不会自动重建投影**：改动最迟一个刷新周期（默认 60 秒）生效；要立即生效就在角色页点
-  「刷新权限缓存」（`POST /api/system/rbac-cache/refresh`），所有实例下一个请求即可见。
+  「刷新权限缓存」（`POST /api/system/rbac-cache/refresh`），执行刷新的实例立即生效，
+  其它实例最迟一个内存同步周期（默认 5 秒）内生效。
 - 定时刷新默认每 60 秒跑一次（`biz.rbac.cache.refresh_interval_seconds`，设为 0 关闭），
   同时兜住"直接改库"这类绕过接口的变更；多实例靠分布式锁串行，只有一台真正重建。
 - 启动时先探测 Redis 里的投影：存在且可解析就复用，缺失 / 损坏 / 结构版本不符才从数据库重建

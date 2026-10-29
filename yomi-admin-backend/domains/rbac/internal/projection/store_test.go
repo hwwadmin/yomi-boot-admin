@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 	"yomi-admin-backend/domains/rbac/internal/repo_contract"
+	"yomi-admin-backend/domains/rbac/internal/snapshot"
 	"yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	"yomi-admin-backend/domains/rbac/pkg/shared/enums"
 
@@ -83,6 +84,23 @@ func testConfig() Config {
 		MaxBytes: 1 << 20,
 		LockWait: 200 * time.Millisecond,
 	}
+}
+
+// memoryConfig 在测试配置上打开内存层（5s 周期）
+func memoryConfig() Config {
+	cfg := testConfig()
+	cfg.MemorySync = 5 * time.Second
+	return cfg
+}
+
+// encodeGraph 将六表数据编码为 Redis 载荷
+func encodeGraph(t *testing.T, version string, graph *repo_contract.AuthGraph) string {
+	t.Helper()
+	payload, err := snapshot.Encode(snapshot.Build(version, time.Now().UnixMilli(), graph))
+	if err != nil {
+		t.Fatalf("编码投影失败: %v", err)
+	}
+	return string(payload)
 }
 
 // newTestStore 创建基于内存 Redis 的投影存储
@@ -349,5 +367,179 @@ func TestStoreLoadServesProjectionUntilRefresh(t *testing.T) {
 	}
 	if refreshed.RoleCount() != 3 {
 		t.Fatalf("刷新后应读到新数据，实际角色数 %d", refreshed.RoleCount())
+	}
+}
+
+// ———————— 内存快照层 ————————
+
+// TestStoreMemoryLayerServesWithoutRedis 校验内存命中后不再访问 Redis
+func TestStoreMemoryLayerServesWithoutRedis(t *testing.T) {
+	ctx := context.Background()
+	loader := &fakeLoader{graph: testGraph()}
+	store, client := newTestStore(t, memoryConfig(), loader)
+
+	if _, err := store.Refresh(ctx); err != nil {
+		t.Fatalf("构建投影失败: %v", err)
+	}
+	first := store.mem.Load()
+	if first == nil {
+		t.Fatal("刷新后内存应持有快照")
+	}
+
+	// 删除 Redis 键：内存仍可服务，鉴权不再依赖 Redis
+	if err := client.Del(ctx, testKey).Err(); err != nil {
+		t.Fatalf("删除 Redis 键失败: %v", err)
+	}
+	snap, err := store.Load(ctx)
+	if err != nil || snap.Version != first.Version {
+		t.Fatalf("内存命中应直接返回: version=%s err=%v", snap.Version, err)
+	}
+}
+
+// TestStoreMemoryFallbackDoesNotBackfill 校验内存未就绪时降级读 Redis，且不回填内存
+func TestStoreMemoryFallbackDoesNotBackfill(t *testing.T) {
+	ctx := context.Background()
+	loader := &fakeLoader{graph: testGraph()}
+	store, client := newTestStore(t, memoryConfig(), loader)
+
+	if err := client.Set(ctx, testKey, encodeGraph(t, "seed-v1", testGraph()), 0).Err(); err != nil {
+		t.Fatalf("写入投影失败: %v", err)
+	}
+	snap, err := store.Load(ctx)
+	if err != nil || snap.Version != "seed-v1" {
+		t.Fatalf("降级读应命中 Redis: version=%s err=%v", snap.Version, err)
+	}
+	if store.mem.Load() != nil {
+		t.Fatal("降级读不应回填内存")
+	}
+
+	if err := store.syncMemoryOnce(ctx); err != nil {
+		t.Fatalf("同步内存失败: %v", err)
+	}
+	if got := store.mem.Load(); got == nil || got.Version != "seed-v1" {
+		t.Fatalf("同步后内存应持有投影: %+v", got)
+	}
+}
+
+// TestStoreMemorySyncPicksUpRedisChanges 校验同步循环把 Redis 的新投影切换进内存
+func TestStoreMemorySyncPicksUpRedisChanges(t *testing.T) {
+	ctx := context.Background()
+	loader := &fakeLoader{graph: testGraph()}
+	store, client := newTestStore(t, memoryConfig(), loader)
+
+	if _, err := store.Refresh(ctx); err != nil {
+		t.Fatalf("构建投影失败: %v", err)
+	}
+	before := store.mem.Load()
+	if before == nil {
+		t.Fatal("刷新后内存应持有快照")
+	}
+
+	// 模拟其它实例刷新：直接改写 Redis 载荷
+	changed := testGraph()
+	changed.Roles = append(changed.Roles, &entity.Role{ID: 3, Code: "editor", Status: enums.StatusEnabled})
+	changed.UserRoles[3] = []int64{3}
+	changed.RoleGroups[3] = []int64{10}
+	if err := client.Set(ctx, testKey, encodeGraph(t, "peer-v2", changed), 0).Err(); err != nil {
+		t.Fatalf("改写投影失败: %v", err)
+	}
+
+	if err := store.syncMemoryOnce(ctx); err != nil {
+		t.Fatalf("同步内存失败: %v", err)
+	}
+	loaded, err := store.Load(ctx)
+	if err != nil || loaded.Version != "peer-v2" {
+		t.Fatalf("同步后应读到新投影: version=%s err=%v", loaded.Version, err)
+	}
+	if store.mem.Load() == before {
+		t.Fatal("同步应切换内存指针")
+	}
+	if !loaded.CanAccessAPI(3, "GET", "/api/system/user") {
+		t.Fatal("新投影的求值索引应已预构建")
+	}
+}
+
+// TestStoreMemorySyncKeepsOldOnRedisFailure 校验 Redis 不可用时同步失败但旧快照继续服务
+func TestStoreMemorySyncKeepsOldOnRedisFailure(t *testing.T) {
+	ctx := context.Background()
+	addr, stopRedis := redistest.NewServer(t)
+	client := redisv9.NewClient(&redisv9.Options{
+		Addr:        addr,
+		MaxRetries:  -1,
+		DialTimeout: 200 * time.Millisecond,
+	})
+	t.Cleanup(func() { _ = client.Close() })
+	factory, err := distlock.NewFactory(client)
+	if err != nil {
+		t.Fatalf("创建分布式锁工厂失败: %v", err)
+	}
+	store, err := NewStore(memoryConfig(), redis.NewRedisHelper(client), factory,
+		&fakeLoader{graph: testGraph()}, fakeTx{}, &fakeIDs{})
+	if err != nil {
+		t.Fatalf("创建投影存储失败: %v", err)
+	}
+
+	if _, err := store.Refresh(ctx); err != nil {
+		t.Fatalf("构建投影失败: %v", err)
+	}
+	before := store.mem.Load()
+	if before == nil {
+		t.Fatal("刷新后内存应持有快照")
+	}
+
+	stopRedis()
+	if err := store.syncMemoryOnce(ctx); err == nil {
+		t.Fatal("Redis 不可用时同步应失败")
+	}
+	if store.mem.Load() != before {
+		t.Fatal("同步失败应保留旧快照")
+	}
+	if snap, err := store.Load(ctx); err != nil || snap.Version != before.Version {
+		t.Fatalf("内存快照应继续服务: version=%s err=%v", snap.Version, err)
+	}
+}
+
+// TestStoreMemorySyncKeepsOldOnCorruptPayload 校验载荷损坏时保留旧快照且不触发重建
+func TestStoreMemorySyncKeepsOldOnCorruptPayload(t *testing.T) {
+	ctx := context.Background()
+	loader := &fakeLoader{graph: testGraph()}
+	store, client := newTestStore(t, memoryConfig(), loader)
+
+	if _, err := store.Refresh(ctx); err != nil {
+		t.Fatalf("构建投影失败: %v", err)
+	}
+	before := store.mem.Load()
+	if err := client.Set(ctx, testKey, "{not-json", 0).Err(); err != nil {
+		t.Fatalf("写入损坏载荷失败: %v", err)
+	}
+
+	if err := store.syncMemoryOnce(ctx); err != nil {
+		t.Fatalf("损坏载荷应跳过同步而非报错: %v", err)
+	}
+	if store.mem.Load() != before {
+		t.Fatal("载荷损坏应保留旧快照")
+	}
+	if loader.calls != 1 {
+		t.Fatalf("同步不应触发重建，实际回源 %d 次", loader.calls)
+	}
+}
+
+// TestStoreDisabledMemoryLayerReadsRedis 校验内存层关闭时行为与纯 Redis 模式一致
+func TestStoreDisabledMemoryLayerReadsRedis(t *testing.T) {
+	ctx := context.Background()
+	loader := &fakeLoader{graph: testGraph()}
+	store, _ := newTestStore(t, testConfig(), loader)
+
+	if _, err := store.Refresh(ctx); err != nil {
+		t.Fatalf("构建投影失败: %v", err)
+	}
+	if store.mem.Load() != nil {
+		t.Fatal("内存层关闭时不应写内存")
+	}
+	if _, err := store.Load(ctx); err != nil {
+		t.Fatalf("读取失败: %v", err)
+	}
+	if store.mem.Load() != nil {
+		t.Fatal("内存层关闭时 Load 不应写内存")
 	}
 }

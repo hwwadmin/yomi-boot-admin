@@ -38,6 +38,7 @@ type CacheOptions struct {
 	LockWait        time.Duration // 刷新锁最长等待
 	BootstrapWarmup bool          // 启动时投影不可用才构建
 	RefreshInterval time.Duration // 定时刷新间隔，<=0 表示关闭
+	MemorySync      time.Duration // 内存快照同步周期，<=0 表示关闭内存层
 }
 
 // Module 导出本域能力
@@ -62,6 +63,7 @@ func Provide(deps Deps) (Module, error) {
 			LockWait:        deps.Cache.LockWait,
 			BootstrapWarmup: deps.Cache.BootstrapWarmup,
 			RefreshInterval: deps.Cache.RefreshInterval,
+			MemorySync:      deps.Cache.MemorySync,
 		}, deps.Redis, deps.Locks, rbacRepo, deps.Tx, deps.IDGenerator)
 		if err != nil {
 			return Module{}, err

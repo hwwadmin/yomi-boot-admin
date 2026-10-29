@@ -127,6 +127,7 @@ biz:
       refresh_interval_seconds: ${YOMI_ADMIN_BIZ_RBAC_CACHE_REFRESH_INTERVAL_SECONDS:60} # 兜底全量重建间隔（秒），0 表示关闭
       projection_max_bytes: 8388608
       lock_wait_seconds: 2
+      memory_sync_seconds: ${YOMI_ADMIN_BIZ_RBAC_CACHE_MEMORY_SYNC_SECONDS:5} # 内存快照同步周期（秒），0 表示关闭内存层
 
 # HTTP 访问记录：中间件采集 + 进程内消费者落库，供后台「访问记录」页面查询
 http_record:

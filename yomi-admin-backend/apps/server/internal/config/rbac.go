@@ -19,6 +19,10 @@ const (
 	defaultRbacProjectionRefreshIntervalSeconds = 60
 	// maxRbacProjectionRefreshIntervalSeconds 是定时刷新间隔上限（秒）
 	maxRbacProjectionRefreshIntervalSeconds = 86400
+	// defaultRbacMemorySyncSeconds 是内存快照同步周期默认值（秒）
+	defaultRbacMemorySyncSeconds = 5
+	// maxRbacMemorySyncSeconds 是内存快照同步周期上限（秒）
+	maxRbacMemorySyncSeconds = 600
 )
 
 // RbacConfig 是 biz.rbac 配置
@@ -35,6 +39,7 @@ type RbacCacheConfig struct {
 	RefreshIntervalSeconds *int   `mapstructure:"refresh_interval_seconds"` // RefreshIntervalSeconds 是定时刷新间隔（秒），未配置默认 60，0 表示关闭
 	ProjectionMaxBytes     int    `mapstructure:"projection_max_bytes"`     // ProjectionMaxBytes 是投影体积上限，0 则 8 MiB
 	LockWaitSeconds        int    `mapstructure:"lock_wait_seconds"`        // LockWaitSeconds 是刷新锁最长等待（秒），0 则 2
+	MemorySyncSeconds      *int   `mapstructure:"memory_sync_seconds"`      // MemorySyncSeconds 是内存快照同步周期（秒），未配置默认 5，0 表示关闭内存层
 }
 
 // EnabledOrDefault 返回是否启用鉴权缓存，未配置默认 true
@@ -87,6 +92,14 @@ func (c RbacCacheConfig) RefreshInterval() time.Duration {
 	return time.Duration(*c.RefreshIntervalSeconds) * time.Second
 }
 
+// MemorySyncOrDefault 返回内存快照同步周期，未配置默认 5s；显式 0 表示关闭内存层
+func (c RbacCacheConfig) MemorySyncOrDefault() time.Duration {
+	if c.MemorySyncSeconds == nil {
+		return defaultRbacMemorySyncSeconds * time.Second
+	}
+	return time.Duration(*c.MemorySyncSeconds) * time.Second
+}
+
 // Validate 校验鉴权缓存配置语义
 func (c RbacCacheConfig) Validate() error {
 	if !c.EnabledOrDefault() {
@@ -109,6 +122,13 @@ func (c RbacCacheConfig) Validate() error {
 		if seconds < 0 || seconds > maxRbacProjectionRefreshIntervalSeconds {
 			return errors.Newf("%s.rbac.cache: refresh_interval_seconds 必须在 0..%d 之间",
 				SectionKey, maxRbacProjectionRefreshIntervalSeconds)
+		}
+	}
+	if c.MemorySyncSeconds != nil {
+		seconds := *c.MemorySyncSeconds
+		if seconds < 0 || seconds > maxRbacMemorySyncSeconds {
+			return errors.Newf("%s.rbac.cache: memory_sync_seconds 必须在 0..%d 之间",
+				SectionKey, maxRbacMemorySyncSeconds)
 		}
 	}
 	return nil
