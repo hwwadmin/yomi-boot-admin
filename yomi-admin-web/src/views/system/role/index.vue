@@ -2,15 +2,22 @@
 import type { FormInstance, FormRules } from 'element-plus'
 
 import {
-  bindRolePermissions,
+  bindRoleGroups,
   createRole,
+  getPermissionGroupPage,
   getPermissionPage,
   getRoleDetail,
   getRolePage,
   updateRole,
 } from '@/api/rbac'
 import type { RoleQuery } from '@/api/rbac'
-import type { PermissionItem, RoleItem, RolePayload, Status } from '@/api/types'
+import type {
+  PermissionGroupItem,
+  PermissionItem,
+  RoleItem,
+  RolePayload,
+  Status,
+} from '@/api/types'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemRolePage' })
@@ -116,44 +123,49 @@ async function handleStatusChange(row: RoleItem, status: Status) {
   }
 }
 
-// ———————— 分配权限 ————————
-const permissionVisible = ref(false)
-const permissionLoading = ref(false)
-const permissionSaving = ref(false)
-const permissionRole = ref<RoleItem | null>(null)
+// ———————— 分配权限组 ————————
+const groupDrawerVisible = ref(false)
+const groupLoading = ref(false)
+const groupSaving = ref(false)
+const groupTarget = ref<RoleItem | null>(null)
+const groups = ref<PermissionGroupItem[]>([])
 const permissions = ref<PermissionItem[]>([])
-const selectedPermissionIds = ref<string[]>([])
-const permissionTab = ref<'MENU' | 'API'>('MENU')
+const selectedGroupIds = ref<string[]>([])
+const aggregatedPermissionIds = ref<string[]>([])
 
-const menuPermissions = computed(() => permissions.value.filter((item) => item.type === 'MENU'))
-const apiPermissions = computed(() => permissions.value.filter((item) => item.type === 'API'))
+/** 角色权限来自权限组的去重聚合，这里只做只读展示 */
+const aggregatedPermissions = computed(() =>
+  permissions.value.filter((item) => aggregatedPermissionIds.value.includes(item.id)),
+)
 
-async function openPermissions(row: RoleItem) {
-  permissionRole.value = row
-  permissionVisible.value = true
-  permissionLoading.value = true
-  permissionTab.value = 'MENU'
+async function openGroupDrawer(row: RoleItem) {
+  groupTarget.value = row
+  groupDrawerVisible.value = true
+  groupLoading.value = true
   try {
-    const [detail, page] = await Promise.all([
+    const [detail, groupPage, permissionPage] = await Promise.all([
       getRoleDetail(row.id),
+      getPermissionGroupPage({ page: 1, pageSize: 200 }),
       getPermissionPage({ page: 1, pageSize: 200 }),
     ])
-    permissions.value = page.list
-    selectedPermissionIds.value = detail.permissionIds
+    groups.value = groupPage.list
+    permissions.value = permissionPage.list
+    selectedGroupIds.value = detail.groupIds
+    aggregatedPermissionIds.value = detail.permissionIds
   } finally {
-    permissionLoading.value = false
+    groupLoading.value = false
   }
 }
 
-async function savePermissions() {
-  if (!permissionRole.value) return
-  permissionSaving.value = true
+async function saveGroups() {
+  if (!groupTarget.value) return
+  groupSaving.value = true
   try {
-    await bindRolePermissions(permissionRole.value.id, selectedPermissionIds.value)
-    ElMessage.success('权限已保存')
-    permissionVisible.value = false
+    await bindRoleGroups(groupTarget.value.id, selectedGroupIds.value)
+    ElMessage.success('权限组已保存')
+    groupDrawerVisible.value = false
   } finally {
-    permissionSaving.value = false
+    groupSaving.value = false
   }
 }
 </script>
@@ -191,10 +203,7 @@ async function savePermissions() {
         <el-table-column prop="name" label="角色名称" min-width="140" />
         <el-table-column prop="code" label="角色编码" min-width="140" />
         <el-table-column label="内置" width="80" align="center">
-          <template #default="{ row }">
-            <el-tag v-if="row.builtin" type="warning">内置</el-tag>
-            <span v-else>-</span>
-          </template>
+          <template #default="{ row }">{{ row.builtin ? '是' : '否' }}</template>
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
@@ -218,12 +227,12 @@ async function savePermissions() {
             <el-button link type="primary" @click="openEdit(row as RoleItem)">编辑</el-button>
             <el-button
               v-if="!row.builtin"
-              v-permission="'system:role:bind-permission'"
+              v-permission="'system:role:bind-group'"
               link
               type="primary"
-              @click="openPermissions(row as RoleItem)"
+              @click="openGroupDrawer(row as RoleItem)"
             >
-              分配权限
+              分配权限组
             </el-button>
           </template>
         </el-table-column>
@@ -273,43 +282,44 @@ async function savePermissions() {
       </template>
     </el-dialog>
 
-    <el-drawer v-model="permissionVisible" title="分配权限" size="520px">
-      <div v-loading="permissionLoading" class="permission-body">
-        <div class="permission-role">
-          角色：<strong>{{ permissionRole?.name }}</strong>
-          <span class="permission-code">{{ permissionRole?.code }}</span>
+    <el-drawer v-model="groupDrawerVisible" title="分配权限组" size="560px">
+      <div v-loading="groupLoading" class="group-body">
+        <div class="group-meta">
+          角色：<strong>{{ groupTarget?.name }}</strong>
+          <span class="muted">{{ groupTarget?.code }}</span>
         </div>
-        <el-tabs v-model="permissionTab">
-          <el-tab-pane label="菜单权限" name="MENU">
-            <el-checkbox-group v-model="selectedPermissionIds" class="permission-group">
-              <el-checkbox
-                v-for="item in menuPermissions"
-                :key="item.id"
-                :value="item.id"
-                :disabled="item.status === 'DISABLED'"
-              >
-                {{ item.name }} <span class="permission-path">{{ item.uiPath }}</span>
-              </el-checkbox>
-            </el-checkbox-group>
-          </el-tab-pane>
-          <el-tab-pane label="接口权限" name="API">
-            <el-checkbox-group v-model="selectedPermissionIds" class="permission-group">
-              <el-checkbox
-                v-for="item in apiPermissions"
-                :key="item.id"
-                :value="item.id"
-                :disabled="item.status === 'DISABLED'"
-              >
-                {{ item.name }}
-                <span class="permission-path">{{ item.httpMethod }} {{ item.httpPath }}</span>
-              </el-checkbox>
-            </el-checkbox-group>
-          </el-tab-pane>
-        </el-tabs>
+        <el-checkbox-group v-model="selectedGroupIds" class="group-list">
+          <el-checkbox
+            v-for="group in groups"
+            :key="group.id"
+            :value="group.id"
+            :disabled="group.status === 'DISABLED' && !selectedGroupIds.includes(group.id)"
+          >
+            {{ group.name }}
+            <span class="muted">{{ group.code }}</span>
+            <el-tag v-if="group.status === 'DISABLED'" type="info" size="small">已停用</el-tag>
+          </el-checkbox>
+        </el-checkbox-group>
+        <el-empty
+          v-if="!groupLoading && groups.length === 0"
+          description="暂无权限组，请先在「权限组」中创建"
+          :image-size="80"
+        />
+        <el-divider content-position="left">
+          聚合权限（{{ aggregatedPermissions.length }} 项，自动去重）
+        </el-divider>
+        <div class="permission-tags">
+          <el-tag v-for="item in aggregatedPermissions" :key="item.id" size="small" type="info">
+            {{ item.name }}
+          </el-tag>
+          <span v-if="aggregatedPermissions.length === 0" class="muted">
+            该角色尚未绑定任何权限组
+          </span>
+        </div>
       </div>
       <template #footer>
-        <el-button @click="permissionVisible = false">取消</el-button>
-        <el-button type="primary" :loading="permissionSaving" @click="savePermissions">保存</el-button>
+        <el-button @click="groupDrawerVisible = false">取消</el-button>
+        <el-button type="primary" :loading="groupSaving" @click="saveGroups">保存</el-button>
       </template>
     </el-drawer>
   </div>
@@ -340,28 +350,28 @@ async function savePermissions() {
   margin-top: 16px;
 }
 
-.permission-body {
+.group-body {
   min-height: 320px;
 }
 
-.permission-role {
+.group-meta {
   margin-bottom: 12px;
   color: var(--el-text-color-regular);
 }
 
-.permission-code {
-  margin-left: 8px;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-}
-
-.permission-group {
+.group-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.permission-path {
+.permission-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.muted {
   margin-left: 6px;
   color: var(--el-text-color-secondary);
   font-size: 12px;

@@ -7,7 +7,7 @@ import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/enums"
 )
 
-// RbacRepo 角色、权限与关系仓储
+// RbacRepo 角色、权限组、权限与关系仓储
 type RbacRepo interface {
 	// FindRoleByID 按主键查询角色
 	FindRoleByID(ctx context.Context, id int64) (*entity.Role, bool, error)
@@ -24,6 +24,19 @@ type RbacRepo interface {
 	// UpdateRole 更新角色资料与状态
 	UpdateRole(ctx context.Context, role *entity.Role, operatorID int64) error
 
+	// FindPermissionGroupByID 按主键查询权限组
+	FindPermissionGroupByID(ctx context.Context, id int64) (*entity.PermissionGroup, bool, error)
+	// FindPermissionGroupByCode 按编码查询权限组
+	FindPermissionGroupByCode(ctx context.Context, code string) (*entity.PermissionGroup, bool, error)
+	// FindPermissionGroupsByIDs 按主键批量查询权限组
+	FindPermissionGroupsByIDs(ctx context.Context, ids []int64) ([]*entity.PermissionGroup, error)
+	// PagePermissionGroups 分页查询权限组
+	PagePermissionGroups(ctx context.Context, keyword string, status enums.Status, page, pageSize int) ([]*entity.PermissionGroup, int64, error)
+	// CreatePermissionGroup 创建权限组
+	CreatePermissionGroup(ctx context.Context, group *entity.PermissionGroup, operatorID int64) error
+	// UpdatePermissionGroup 更新权限组资料与状态
+	UpdatePermissionGroup(ctx context.Context, group *entity.PermissionGroup, operatorID int64) error
+
 	// FindPermissionByID 按主键查询权限
 	FindPermissionByID(ctx context.Context, id int64) (*entity.Permission, bool, error)
 	// FindPermissionsByIDs 按主键批量查询权限
@@ -33,10 +46,17 @@ type RbacRepo interface {
 	// UpdatePermissionStatus 更新权限启停
 	UpdatePermissionStatus(ctx context.Context, id int64, status enums.Status, operatorID int64) error
 
-	// ListPermissionIDsByRoleID 列出角色已绑权限 ID
+	// ListGroupIDsByRoleID 列出角色已绑权限组 ID
+	ListGroupIDsByRoleID(ctx context.Context, roleID int64) ([]int64, error)
+	// ReplaceRoleGroups 覆盖角色权限组绑定
+	ReplaceRoleGroups(ctx context.Context, roleID int64, rels []*entity.RoleGroupRel, operatorID int64) error
+	// ListPermissionIDsByRoleID 列出角色所绑权限组的权限 ID（去重聚合）
 	ListPermissionIDsByRoleID(ctx context.Context, roleID int64) ([]int64, error)
-	// ReplaceRolePermissions 覆盖角色权限绑定
-	ReplaceRolePermissions(ctx context.Context, roleID int64, rels []*entity.RolePermissionRel, operatorID int64) error
+
+	// ListPermissionIDsByGroupID 列出权限组已绑权限 ID
+	ListPermissionIDsByGroupID(ctx context.Context, groupID int64) ([]int64, error)
+	// ReplaceGroupPermissions 覆盖权限组权限绑定
+	ReplaceGroupPermissions(ctx context.Context, groupID int64, rels []*entity.GroupPermissionRel, operatorID int64) error
 
 	// ListRoleIDsByUserID 列出用户已绑角色 ID
 	ListRoleIDsByUserID(ctx context.Context, userID int64) ([]int64, error)

@@ -30,9 +30,27 @@ type Permission struct {
 	UpdateTime int64 // Unix 毫秒时间戳
 }
 
-// RoleDetail 表示角色详情（含已绑权限 ID）
+// PermissionGroup 表示权限组，是权限的复用单元
+type PermissionGroup struct {
+	ID         int64
+	Code       string
+	Name       string
+	Status     enums.Status
+	Remark     string
+	CreateTime int64 // Unix 毫秒时间戳
+	UpdateTime int64 // Unix 毫秒时间戳
+}
+
+// RoleDetail 表示角色详情；PermissionIDs 是所绑权限组的去重聚合
 type RoleDetail struct {
 	Role          *Role
+	GroupIDs      []int64
+	PermissionIDs []int64
+}
+
+// PermissionGroupDetail 表示权限组详情（含已绑权限 ID）
+type PermissionGroupDetail struct {
+	Group         *PermissionGroup
 	PermissionIDs []int64
 }
 
@@ -43,9 +61,16 @@ type UserRoleRel struct {
 	RoleID int64
 }
 
-// RolePermissionRel 表示角色-权限关系
-type RolePermissionRel struct {
+// RoleGroupRel 表示角色-权限组关系
+type RoleGroupRel struct {
+	ID      int64
+	RoleID  int64
+	GroupID int64
+}
+
+// GroupPermissionRel 表示权限组-权限关系
+type GroupPermissionRel struct {
 	ID           int64
-	RoleID       int64
+	GroupID      int64
 	PermissionID int64
 }

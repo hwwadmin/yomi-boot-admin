@@ -17,13 +17,15 @@ type permissionItem struct {
 	Type string `json:"type"`
 }
 
-// TestRbacRoleFlow 覆盖角色创建、绑定权限、用户绑定角色与鉴权拒绝
+// TestRbacRoleFlow 覆盖权限组创建、权限组绑权限、角色绑组、用户绑角色与鉴权拒绝
 func TestRbacRoleFlow(t *testing.T) {
 	requireServer(t)
 	adminToken := login(t, adminUsername, adminPassword)
 	suffix := time.Now().UnixNano()
 	roleCode := fmt.Sprintf("viewer_%d", suffix)
+	groupCode := fmt.Sprintf("viewer_group_%d", suffix)
 	roleName := "只读角色"
+	groupName := "只读权限组"
 
 	// 创建角色
 	body, ok := testclient.Post(API("/system/role"), adminToken, map[string]any{
@@ -69,14 +71,66 @@ func TestRbacRoleFlow(t *testing.T) {
 		t.Fatalf("未找到预期权限: %+v", permissions)
 	}
 
-	// 角色绑定权限
-	body, ok = testclient.Put(API("/system/role/"+role.ID+"/permission"), adminToken, map[string]any{
+	// 创建权限组并绑定权限
+	body, ok = testclient.Post(API("/system/permission-group"), adminToken, map[string]any{
+		"code":   groupCode,
+		"name":   groupName,
+		"remark": "集成测试权限组",
+	})
+	if !ok {
+		t.Fatalf("创建权限组接口不可达: %s", body)
+	}
+	groupCreated := parseSuccess(t, body)
+	var group struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(groupCreated.Data, &group); err != nil || group.ID == "" {
+		t.Fatalf("解析权限组 ID 失败: %v body=%s", err, body)
+	}
+	t.Cleanup(func() {
+		_, _ = testclient.Put(API("/system/permission-group/"+group.ID), adminToken, map[string]any{
+			"name":   groupName,
+			"remark": "集成测试权限组",
+			"status": "DISABLED",
+		})
+	})
+
+	body, ok = testclient.Put(API("/system/permission-group/"+group.ID+"/permission"), adminToken, map[string]any{
 		"permissionIds": permissionIDs,
 	})
 	if !ok {
-		t.Fatalf("角色绑定权限接口不可达: %s", body)
+		t.Fatalf("权限组绑定权限接口不可达: %s", body)
 	}
 	parseSuccess(t, body)
+
+	// 角色绑定权限组
+	body, ok = testclient.Put(API("/system/role/"+role.ID+"/group"), adminToken, map[string]any{
+		"groupIds": []string{group.ID},
+	})
+	if !ok {
+		t.Fatalf("角色绑定权限组接口不可达: %s", body)
+	}
+	parseSuccess(t, body)
+
+	// 角色详情返回已绑组与聚合权限
+	body, ok = testclient.Get(API("/system/role/"+role.ID), adminToken)
+	if !ok {
+		t.Fatalf("角色详情接口不可达: %s", body)
+	}
+	roleDetail := parseSuccess(t, body)
+	var detail struct {
+		GroupIDs      []string `json:"groupIds"`
+		PermissionIDs []string `json:"permissionIds"`
+	}
+	if err := json.Unmarshal(roleDetail.Data, &detail); err != nil {
+		t.Fatalf("解析角色详情失败: %v body=%s", err, body)
+	}
+	if len(detail.GroupIDs) != 1 || detail.GroupIDs[0] != group.ID {
+		t.Fatalf("角色权限组不符: %+v", detail.GroupIDs)
+	}
+	if len(detail.PermissionIDs) != 2 {
+		t.Fatalf("角色聚合权限不符: %+v", detail.PermissionIDs)
+	}
 
 	// 创建用户并绑定角色
 	username := fmt.Sprintf("rbac_%d", suffix)

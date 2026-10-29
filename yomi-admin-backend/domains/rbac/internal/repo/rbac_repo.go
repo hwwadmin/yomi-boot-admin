@@ -18,7 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// 鉴权查询 SQL；四表 join 用原生 SQL 收口，参数全部占位符
+// 鉴权查询 SQL；用户 → 角色 → 权限组 → 权限 的链路用原生 SQL 收口，参数全部占位符
 const (
 	// sqlUserHasEnabledSuperAdmin 判断用户是否拥有启用态超管角色
 	sqlUserHasEnabledSuperAdmin = `
@@ -36,15 +36,18 @@ JOIN t_rbac_role r ON r.id = ur.role_id AND r.delete_time IS NULL
 WHERE r.code = ? AND r.status = ?
 ORDER BY ur.user_id`
 
-	// sqlExistsRouteAccess 判断用户是否可通过启用角色链访问接口
+	// sqlExistsRouteAccess 判断用户是否可通过启用角色 → 启用权限组 → 启用权限访问接口
 	sqlExistsRouteAccess = `
 SELECT 1
 FROM t_rbac_user_role_rel ur
 JOIN t_rbac_role r ON r.id = ur.role_id AND r.delete_time IS NULL
-JOIN t_rbac_role_permission_rel rp ON rp.role_id = r.id
-JOIN t_rbac_permission p ON p.id = rp.permission_id AND p.delete_time IS NULL
+JOIN t_rbac_role_group_rel rg ON rg.role_id = r.id
+JOIN t_rbac_permission_group g ON g.id = rg.group_id AND g.delete_time IS NULL
+JOIN t_rbac_group_permission_rel gp ON gp.group_id = g.id
+JOIN t_rbac_permission p ON p.id = gp.permission_id AND p.delete_time IS NULL
 WHERE ur.user_id = ?
   AND r.status = ?
+  AND g.status = ?
   AND p.status = ?
   AND p.permission_type = ?
   AND p.http_method = ?
@@ -56,10 +59,13 @@ LIMIT 1`
 SELECT DISTINCT p.*
 FROM t_rbac_user_role_rel ur
 JOIN t_rbac_role r ON r.id = ur.role_id AND r.delete_time IS NULL
-JOIN t_rbac_role_permission_rel rp ON rp.role_id = r.id
-JOIN t_rbac_permission p ON p.id = rp.permission_id AND p.delete_time IS NULL
+JOIN t_rbac_role_group_rel rg ON rg.role_id = r.id
+JOIN t_rbac_permission_group g ON g.id = rg.group_id AND g.delete_time IS NULL
+JOIN t_rbac_group_permission_rel gp ON gp.group_id = g.id
+JOIN t_rbac_permission p ON p.id = gp.permission_id AND p.delete_time IS NULL
 WHERE ur.user_id = ?
   AND r.status = ?
+  AND g.status = ?
   AND p.status = ?
   AND p.permission_type = ?
 ORDER BY p.id`
@@ -69,15 +75,27 @@ ORDER BY p.id`
 SELECT DISTINCT p.code
 FROM t_rbac_user_role_rel ur
 JOIN t_rbac_role r ON r.id = ur.role_id AND r.delete_time IS NULL
-JOIN t_rbac_role_permission_rel rp ON rp.role_id = r.id
-JOIN t_rbac_permission p ON p.id = rp.permission_id AND p.delete_time IS NULL
+JOIN t_rbac_role_group_rel rg ON rg.role_id = r.id
+JOIN t_rbac_permission_group g ON g.id = rg.group_id AND g.delete_time IS NULL
+JOIN t_rbac_group_permission_rel gp ON gp.group_id = g.id
+JOIN t_rbac_permission p ON p.id = gp.permission_id AND p.delete_time IS NULL
 WHERE ur.user_id = ?
   AND r.status = ?
+  AND g.status = ?
   AND p.status = ?
 ORDER BY p.code`
+
+	// sqlListPermissionIDsByRoleID 查询角色所绑权限组的权限 ID（去重聚合，不看启停）
+	sqlListPermissionIDsByRoleID = `
+SELECT DISTINCT gp.permission_id
+FROM t_rbac_role_group_rel rg
+JOIN t_rbac_group_permission_rel gp ON gp.group_id = rg.group_id
+JOIN t_rbac_permission p ON p.id = gp.permission_id AND p.delete_time IS NULL
+WHERE rg.role_id = ?
+ORDER BY gp.permission_id`
 )
 
-// RbacRepo 角色、权限与关系仓储实现
+// RbacRepo 角色、权限组、权限与关系仓储实现
 type RbacRepo struct {
 	orm.BaseRepository
 	dbType sharedenums.DbType
@@ -194,6 +212,94 @@ func (r *RbacRepo) UpdateRole(ctx context.Context, role *entity.Role, operatorID
 	return nil
 }
 
+// FindPermissionGroupByID 按主键查询权限组
+func (r *RbacRepo) FindPermissionGroupByID(ctx context.Context, id int64) (*entity.PermissionGroup, bool, error) {
+	var row permissionGroupModel
+	found, err := r.FirstByID(ctx, id, &row)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "按主键查询权限组失败")
+	}
+	if !found {
+		return nil, false, nil
+	}
+	return toPermissionGroupEntity(&row), true, nil
+}
+
+// FindPermissionGroupByCode 按编码查询权限组
+func (r *RbacRepo) FindPermissionGroupByCode(ctx context.Context, code string) (*entity.PermissionGroup, bool, error) {
+	var row permissionGroupModel
+	found, err := r.FirstByField(ctx, "code", code, &row)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "按编码查询权限组失败")
+	}
+	if !found {
+		return nil, false, nil
+	}
+	return toPermissionGroupEntity(&row), true, nil
+}
+
+// FindPermissionGroupsByIDs 按主键批量查询权限组
+func (r *RbacRepo) FindPermissionGroupsByIDs(ctx context.Context, ids []int64) ([]*entity.PermissionGroup, error) {
+	var rows []*permissionGroupModel
+	if err := r.FindByIDs(ctx, ids, &permissionGroupModel{}, &rows); err != nil {
+		return nil, errors.Wrap(err, "批量查询权限组失败")
+	}
+	items := make([]*entity.PermissionGroup, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, toPermissionGroupEntity(row))
+	}
+	return items, nil
+}
+
+// PagePermissionGroups 分页查询权限组
+func (r *RbacRepo) PagePermissionGroups(ctx context.Context, keyword string, status enums.Status, page, pageSize int) ([]*entity.PermissionGroup, int64, error) {
+	query := tx.Exec(ctx, r.DB).Model(&permissionGroupModel{})
+	if keyword = strings.TrimSpace(keyword); keyword != "" {
+		like := orm.LikeFull(keyword)
+		query = query.Where("code LIKE ? OR name LIKE ?", like, like)
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	var rows []*permissionGroupModel
+	total, err := r.CountPage(ctx, query, page, pageSize, &rows, orm.OrderAsc("id"))
+	if err != nil {
+		return nil, 0, errors.Wrap(err, "分页查询权限组失败")
+	}
+
+	items := make([]*entity.PermissionGroup, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, toPermissionGroupEntity(row))
+	}
+	return items, total, nil
+}
+
+// CreatePermissionGroup 创建权限组
+func (r *RbacRepo) CreatePermissionGroup(ctx context.Context, group *entity.PermissionGroup, operatorID int64) error {
+	if err := r.Create(ctx, toPermissionGroupModel(group, operatorID)); err != nil {
+		if yomidb.IsDuplicateKey(err, r.dbType) {
+			return errors.Sentinel(repo_contract.ErrDuplicatedKey)
+		}
+		return err
+	}
+	return nil
+}
+
+// UpdatePermissionGroup 更新权限组资料与状态
+func (r *RbacRepo) UpdatePermissionGroup(ctx context.Context, group *entity.PermissionGroup, operatorID int64) error {
+	updates := map[string]any{
+		"name":      group.Name,
+		"remark":    group.Remark,
+		"status":    group.Status,
+		"update_by": ptrutil.PtrFromInt64(operatorID),
+	}
+	if err := r.UpdateByID(ctx, group.ID, &permissionGroupModel{}, updates); err != nil {
+		return errors.Wrap(err, "更新权限组失败")
+	}
+	return nil
+}
+
 // FindPermissionByID 按主键查询权限
 func (r *RbacRepo) FindPermissionByID(ctx context.Context, id int64) (*entity.Permission, bool, error) {
 	var row permissionModel
@@ -259,32 +365,73 @@ func (r *RbacRepo) UpdatePermissionStatus(ctx context.Context, id int64, status 
 	return nil
 }
 
-// ListPermissionIDsByRoleID 列出角色已绑权限 ID
-func (r *RbacRepo) ListPermissionIDsByRoleID(ctx context.Context, roleID int64) ([]int64, error) {
+// ListGroupIDsByRoleID 列出角色已绑权限组 ID
+func (r *RbacRepo) ListGroupIDsByRoleID(ctx context.Context, roleID int64) ([]int64, error) {
 	var ids []int64
 	if err := tx.Exec(ctx, r.DB).
-		Model(&rolePermissionRelModel{}).
+		Model(&roleGroupRelModel{}).
 		Where("role_id = ?", roleID).
-		Order("permission_id ASC").
-		Pluck("permission_id", &ids).Error; err != nil {
-		return nil, errors.Wrap(err, "查询角色权限失败")
+		Order("group_id ASC").
+		Pluck("group_id", &ids).Error; err != nil {
+		return nil, errors.Wrap(err, "查询角色权限组失败")
 	}
 	return ids, nil
 }
 
-// ReplaceRolePermissions 覆盖角色权限绑定
-func (r *RbacRepo) ReplaceRolePermissions(ctx context.Context, roleID int64, rels []*entity.RolePermissionRel, operatorID int64) error {
+// ReplaceRoleGroups 覆盖角色权限组绑定
+func (r *RbacRepo) ReplaceRoleGroups(ctx context.Context, roleID int64, rels []*entity.RoleGroupRel, operatorID int64) error {
 	if err := tx.Exec(ctx, r.DB).
 		Unscoped().
 		Where("role_id = ?", roleID).
-		Delete(&rolePermissionRelModel{}).Error; err != nil {
-		return errors.Wrap(err, "清理角色权限失败")
+		Delete(&roleGroupRelModel{}).Error; err != nil {
+		return errors.Wrap(err, "清理角色权限组失败")
 	}
 	if len(rels) == 0 {
 		return nil
 	}
-	if err := r.CreateInBatches(ctx, toRolePermissionRelModels(rels, operatorID), 100); err != nil {
-		return errors.Wrap(err, "写入角色权限失败")
+	if err := r.CreateInBatches(ctx, toRoleGroupRelModels(rels, operatorID), 100); err != nil {
+		return errors.Wrap(err, "写入角色权限组失败")
+	}
+	return nil
+}
+
+// ListPermissionIDsByRoleID 列出角色所绑权限组的权限 ID（去重聚合）
+func (r *RbacRepo) ListPermissionIDsByRoleID(ctx context.Context, roleID int64) ([]int64, error) {
+	var ids []int64
+	if err := tx.Exec(ctx, r.DB).
+		Raw(sqlListPermissionIDsByRoleID, roleID).
+		Scan(&ids).Error; err != nil {
+		return nil, errors.Wrap(err, "查询角色聚合权限失败")
+	}
+	return ids, nil
+}
+
+// ListPermissionIDsByGroupID 列出权限组已绑权限 ID
+func (r *RbacRepo) ListPermissionIDsByGroupID(ctx context.Context, groupID int64) ([]int64, error) {
+	var ids []int64
+	if err := tx.Exec(ctx, r.DB).
+		Model(&groupPermissionRelModel{}).
+		Where("group_id = ?", groupID).
+		Order("permission_id ASC").
+		Pluck("permission_id", &ids).Error; err != nil {
+		return nil, errors.Wrap(err, "查询权限组权限失败")
+	}
+	return ids, nil
+}
+
+// ReplaceGroupPermissions 覆盖权限组权限绑定
+func (r *RbacRepo) ReplaceGroupPermissions(ctx context.Context, groupID int64, rels []*entity.GroupPermissionRel, operatorID int64) error {
+	if err := tx.Exec(ctx, r.DB).
+		Unscoped().
+		Where("group_id = ?", groupID).
+		Delete(&groupPermissionRelModel{}).Error; err != nil {
+		return errors.Wrap(err, "清理权限组权限失败")
+	}
+	if len(rels) == 0 {
+		return nil
+	}
+	if err := r.CreateInBatches(ctx, toGroupPermissionRelModels(rels, operatorID), 100); err != nil {
+		return errors.Wrap(err, "写入权限组权限失败")
 	}
 	return nil
 }
@@ -386,7 +533,7 @@ func (r *RbacRepo) ListUserIDsWithEnabledSuperAdmin(ctx context.Context) ([]int6
 func (r *RbacRepo) ExistsRouteAccess(ctx context.Context, userID int64, method, route string) (bool, error) {
 	var matched int64
 	if err := tx.Exec(ctx, r.DB).
-		Raw(sqlExistsRouteAccess, userID, enums.StatusEnabled, enums.StatusEnabled, enums.PermissionTypeAPI, method, route).
+		Raw(sqlExistsRouteAccess, userID, enums.StatusEnabled, enums.StatusEnabled, enums.StatusEnabled, enums.PermissionTypeAPI, method, route).
 		Scan(&matched).Error; err != nil {
 		return false, errors.Wrap(err, "查询接口权限失败")
 	}
@@ -397,7 +544,7 @@ func (r *RbacRepo) ExistsRouteAccess(ctx context.Context, userID int64, method, 
 func (r *RbacRepo) ListMenusByUserID(ctx context.Context, userID int64) ([]*entity.Permission, error) {
 	var rows []*permissionModel
 	if err := tx.Exec(ctx, r.DB).
-		Raw(sqlListMenusByUserID, userID, enums.StatusEnabled, enums.StatusEnabled, enums.PermissionTypeMenu).
+		Raw(sqlListMenusByUserID, userID, enums.StatusEnabled, enums.StatusEnabled, enums.StatusEnabled, enums.PermissionTypeMenu).
 		Scan(&rows).Error; err != nil {
 		return nil, errors.Wrap(err, "查询用户菜单失败")
 	}
@@ -429,7 +576,7 @@ func (r *RbacRepo) ListEnabledMenus(ctx context.Context) ([]*entity.Permission, 
 func (r *RbacRepo) ListPermissionCodesByUserID(ctx context.Context, userID int64) ([]string, error) {
 	var codes []string
 	if err := tx.Exec(ctx, r.DB).
-		Raw(sqlListPermissionCodesByUserID, userID, enums.StatusEnabled, enums.StatusEnabled).
+		Raw(sqlListPermissionCodesByUserID, userID, enums.StatusEnabled, enums.StatusEnabled, enums.StatusEnabled).
 		Scan(&codes).Error; err != nil {
 		return nil, errors.Wrap(err, "查询用户权限编码失败")
 	}

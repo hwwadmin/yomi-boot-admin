@@ -44,8 +44,11 @@ pnpm format       # prettier 格式化
 
 - `menus`：可见菜单的 `uiPath`，前端用它过滤静态路由和侧栏；页面是否存在仍由 `router/routes.ts` 决定。
 - `permissions`：权限编码集合，`*` 表示全部；用于 `v-permission` 按钮级控制。
+- 后端授权链路是 `用户 → 角色 → 权限组 → 权限`：角色页只分配权限组，
+  权限组页维护组内权限，角色拥有的权限由权限组自动去重聚合，前端只读展示。
 - 路由守卫在用户信息加载后判断 `canAccess(path)`，无权限跳 `/403`。
-- 新增页面要同时补 `router/routes.ts` 的静态路由和后端权限目录种子。
+- 新增页面要同时补 `router/routes.ts` 的静态路由和后端权限目录种子，
+  并把权限加入对应权限组。
 
 ## 目录结构
 
@@ -61,5 +64,5 @@ pnpm format       # prettier 格式化
     ├── directives/          # v-permission 按钮级权限
     ├── styles/              # 全局基础样式
     ├── types/               # 路由 meta 扩展、自动导入声明
-    └── views/               # login / dashboard / system/{user,role,permission,http-record} / error
+    └── views/               # login / dashboard / system/{user,role,permission,permission-group,http-record} / error
 ```

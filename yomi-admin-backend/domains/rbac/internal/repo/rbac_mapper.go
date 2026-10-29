@@ -44,6 +44,22 @@ func toPermissionEntity(row *permissionModel) *entity.Permission {
 	}
 }
 
+// toPermissionGroupEntity 将权限组持久化模型转换为领域实体
+func toPermissionGroupEntity(row *permissionGroupModel) *entity.PermissionGroup {
+	if row == nil {
+		return nil
+	}
+	return &entity.PermissionGroup{
+		ID:         row.ID,
+		Code:       row.Code,
+		Name:       row.Name,
+		Status:     row.Status,
+		Remark:     row.Remark,
+		CreateTime: row.CreateTime.UnixMilli(),
+		UpdateTime: row.UpdateTime.UnixMilli(),
+	}
+}
+
 // toRoleModel 将角色实体转换为持久化模型
 func toRoleModel(role *entity.Role, operatorID int64) *roleModel {
 	row := &roleModel{
@@ -54,6 +70,20 @@ func toRoleModel(role *entity.Role, operatorID int64) *roleModel {
 		Remark:  role.Remark,
 	}
 	row.ID = role.ID
+	row.CreateBy = ptrutil.PtrFromInt64(operatorID)
+	row.UpdateBy = ptrutil.PtrFromInt64(operatorID)
+	return row
+}
+
+// toPermissionGroupModel 将权限组实体转换为持久化模型
+func toPermissionGroupModel(group *entity.PermissionGroup, operatorID int64) *permissionGroupModel {
+	row := &permissionGroupModel{
+		Code:   group.Code,
+		Name:   group.Name,
+		Status: group.Status,
+		Remark: group.Remark,
+	}
+	row.ID = group.ID
 	row.CreateBy = ptrutil.PtrFromInt64(operatorID)
 	row.UpdateBy = ptrutil.PtrFromInt64(operatorID)
 	return row
@@ -72,11 +102,24 @@ func toUserRoleRelModels(rels []*entity.UserRoleRel, operatorID int64) []*userRo
 	return rows
 }
 
-// toRolePermissionRelModels 将角色权限关系转换为持久化模型
-func toRolePermissionRelModels(rels []*entity.RolePermissionRel, operatorID int64) []*rolePermissionRelModel {
-	rows := make([]*rolePermissionRelModel, 0, len(rels))
+// toRoleGroupRelModels 将角色权限组关系转换为持久化模型
+func toRoleGroupRelModels(rels []*entity.RoleGroupRel, operatorID int64) []*roleGroupRelModel {
+	rows := make([]*roleGroupRelModel, 0, len(rels))
 	for _, rel := range rels {
-		row := &rolePermissionRelModel{RoleID: rel.RoleID, PermissionID: rel.PermissionID}
+		row := &roleGroupRelModel{RoleID: rel.RoleID, GroupID: rel.GroupID}
+		row.ID = rel.ID
+		row.CreateBy = ptrutil.PtrFromInt64(operatorID)
+		row.UpdateBy = ptrutil.PtrFromInt64(operatorID)
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+// toGroupPermissionRelModels 将权限组权限关系转换为持久化模型
+func toGroupPermissionRelModels(rels []*entity.GroupPermissionRel, operatorID int64) []*groupPermissionRelModel {
+	rows := make([]*groupPermissionRelModel, 0, len(rels))
+	for _, rel := range rels {
+		row := &groupPermissionRelModel{GroupID: rel.GroupID, PermissionID: rel.PermissionID}
 		row.ID = rel.ID
 		row.CreateBy = ptrutil.PtrFromInt64(operatorID)
 		row.UpdateBy = ptrutil.PtrFromInt64(operatorID)

@@ -18,7 +18,7 @@ type RbacHandler struct {
 	getRoleUC             *rbacusecase.GetRoleUsecase
 	createRoleUC          *rbacusecase.CreateRoleUsecase
 	updateRoleUC          *rbacusecase.UpdateRoleUsecase
-	bindPermissionsUC     *rbacusecase.BindRolePermissionsUsecase
+	bindGroupsUC          *rbacusecase.BindRoleGroupsUsecase
 	pagePermissionsUC     *rbacusecase.PagePermissionsUsecase
 	setPermissionStatusUC *rbacusecase.SetPermissionStatusUsecase
 	getUserRolesUC        *rbacusecase.GetUserRolesUsecase
@@ -31,7 +31,7 @@ func NewRbacHandler(
 	getRoleUC *rbacusecase.GetRoleUsecase,
 	createRoleUC *rbacusecase.CreateRoleUsecase,
 	updateRoleUC *rbacusecase.UpdateRoleUsecase,
-	bindPermissionsUC *rbacusecase.BindRolePermissionsUsecase,
+	bindGroupsUC *rbacusecase.BindRoleGroupsUsecase,
 	pagePermissionsUC *rbacusecase.PagePermissionsUsecase,
 	setPermissionStatusUC *rbacusecase.SetPermissionStatusUsecase,
 	getUserRolesUC *rbacusecase.GetUserRolesUsecase,
@@ -42,7 +42,7 @@ func NewRbacHandler(
 		getRoleUC:             getRoleUC,
 		createRoleUC:          createRoleUC,
 		updateRoleUC:          updateRoleUC,
-		bindPermissionsUC:     bindPermissionsUC,
+		bindGroupsUC:          bindGroupsUC,
 		pagePermissionsUC:     pagePermissionsUC,
 		setPermissionStatusUC: setPermissionStatusUC,
 		getUserRolesUC:        getUserRolesUC,
@@ -56,7 +56,7 @@ func (h *RbacHandler) Routes(router *gin.RouterGroup) {
 	router.GET("/system/role/:id", h.getRole)
 	router.POST("/system/role", h.createRole)
 	router.PUT("/system/role/:id", h.updateRole)
-	router.PUT("/system/role/:id/permission", h.bindRolePermissions)
+	router.PUT("/system/role/:id/group", h.bindRoleGroups)
 
 	router.GET("/system/permission", h.pagePermissions)
 	router.PUT("/system/permission/:id/status", h.setPermissionStatus)
@@ -120,12 +120,12 @@ func (h *RbacHandler) updateRole(c *gin.Context) {
 	})
 }
 
-func (h *RbacHandler) bindRolePermissions(c *gin.Context) {
+func (h *RbacHandler) bindRoleGroups(c *gin.Context) {
 	id, ok := parsePathID(c, "id")
 	if !ok {
 		return
 	}
-	var in rbacusecase.BindRolePermissionsInput
+	var in rbacusecase.BindRoleGroupsInput
 	if !corehandler.BindJSON(c, &in) {
 		return
 	}
@@ -135,7 +135,7 @@ func (h *RbacHandler) bindRolePermissions(c *gin.Context) {
 	}
 	in.OperatorID = opID
 	corehandler.HandleVoid(c, func(ctx context.Context) error {
-		return h.bindPermissionsUC.Execute(ctx, id, &in)
+		return h.bindGroupsUC.Execute(ctx, id, &in)
 	})
 }
 

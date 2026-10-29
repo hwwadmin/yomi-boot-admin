@@ -18,15 +18,15 @@ import (
 )
 
 const (
-	maxRoleCodeLength = 32
-	maxRoleNameRunes  = 32
-	maxRemarkRunes    = 255
+	maxCodeLength  = 32
+	maxNameRunes   = 32
+	maxRemarkRunes = 255
 )
 
-// roleCodePattern 约束角色编码为小写字母开头的下划线组合
-var roleCodePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{2,31}$`)
+// codePattern 约束角色与权限组编码为小写字母开头的下划线组合
+var codePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{2,31}$`)
 
-// RbacAdminService 角色与权限管理实现
+// RbacAdminService 角色、权限组与权限管理实现
 type RbacAdminService struct {
 	repo repo_contract.RbacRepo
 	ids  snowflake.Generator
@@ -55,7 +55,7 @@ func (s *RbacAdminService) PageRoles(ctx context.Context, in *input.PageRolesInp
 	return &output.PageRolesOutput{Items: items, Total: total}, nil
 }
 
-// GetRole 查询角色详情
+// GetRole 查询角色详情：已绑权限组 + 组内权限的去重聚合
 func (s *RbacAdminService) GetRole(ctx context.Context, id int64) (*entity.RoleDetail, error) {
 	if id <= 0 {
 		return nil, errors.Sentinel(service_contract.ErrRoleNotFound)
@@ -69,11 +69,15 @@ func (s *RbacAdminService) GetRole(ctx context.Context, id int64) (*entity.RoleD
 		return nil, errors.Sentinel(service_contract.ErrRoleNotFound)
 	}
 
+	groupIDs, err := s.repo.ListGroupIDsByRoleID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 	permissionIDs, err := s.repo.ListPermissionIDsByRoleID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return &entity.RoleDetail{Role: role, PermissionIDs: permissionIDs}, nil
+	return &entity.RoleDetail{Role: role, GroupIDs: groupIDs, PermissionIDs: permissionIDs}, nil
 }
 
 // CreateRole 创建角色
@@ -85,7 +89,7 @@ func (s *RbacAdminService) CreateRole(ctx context.Context, in *input.CreateRoleI
 	roleCode := strings.TrimSpace(in.Code)
 	roleName := strings.TrimSpace(in.Name)
 	remark := strings.TrimSpace(in.Remark)
-	if !validRoleCode(roleCode) || !validRoleName(roleName) || !validRemark(remark) {
+	if !validCode(roleCode) || !validName(roleName) || !validRemark(remark) {
 		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 	if roleCode == enums.RoleCodeSuperAdmin {
@@ -128,7 +132,7 @@ func (s *RbacAdminService) UpdateRole(ctx context.Context, in *input.UpdateRoleI
 
 	roleName := strings.TrimSpace(in.Name)
 	remark := strings.TrimSpace(in.Remark)
-	if !validRoleName(roleName) || !validRemark(remark) || !enums.IsValidStatus(in.Status) {
+	if !validName(roleName) || !validRemark(remark) || !enums.IsValidStatus(in.Status) {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 
@@ -149,13 +153,13 @@ func (s *RbacAdminService) UpdateRole(ctx context.Context, in *input.UpdateRoleI
 	return s.repo.UpdateRole(ctx, role, in.OperatorID)
 }
 
-// BindRolePermissions 覆盖角色权限
-func (s *RbacAdminService) BindRolePermissions(ctx context.Context, in *input.BindRolePermissionsInput) error {
+// BindRoleGroups 覆盖角色权限组；角色权限始终来自权限组的去重聚合
+func (s *RbacAdminService) BindRoleGroups(ctx context.Context, in *input.BindRoleGroupsInput) error {
 	if in == nil || in.RoleID <= 0 {
 		return errors.Sentinel(service_contract.ErrRoleNotFound)
 	}
 
-	permissionIDs, err := normalizeIDs(in.PermissionIDs)
+	groupIDs, err := normalizeIDs(in.GroupIDs)
 	if err != nil {
 		return err
 	}
@@ -169,6 +173,159 @@ func (s *RbacAdminService) BindRolePermissions(ctx context.Context, in *input.Bi
 	}
 	if role.Builtin {
 		return errors.Sentinel(service_contract.ErrBuiltinRoleImmutable)
+	}
+
+	if len(groupIDs) > 0 {
+		groups, err := s.repo.FindPermissionGroupsByIDs(ctx, groupIDs)
+		if err != nil {
+			return err
+		}
+		if len(groups) != len(groupIDs) {
+			return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+		}
+		for _, group := range groups {
+			if group.Status != enums.StatusEnabled {
+				return errors.Sentinel(service_contract.ErrRelatedDisabled)
+			}
+		}
+	}
+
+	rels := make([]*entity.RoleGroupRel, 0, len(groupIDs))
+	for _, groupID := range groupIDs {
+		id, err := s.ids.NextID()
+		if err != nil {
+			return errors.Wrap(err, "生成角色权限组关系 ID 失败")
+		}
+		rels = append(rels, &entity.RoleGroupRel{
+			ID:      id,
+			RoleID:  role.ID,
+			GroupID: groupID,
+		})
+	}
+	return s.repo.ReplaceRoleGroups(ctx, role.ID, rels, in.OperatorID)
+}
+
+// PagePermissionGroups 分页查询权限组
+func (s *RbacAdminService) PagePermissionGroups(ctx context.Context, in *input.PagePermissionGroupsInput) (*output.PagePermissionGroupsOutput, error) {
+	if in == nil {
+		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+	if in.Status != "" && !enums.IsValidStatus(in.Status) {
+		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	items, total, err := s.repo.PagePermissionGroups(ctx, in.Keyword, in.Status, in.Page, in.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	return &output.PagePermissionGroupsOutput{Items: items, Total: total}, nil
+}
+
+// GetPermissionGroup 查询权限组详情
+func (s *RbacAdminService) GetPermissionGroup(ctx context.Context, id int64) (*entity.PermissionGroupDetail, error) {
+	if id <= 0 {
+		return nil, errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+	}
+
+	group, found, err := s.repo.FindPermissionGroupByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+	}
+
+	permissionIDs, err := s.repo.ListPermissionIDsByGroupID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &entity.PermissionGroupDetail{Group: group, PermissionIDs: permissionIDs}, nil
+}
+
+// CreatePermissionGroup 创建权限组
+func (s *RbacAdminService) CreatePermissionGroup(ctx context.Context, in *input.CreatePermissionGroupInput) (*entity.PermissionGroup, error) {
+	if in == nil {
+		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	code := strings.TrimSpace(in.Code)
+	groupName := strings.TrimSpace(in.Name)
+	remark := strings.TrimSpace(in.Remark)
+	if !validCode(code) || !validName(groupName) || !validRemark(remark) {
+		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	_, found, err := s.repo.FindPermissionGroupByCode(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		return nil, errors.Sentinel(service_contract.ErrPermissionGroupCodeExists)
+	}
+
+	id, err := s.ids.NextID()
+	if err != nil {
+		return nil, errors.Wrap(err, "生成权限组 ID 失败")
+	}
+	group := &entity.PermissionGroup{
+		ID:     id,
+		Code:   code,
+		Name:   groupName,
+		Status: enums.StatusEnabled,
+		Remark: remark,
+	}
+	if err := s.repo.CreatePermissionGroup(ctx, group, in.OperatorID); err != nil {
+		if errors.Is(err, repo_contract.ErrDuplicatedKey) {
+			return nil, errors.Sentinel(service_contract.ErrPermissionGroupCodeExists)
+		}
+		return nil, err
+	}
+	return group, nil
+}
+
+// UpdatePermissionGroup 更新权限组资料与状态
+func (s *RbacAdminService) UpdatePermissionGroup(ctx context.Context, in *input.UpdatePermissionGroupInput) error {
+	if in == nil || in.ID <= 0 {
+		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+	}
+
+	groupName := strings.TrimSpace(in.Name)
+	remark := strings.TrimSpace(in.Remark)
+	if !validName(groupName) || !validRemark(remark) || !enums.IsValidStatus(in.Status) {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	group, found, err := s.repo.FindPermissionGroupByID(ctx, in.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+	}
+
+	group.Name = groupName
+	group.Remark = remark
+	group.Status = in.Status
+	return s.repo.UpdatePermissionGroup(ctx, group, in.OperatorID)
+}
+
+// BindGroupPermissions 覆盖权限组权限
+func (s *RbacAdminService) BindGroupPermissions(ctx context.Context, in *input.BindGroupPermissionsInput) error {
+	if in == nil || in.GroupID <= 0 {
+		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
+	}
+
+	permissionIDs, err := normalizeIDs(in.PermissionIDs)
+	if err != nil {
+		return err
+	}
+
+	group, found, err := s.repo.FindPermissionGroupByID(ctx, in.GroupID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
 	}
 
 	if len(permissionIDs) > 0 {
@@ -186,19 +343,19 @@ func (s *RbacAdminService) BindRolePermissions(ctx context.Context, in *input.Bi
 		}
 	}
 
-	rels := make([]*entity.RolePermissionRel, 0, len(permissionIDs))
+	rels := make([]*entity.GroupPermissionRel, 0, len(permissionIDs))
 	for _, permissionID := range permissionIDs {
 		id, err := s.ids.NextID()
 		if err != nil {
-			return errors.Wrap(err, "生成角色权限关系 ID 失败")
+			return errors.Wrap(err, "生成权限组权限关系 ID 失败")
 		}
-		rels = append(rels, &entity.RolePermissionRel{
+		rels = append(rels, &entity.GroupPermissionRel{
 			ID:           id,
-			RoleID:       role.ID,
+			GroupID:      group.ID,
 			PermissionID: permissionID,
 		})
 	}
-	return s.repo.ReplaceRolePermissions(ctx, role.ID, rels, in.OperatorID)
+	return s.repo.ReplaceGroupPermissions(ctx, group.ID, rels, in.OperatorID)
 }
 
 // PagePermissions 分页查询权限目录
@@ -317,14 +474,14 @@ func (s *RbacAdminService) ListUserIDsWithEnabledSuperAdmin(ctx context.Context)
 	return s.repo.ListUserIDsWithEnabledSuperAdmin(ctx)
 }
 
-// validRoleCode 判断角色编码是否合法
-func validRoleCode(code string) bool {
-	return len(code) <= maxRoleCodeLength && roleCodePattern.MatchString(code)
+// validCode 判断角色与权限组编码是否合法
+func validCode(code string) bool {
+	return len(code) <= maxCodeLength && codePattern.MatchString(code)
 }
 
-// validRoleName 判断角色名称是否合法
-func validRoleName(name string) bool {
-	return name != "" && utf8.RuneCountInString(name) <= maxRoleNameRunes
+// validName 判断名称是否合法
+func validName(name string) bool {
+	return name != "" && utf8.RuneCountInString(name) <= maxNameRunes
 }
 
 // validRemark 判断备注长度是否合法

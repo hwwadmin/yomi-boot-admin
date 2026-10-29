@@ -11,20 +11,24 @@ import (
 
 // fakeRepo 是 RbacRepo 的内存实现，供 service 单测使用
 type fakeRepo struct {
-	roles           map[int64]*entity.Role
-	permissions     map[int64]*entity.Permission
-	userRoles       map[int64][]int64
-	rolePermissions map[int64][]int64
+	roles            map[int64]*entity.Role
+	permissionGroups map[int64]*entity.PermissionGroup
+	permissions      map[int64]*entity.Permission
+	userRoles        map[int64][]int64
+	roleGroups       map[int64][]int64
+	groupPermissions map[int64][]int64
 }
 
 var _ repo_contract.RbacRepo = (*fakeRepo)(nil)
 
 func newFakeRepo() *fakeRepo {
 	return &fakeRepo{
-		roles:           make(map[int64]*entity.Role),
-		permissions:     make(map[int64]*entity.Permission),
-		userRoles:       make(map[int64][]int64),
-		rolePermissions: make(map[int64][]int64),
+		roles:            make(map[int64]*entity.Role),
+		permissionGroups: make(map[int64]*entity.PermissionGroup),
+		permissions:      make(map[int64]*entity.Permission),
+		userRoles:        make(map[int64][]int64),
+		roleGroups:       make(map[int64][]int64),
+		groupPermissions: make(map[int64][]int64),
 	}
 }
 
@@ -86,6 +90,55 @@ func (r *fakeRepo) UpdateRole(_ context.Context, role *entity.Role, _ int64) err
 	return nil
 }
 
+func (r *fakeRepo) FindPermissionGroupByID(_ context.Context, id int64) (*entity.PermissionGroup, bool, error) {
+	group, ok := r.permissionGroups[id]
+	return group, ok, nil
+}
+
+func (r *fakeRepo) FindPermissionGroupByCode(_ context.Context, code string) (*entity.PermissionGroup, bool, error) {
+	for _, group := range r.permissionGroups {
+		if group.Code == code {
+			return group, true, nil
+		}
+	}
+	return nil, false, nil
+}
+
+func (r *fakeRepo) FindPermissionGroupsByIDs(_ context.Context, ids []int64) ([]*entity.PermissionGroup, error) {
+	groups := make([]*entity.PermissionGroup, 0, len(ids))
+	for _, id := range ids {
+		if group, ok := r.permissionGroups[id]; ok {
+			groups = append(groups, group)
+		}
+	}
+	return groups, nil
+}
+
+func (r *fakeRepo) PagePermissionGroups(_ context.Context, keyword string, status enums.Status, page, pageSize int) ([]*entity.PermissionGroup, int64, error) {
+	groups := make([]*entity.PermissionGroup, 0)
+	for _, group := range r.permissionGroups {
+		if keyword != "" && !strings.Contains(group.Code, keyword) && !strings.Contains(group.Name, keyword) {
+			continue
+		}
+		if status != "" && group.Status != status {
+			continue
+		}
+		groups = append(groups, group)
+	}
+	sort.Slice(groups, func(i, j int) bool { return groups[i].ID < groups[j].ID })
+	return paginateGroups(groups, page, pageSize), int64(len(groups)), nil
+}
+
+func (r *fakeRepo) CreatePermissionGroup(_ context.Context, group *entity.PermissionGroup, _ int64) error {
+	r.permissionGroups[group.ID] = group
+	return nil
+}
+
+func (r *fakeRepo) UpdatePermissionGroup(_ context.Context, group *entity.PermissionGroup, _ int64) error {
+	r.permissionGroups[group.ID] = group
+	return nil
+}
+
 func (r *fakeRepo) FindPermissionByID(_ context.Context, id int64) (*entity.Permission, bool, error) {
 	permission, ok := r.permissions[id]
 	return permission, ok, nil
@@ -126,16 +179,45 @@ func (r *fakeRepo) UpdatePermissionStatus(_ context.Context, id int64, status en
 	return nil
 }
 
-func (r *fakeRepo) ListPermissionIDsByRoleID(_ context.Context, roleID int64) ([]int64, error) {
-	return append([]int64(nil), r.rolePermissions[roleID]...), nil
+func (r *fakeRepo) ListGroupIDsByRoleID(_ context.Context, roleID int64) ([]int64, error) {
+	return append([]int64(nil), r.roleGroups[roleID]...), nil
 }
 
-func (r *fakeRepo) ReplaceRolePermissions(_ context.Context, roleID int64, rels []*entity.RolePermissionRel, _ int64) error {
+func (r *fakeRepo) ReplaceRoleGroups(_ context.Context, roleID int64, rels []*entity.RoleGroupRel, _ int64) error {
+	ids := make([]int64, 0, len(rels))
+	for _, rel := range rels {
+		ids = append(ids, rel.GroupID)
+	}
+	r.roleGroups[roleID] = ids
+	return nil
+}
+
+func (r *fakeRepo) ListPermissionIDsByRoleID(_ context.Context, roleID int64) ([]int64, error) {
+	seen := make(map[int64]struct{})
+	ids := make([]int64, 0)
+	for _, groupID := range r.roleGroups[roleID] {
+		for _, permissionID := range r.groupPermissions[groupID] {
+			if _, ok := seen[permissionID]; ok {
+				continue
+			}
+			seen[permissionID] = struct{}{}
+			ids = append(ids, permissionID)
+		}
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	return ids, nil
+}
+
+func (r *fakeRepo) ListPermissionIDsByGroupID(_ context.Context, groupID int64) ([]int64, error) {
+	return append([]int64(nil), r.groupPermissions[groupID]...), nil
+}
+
+func (r *fakeRepo) ReplaceGroupPermissions(_ context.Context, groupID int64, rels []*entity.GroupPermissionRel, _ int64) error {
 	ids := make([]int64, 0, len(rels))
 	for _, rel := range rels {
 		ids = append(ids, rel.PermissionID)
 	}
-	r.rolePermissions[roleID] = ids
+	r.groupPermissions[groupID] = ids
 	return nil
 }
 
@@ -186,19 +268,12 @@ func (r *fakeRepo) ListUserIDsWithEnabledSuperAdmin(_ context.Context) ([]int64,
 }
 
 func (r *fakeRepo) ExistsRouteAccess(_ context.Context, userID int64, method, route string) (bool, error) {
-	for _, roleID := range r.userRoles[userID] {
-		role := r.roles[roleID]
-		if role == nil || role.Status != enums.StatusEnabled {
+	for _, permission := range r.enabledPermissionsOf(userID) {
+		if permission.Type != enums.PermissionTypeAPI {
 			continue
 		}
-		for _, permissionID := range r.rolePermissions[roleID] {
-			permission := r.permissions[permissionID]
-			if permission == nil || permission.Status != enums.StatusEnabled || permission.Type != enums.PermissionTypeAPI {
-				continue
-			}
-			if strings.EqualFold(permission.HTTPMethod, method) && permission.HTTPPath == route {
-				return true, nil
-			}
+		if strings.EqualFold(permission.HTTPMethod, method) && permission.HTTPPath == route {
+			return true, nil
 		}
 	}
 	return false, nil
@@ -206,19 +281,12 @@ func (r *fakeRepo) ExistsRouteAccess(_ context.Context, userID int64, method, ro
 
 func (r *fakeRepo) ListMenusByUserID(_ context.Context, userID int64) ([]*entity.Permission, error) {
 	menus := make([]*entity.Permission, 0)
-	for _, roleID := range r.userRoles[userID] {
-		role := r.roles[roleID]
-		if role == nil || role.Status != enums.StatusEnabled {
-			continue
-		}
-		for _, permissionID := range r.rolePermissions[roleID] {
-			permission := r.permissions[permissionID]
-			if permission == nil || permission.Status != enums.StatusEnabled || permission.Type != enums.PermissionTypeMenu {
-				continue
-			}
+	for _, permission := range r.enabledPermissionsOf(userID) {
+		if permission.Type == enums.PermissionTypeMenu {
 			menus = append(menus, permission)
 		}
 	}
+	sort.Slice(menus, func(i, j int) bool { return menus[i].ID < menus[j].ID })
 	return menus, nil
 }
 
@@ -235,19 +303,10 @@ func (r *fakeRepo) ListEnabledMenus(_ context.Context) ([]*entity.Permission, er
 
 func (r *fakeRepo) ListPermissionCodesByUserID(_ context.Context, userID int64) ([]string, error) {
 	codes := make([]string, 0)
-	for _, roleID := range r.userRoles[userID] {
-		role := r.roles[roleID]
-		if role == nil || role.Status != enums.StatusEnabled {
-			continue
-		}
-		for _, permissionID := range r.rolePermissions[roleID] {
-			permission := r.permissions[permissionID]
-			if permission == nil || permission.Status != enums.StatusEnabled {
-				continue
-			}
-			codes = append(codes, permission.Code)
-		}
+	for _, permission := range r.enabledPermissionsOf(userID) {
+		codes = append(codes, permission.Code)
 	}
+	sort.Strings(codes)
 	return codes, nil
 }
 
@@ -262,6 +321,31 @@ func (r *fakeRepo) ListEnabledPermissionCodes(_ context.Context) ([]string, erro
 	return codes, nil
 }
 
+// enabledPermissionsOf 按用户 → 启用角色 → 启用权限组 → 启用权限聚合，按权限 ID 去重
+func (r *fakeRepo) enabledPermissionsOf(userID int64) map[int64]*entity.Permission {
+	result := make(map[int64]*entity.Permission)
+	for _, roleID := range r.userRoles[userID] {
+		role := r.roles[roleID]
+		if role == nil || role.Status != enums.StatusEnabled {
+			continue
+		}
+		for _, groupID := range r.roleGroups[roleID] {
+			group := r.permissionGroups[groupID]
+			if group == nil || group.Status != enums.StatusEnabled {
+				continue
+			}
+			for _, permissionID := range r.groupPermissions[groupID] {
+				permission := r.permissions[permissionID]
+				if permission == nil || permission.Status != enums.StatusEnabled {
+					continue
+				}
+				result[permission.ID] = permission
+			}
+		}
+	}
+	return result
+}
+
 func paginateRoles(roles []*entity.Role, page, pageSize int) []*entity.Role {
 	start := (page - 1) * pageSize
 	if start >= len(roles) {
@@ -272,6 +356,18 @@ func paginateRoles(roles []*entity.Role, page, pageSize int) []*entity.Role {
 		end = len(roles)
 	}
 	return roles[start:end]
+}
+
+func paginateGroups(groups []*entity.PermissionGroup, page, pageSize int) []*entity.PermissionGroup {
+	start := (page - 1) * pageSize
+	if start >= len(groups) {
+		return []*entity.PermissionGroup{}
+	}
+	end := start + pageSize
+	if end > len(groups) {
+		end = len(groups)
+	}
+	return groups[start:end]
 }
 
 func paginatePermissions(permissions []*entity.Permission, page, pageSize int) []*entity.Permission {

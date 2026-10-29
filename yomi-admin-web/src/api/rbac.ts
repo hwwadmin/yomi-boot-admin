@@ -2,6 +2,9 @@ import { request, requestPage } from '@/utils/request'
 import type {
   PageQuery,
   PageResult,
+  PermissionGroupDetail,
+  PermissionGroupItem,
+  PermissionGroupPayload,
   PermissionItem,
   PermissionType,
   RoleDetail,
@@ -19,6 +22,11 @@ export interface RoleQuery extends PageQuery {
 export interface PermissionQuery extends PageQuery {
   keyword?: string
   type?: PermissionType | ''
+  status?: Status | ''
+}
+
+export interface PermissionGroupQuery extends PageQuery {
+  keyword?: string
   status?: Status | ''
 }
 
@@ -47,10 +55,46 @@ export function updateRole(id: string, data: Omit<RolePayload, 'code'>) {
   return request<null>({ url: `/system/role/${id}`, method: 'put', data })
 }
 
-/** 覆盖角色权限 */
-export function bindRolePermissions(id: string, permissionIds: string[]) {
+/** 覆盖角色权限组 */
+export function bindRoleGroups(id: string, groupIds: string[]) {
   return request<null>({
-    url: `/system/role/${id}/permission`,
+    url: `/system/role/${id}/group`,
+    method: 'put',
+    data: { groupIds },
+  })
+}
+
+/** 分页查询权限组 */
+export async function getPermissionGroupPage(
+  params: PermissionGroupQuery,
+): Promise<PageResult<PermissionGroupItem>> {
+  const { list, total } = await requestPage<PermissionGroupItem>({
+    url: '/system/permission-group',
+    method: 'get',
+    params,
+  })
+  return { list, total, page: params.page, pageSize: params.pageSize }
+}
+
+/** 查询权限组详情 */
+export function getPermissionGroupDetail(id: string) {
+  return request<PermissionGroupDetail>({ url: `/system/permission-group/${id}`, method: 'get' })
+}
+
+/** 创建权限组 */
+export function createPermissionGroup(data: PermissionGroupPayload) {
+  return request<PermissionGroupItem>({ url: '/system/permission-group', method: 'post', data })
+}
+
+/** 更新权限组 */
+export function updatePermissionGroup(id: string, data: Omit<PermissionGroupPayload, 'code'>) {
+  return request<null>({ url: `/system/permission-group/${id}`, method: 'put', data })
+}
+
+/** 覆盖权限组权限 */
+export function bindGroupPermissions(id: string, permissionIds: string[]) {
+  return request<null>({
+    url: `/system/permission-group/${id}/permission`,
     method: 'put',
     data: { permissionIds },
   })

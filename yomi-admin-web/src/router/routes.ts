@@ -41,6 +41,12 @@ export const staticRoutes: RouteRecordRaw[] = [
         meta: { title: '权限管理', icon: 'Key' },
       },
       {
+        path: 'system/permission-group',
+        name: 'system-permission-group',
+        component: () => import('@/views/system/permission-group/index.vue'),
+        meta: { title: '权限组', icon: 'Grid' },
+      },
+      {
         path: 'system/http-record',
         name: 'system-http-record',
         component: () => import('@/views/system/http-record/index.vue'),

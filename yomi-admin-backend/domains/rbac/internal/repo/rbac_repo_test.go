@@ -15,7 +15,7 @@ import (
 
 func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	gormDB, cleanup := dbtest.New(t,
-		dbtest.WithTables(&roleModel{}, &permissionModel{}, &userRoleRelModel{}, &rolePermissionRelModel{}),
+		dbtest.WithTables(&roleModel{}, &permissionModel{}, &permissionGroupModel{}, &userRoleRelModel{}, &roleGroupRelModel{}, &groupPermissionRelModel{}),
 	)
 	defer cleanup()
 
@@ -31,13 +31,17 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	if err := r.CreateRole(ctx, viewerRole, 1); err != nil {
 		t.Fatalf("创建只读角色失败: %v", err)
 	}
+	auditorRole := &entity.Role{ID: 3, Code: "auditor", Name: "审计", Status: enums.StatusEnabled}
+	if err := r.CreateRole(ctx, auditorRole, 1); err != nil {
+		t.Fatalf("创建审计角色失败: %v", err)
+	}
 	if _, ok, err := r.FindRoleByCode(ctx, "viewer"); err != nil || !ok {
 		t.Fatalf("按编码查询角色失败: ok=%v err=%v", ok, err)
 	}
 	if _, ok, _ := r.FindRoleByID(ctx, 2); !ok {
 		t.Fatal("按 ID 查询角色失败")
 	}
-	dup := &entity.Role{ID: 3, Code: "viewer", Name: "重复", Status: enums.StatusEnabled}
+	dup := &entity.Role{ID: 4, Code: "viewer", Name: "重复", Status: enums.StatusEnabled}
 	if err := r.CreateRole(ctx, dup, 1); !errors.Is(err, repo_contract.ErrDuplicatedKey) {
 		t.Fatalf("重复编码期望 ErrDuplicatedKey，实际 %v", err)
 	}
@@ -66,6 +70,17 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	if err := gormDB.Create(api).Error; err != nil {
 		t.Fatalf("写入接口权限失败: %v", err)
 	}
+	roleMenu := &permissionModel{
+		Code:           "system:role",
+		Name:           "角色管理",
+		PermissionType: enums.PermissionTypeMenu,
+		UIPath:         ptrutil.PtrFromString("/system/role"),
+		Status:         enums.StatusEnabled,
+	}
+	roleMenu.ID = 12
+	if err := gormDB.Create(roleMenu).Error; err != nil {
+		t.Fatalf("写入角色菜单失败: %v", err)
+	}
 	disabled := &permissionModel{
 		Code:           "system:user:delete",
 		Name:           "删除用户",
@@ -74,25 +89,77 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 		HTTPPath:       ptrutil.PtrFromString("/api/system/users/:id"),
 		Status:         enums.StatusDisabled,
 	}
-	disabled.ID = 12
+	disabled.ID = 13
 	if err := gormDB.Create(disabled).Error; err != nil {
 		t.Fatalf("写入禁用权限失败: %v", err)
 	}
 
-	// 角色权限绑定
-	if err := r.ReplaceRolePermissions(ctx, 2, []*entity.RolePermissionRel{
-		{ID: 100, RoleID: 2, PermissionID: 10},
-		{ID: 101, RoleID: 2, PermissionID: 11},
-	}, 1); err != nil {
-		t.Fatalf("绑定角色权限失败: %v", err)
+	// 权限组 CRUD
+	userGroup := &entity.PermissionGroup{ID: 20, Code: "system_user", Name: "用户管理", Status: enums.StatusEnabled}
+	readGroup := &entity.PermissionGroup{ID: 21, Code: "system_user_read", Name: "用户只读", Status: enums.StatusEnabled}
+	disabledGroup := &entity.PermissionGroup{ID: 22, Code: "system_role_group", Name: "角色管理组", Status: enums.StatusDisabled}
+	for _, group := range []*entity.PermissionGroup{userGroup, readGroup, disabledGroup} {
+		if err := r.CreatePermissionGroup(ctx, group, 1); err != nil {
+			t.Fatalf("创建权限组失败: %v", err)
+		}
 	}
-	permissionIDs, err := r.ListPermissionIDsByRoleID(ctx, 2)
-	if err != nil || len(permissionIDs) != 2 {
-		t.Fatalf("查询角色权限失败: ids=%v err=%v", permissionIDs, err)
+	if _, ok, err := r.FindPermissionGroupByCode(ctx, "system_user"); err != nil || !ok {
+		t.Fatalf("按编码查询权限组失败: ok=%v err=%v", ok, err)
+	}
+	if groups, err := r.FindPermissionGroupsByIDs(ctx, []int64{20, 21, 99}); err != nil || len(groups) != 2 {
+		t.Fatalf("批量查询权限组不符: groups=%d err=%v", len(groups), err)
+	}
+	userGroup.Name = "用户权限"
+	if err := r.UpdatePermissionGroup(ctx, userGroup, 1); err != nil {
+		t.Fatalf("更新权限组失败: %v", err)
+	}
+	if group, ok, _ := r.FindPermissionGroupByID(ctx, 20); !ok || group.Name != "用户权限" {
+		t.Fatalf("权限组更新未生效: %+v", group)
+	}
+
+	// 权限组绑定权限
+	if err := r.ReplaceGroupPermissions(ctx, 20, []*entity.GroupPermissionRel{
+		{ID: 100, GroupID: 20, PermissionID: 10},
+		{ID: 101, GroupID: 20, PermissionID: 11},
+	}, 1); err != nil {
+		t.Fatalf("绑定权限组权限失败: %v", err)
+	}
+	if err := r.ReplaceGroupPermissions(ctx, 21, []*entity.GroupPermissionRel{
+		{ID: 102, GroupID: 21, PermissionID: 11},
+	}, 1); err != nil {
+		t.Fatalf("绑定权限组权限失败: %v", err)
+	}
+	if err := r.ReplaceGroupPermissions(ctx, 22, []*entity.GroupPermissionRel{
+		{ID: 103, GroupID: 22, PermissionID: 12},
+	}, 1); err != nil {
+		t.Fatalf("绑定权限组权限失败: %v", err)
+	}
+	if ids, err := r.ListPermissionIDsByGroupID(ctx, 20); err != nil || len(ids) != 2 {
+		t.Fatalf("查询权限组权限失败: ids=%v err=%v", ids, err)
+	}
+
+	// 角色绑定权限组
+	if err := r.ReplaceRoleGroups(ctx, 2, []*entity.RoleGroupRel{
+		{ID: 200, RoleID: 2, GroupID: 20},
+		{ID: 201, RoleID: 2, GroupID: 21},
+		{ID: 202, RoleID: 2, GroupID: 22},
+	}, 1); err != nil {
+		t.Fatalf("绑定角色权限组失败: %v", err)
+	}
+	if ids, err := r.ListGroupIDsByRoleID(ctx, 2); err != nil || len(ids) != 3 {
+		t.Fatalf("查询角色权限组失败: ids=%v err=%v", ids, err)
+	}
+	// 角色详情聚合：跨组去重、不看启停
+	aggregated, err := r.ListPermissionIDsByRoleID(ctx, 2)
+	if err != nil || len(aggregated) != 3 || aggregated[0] != 10 || aggregated[1] != 11 || aggregated[2] != 12 {
+		t.Fatalf("角色聚合权限不符: ids=%v err=%v", aggregated, err)
 	}
 
 	// 用户角色绑定
-	if err := r.ReplaceUserRoles(ctx, 7, []*entity.UserRoleRel{{ID: 200, UserID: 7, RoleID: 2}}, 1); err != nil {
+	if err := r.ReplaceUserRoles(ctx, 7, []*entity.UserRoleRel{{ID: 300, UserID: 7, RoleID: 2}}, 1); err != nil {
+		t.Fatalf("绑定用户角色失败: %v", err)
+	}
+	if err := r.ReplaceUserRoles(ctx, 9, []*entity.UserRoleRel{{ID: 301, UserID: 9, RoleID: 3}}, 1); err != nil {
 		t.Fatalf("绑定用户角色失败: %v", err)
 	}
 	roleIDs, err := r.ListRoleIDsByUserID(ctx, 7)
@@ -111,7 +178,7 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	if ok, err := r.UserHasEnabledSuperAdmin(ctx, 7); err != nil || ok {
 		t.Fatalf("普通用户不应是超管: ok=%v err=%v", ok, err)
 	}
-	if err := r.ReplaceUserRoles(ctx, 8, []*entity.UserRoleRel{{ID: 201, UserID: 8, RoleID: 1}}, 1); err != nil {
+	if err := r.ReplaceUserRoles(ctx, 8, []*entity.UserRoleRel{{ID: 302, UserID: 8, RoleID: 1}}, 1); err != nil {
 		t.Fatalf("绑定超管角色失败: %v", err)
 	}
 	if ok, err := r.UserHasEnabledSuperAdmin(ctx, 8); err != nil || !ok {
@@ -122,7 +189,7 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 		t.Fatalf("超管用户列表不符: ids=%v err=%v", superIDs, err)
 	}
 
-	// 鉴权链：接口精确匹配、菜单并集、编码并集
+	// 鉴权链：接口精确匹配、菜单并集、编码并集；禁用权限组不生效
 	if ok, err := r.ExistsRouteAccess(ctx, 7, "GET", "/api/system/users"); err != nil || !ok {
 		t.Fatalf("已授权接口应放行: ok=%v err=%v", ok, err)
 	}
@@ -135,21 +202,28 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	}
 	codes, err := r.ListPermissionCodesByUserID(ctx, 7)
 	if err != nil || len(codes) != 2 {
-		t.Fatalf("用户权限编码不符: codes=%v err=%v", codes, err)
+		t.Fatalf("用户权限编码应去重为 2 项: codes=%v err=%v", codes, err)
+	}
+	if menus, err := r.ListMenusByUserID(ctx, 9); err != nil || len(menus) != 0 {
+		t.Fatalf("仅绑禁用权限组的用户不应有菜单: menus=%+v err=%v", menus, err)
 	}
 	enabledMenus, err := r.ListEnabledMenus(ctx)
-	if err != nil || len(enabledMenus) != 1 {
+	if err != nil || len(enabledMenus) != 2 {
 		t.Fatalf("启用菜单列表不符: menus=%+v err=%v", enabledMenus, err)
 	}
 	enabledCodes, err := r.ListEnabledPermissionCodes(ctx)
-	if err != nil || len(enabledCodes) != 2 {
+	if err != nil || len(enabledCodes) != 3 {
 		t.Fatalf("启用权限编码不符: codes=%v err=%v", enabledCodes, err)
 	}
 
 	// 分页
 	items, total, err := r.PageRoles(ctx, "", enums.StatusEnabled, 1, 10)
-	if err != nil || total != 2 || len(items) != 2 {
+	if err != nil || total != 3 || len(items) != 3 {
 		t.Fatalf("角色分页不符: total=%d items=%d err=%v", total, len(items), err)
+	}
+	groups, groupTotal, err := r.PagePermissionGroups(ctx, "", "", 1, 10)
+	if err != nil || groupTotal != 3 || len(groups) != 3 {
+		t.Fatalf("权限组分页不符: total=%d items=%d err=%v", groupTotal, len(groups), err)
 	}
 	permissionItems, permissionTotal, err := r.PagePermissions(ctx, "", enums.PermissionTypeAPI, "", 1, 10)
 	if err != nil || permissionTotal != 2 || len(permissionItems) != 2 {
@@ -157,10 +231,10 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	}
 
 	// 权限启停
-	if err := r.UpdatePermissionStatus(ctx, 12, enums.StatusEnabled, 1); err != nil {
+	if err := r.UpdatePermissionStatus(ctx, 13, enums.StatusEnabled, 1); err != nil {
 		t.Fatalf("更新权限状态失败: %v", err)
 	}
-	if permission, ok, _ := r.FindPermissionByID(ctx, 12); !ok || permission.Status != enums.StatusEnabled {
+	if permission, ok, _ := r.FindPermissionByID(ctx, 13); !ok || permission.Status != enums.StatusEnabled {
 		t.Fatalf("权限状态未更新: %+v", permission)
 	}
 

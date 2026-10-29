@@ -99,8 +99,11 @@ export interface RoleItem {
   updateTime: number
 }
 
-/** 角色详情（含已绑权限 ID） */
+/** 角色详情（含已绑权限组与聚合权限 ID） */
 export interface RoleDetail extends RoleItem {
+  /** 已绑权限组 ID */
+  groupIds: string[]
+  /** 权限组内权限的去重聚合（只读）；实际生效还取决于启停状态 */
   permissionIds: string[]
 }
 
@@ -125,6 +128,30 @@ export interface PermissionItem {
   remark: string
   createTime: number
   updateTime: number
+}
+
+/** 权限组列表项 */
+export interface PermissionGroupItem {
+  id: string
+  code: string
+  name: string
+  status: Status
+  remark: string
+  createTime: number
+  updateTime: number
+}
+
+/** 权限组详情（含已绑权限 ID） */
+export interface PermissionGroupDetail extends PermissionGroupItem {
+  permissionIds: string[]
+}
+
+/** 权限组创建/更新请求体 */
+export interface PermissionGroupPayload {
+  code?: string
+  name: string
+  remark: string
+  status: Status
 }
 
 /** 用户角色绑定视图 */

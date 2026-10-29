@@ -9,6 +9,12 @@ type PageRolesOutput struct {
 	Total int64
 }
 
+// PagePermissionGroupsOutput 权限组分页出参
+type PagePermissionGroupsOutput struct {
+	Items []*entity.PermissionGroup
+	Total int64
+}
+
 // PagePermissionsOutput 权限分页出参
 type PagePermissionsOutput struct {
 	Items []*entity.Permission

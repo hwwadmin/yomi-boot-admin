@@ -9,9 +9,10 @@ import (
 	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
-// RoleDetailOutput 角色详情（含已绑权限 ID）
+// RoleDetailOutput 角色详情：已绑权限组 + 组内权限的去重聚合
 type RoleDetailOutput struct {
 	RoleItem
+	GroupIDs      dto.JSONInt64Slice `json:"groupIds"`
 	PermissionIDs dto.JSONInt64Slice `json:"permissionIds"`
 }
 
@@ -37,6 +38,7 @@ func (uc *GetRoleUsecase) Execute(ctx context.Context, id int64) (*RoleDetailOut
 	}
 	return &RoleDetailOutput{
 		RoleItem:      toRoleItem(detail.Role),
+		GroupIDs:      dto.NewJSONInt64Slice(detail.GroupIDs),
 		PermissionIDs: dto.NewJSONInt64Slice(detail.PermissionIDs),
 	}, nil
 }

@@ -15,7 +15,6 @@ func TestAuthServiceSuperAdmin(t *testing.T) {
 	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/users", Status: enums.StatusEnabled}
 	repo.permissions[12] = &entity.Permission{ID: 12, Code: "system:role", Type: enums.PermissionTypeMenu, UIPath: "/system/role", Status: enums.StatusEnabled}
 	repo.userRoles[1] = []int64{1}
-	repo.rolePermissions[1] = []int64{10, 11}
 	svc := NewRbacAuthService(repo)
 
 	allowed, err := svc.CanAccessAPI(ctx, 1, "get", "/api/system/users")
@@ -43,13 +42,17 @@ func TestAuthServiceNormalUser(t *testing.T) {
 	repo := newFakeRepo()
 	repo.roles[1] = &entity.Role{ID: 1, Code: "viewer", Status: enums.StatusEnabled}
 	repo.roles[2] = &entity.Role{ID: 2, Code: "disabled_role", Status: enums.StatusDisabled}
+	repo.permissionGroups[1] = &entity.PermissionGroup{ID: 1, Code: "user_group", Status: enums.StatusEnabled}
+	repo.permissionGroups[2] = &entity.PermissionGroup{ID: 2, Code: "role_group", Status: enums.StatusDisabled}
 	repo.permissions[10] = &entity.Permission{ID: 10, Code: "system:user", Type: enums.PermissionTypeMenu, UIPath: "/system/user", Status: enums.StatusEnabled}
 	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/users", Status: enums.StatusEnabled}
 	repo.permissions[12] = &entity.Permission{ID: 12, Code: "system:role", Type: enums.PermissionTypeMenu, UIPath: "/system/role", Status: enums.StatusEnabled}
 	repo.userRoles[2] = []int64{1}
 	repo.userRoles[3] = []int64{2}
-	repo.rolePermissions[1] = []int64{10, 11}
-	repo.rolePermissions[2] = []int64{12}
+	repo.roleGroups[1] = []int64{1}
+	repo.roleGroups[2] = []int64{2}
+	repo.groupPermissions[1] = []int64{10, 11}
+	repo.groupPermissions[2] = []int64{12}
 	svc := NewRbacAuthService(repo)
 
 	allowed, err := svc.CanAccessAPI(ctx, 2, "GET", "/api/system/users")
@@ -74,11 +77,43 @@ func TestAuthServiceNormalUser(t *testing.T) {
 		t.Fatalf("普通用户菜单不符: %+v", menus)
 	}
 	if menus, _ := svc.ListMenus(ctx, 3); len(menus) != 0 {
-		t.Fatalf("禁用角色用户不应有菜单: %+v", menus)
+		t.Fatalf("禁用权限组用户不应有菜单: %+v", menus)
 	}
 
 	allowed, _ = svc.CanAccessAPI(ctx, 0, "GET", "/api/system/users")
 	if allowed {
 		t.Fatal("非法用户不应放行")
+	}
+}
+
+func TestAuthServiceDedupesAcrossRolesAndGroups(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepo()
+	repo.roles[1] = &entity.Role{ID: 1, Code: "viewer", Status: enums.StatusEnabled}
+	repo.roles[2] = &entity.Role{ID: 2, Code: "auditor", Status: enums.StatusEnabled}
+	repo.permissionGroups[1] = &entity.PermissionGroup{ID: 1, Code: "user_group", Status: enums.StatusEnabled}
+	repo.permissionGroups[2] = &entity.PermissionGroup{ID: 2, Code: "user_read_group", Status: enums.StatusEnabled}
+	repo.permissions[10] = &entity.Permission{ID: 10, Code: "system:user", Type: enums.PermissionTypeMenu, UIPath: "/system/user", Status: enums.StatusEnabled}
+	repo.permissions[11] = &entity.Permission{ID: 11, Code: "system:user:list", Type: enums.PermissionTypeAPI, HTTPMethod: "GET", HTTPPath: "/api/system/users", Status: enums.StatusEnabled}
+	repo.userRoles[7] = []int64{1, 2}
+	repo.roleGroups[1] = []int64{1, 2}
+	repo.roleGroups[2] = []int64{2}
+	repo.groupPermissions[1] = []int64{10, 11}
+	repo.groupPermissions[2] = []int64{11}
+	svc := NewRbacAuthService(repo)
+
+	codes, err := svc.ListPermissionCodes(ctx, 7)
+	if err != nil {
+		t.Fatalf("查询权限编码失败: %v", err)
+	}
+	if len(codes) != 2 {
+		t.Fatalf("跨角色与权限组应去重为 2 项: %v", codes)
+	}
+	menus, err := svc.ListMenus(ctx, 7)
+	if err != nil {
+		t.Fatalf("查询菜单失败: %v", err)
+	}
+	if len(menus) != 1 {
+		t.Fatalf("菜单应去重为 1 项: %+v", menus)
 	}
 }

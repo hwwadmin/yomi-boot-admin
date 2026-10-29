@@ -40,6 +40,17 @@ interface MockRole {
   builtin: boolean
   status: Status
   remark: string
+  groupIds: string[]
+  createTime: number
+  updateTime: number
+}
+
+interface MockPermissionGroup {
+  id: string
+  code: string
+  name: string
+  status: Status
+  remark: string
   permissionIds: string[]
   createTime: number
   updateTime: number
@@ -104,6 +115,7 @@ const permissions: MockPermission[] = [
   { id: 'p2', code: 'system:role', name: '角色管理', type: 'MENU', uiPath: '/system/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p3', code: 'system:permission', name: '权限管理', type: 'MENU', uiPath: '/system/permission', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p4', code: 'system:http-record', name: '访问记录', type: 'MENU', uiPath: '/system/http-record', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p5', code: 'system:permission-group', name: '权限组', type: 'MENU', uiPath: '/system/permission-group', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p11', code: 'system:user:list', name: '用户列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/users', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p12', code: 'system:user:create', name: '创建用户', type: 'API', httpMethod: 'POST', httpPath: '/api/system/users', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p13', code: 'system:user:update', name: '更新用户', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/users/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
@@ -112,14 +124,28 @@ const permissions: MockPermission[] = [
   { id: 'p22', code: 'system:role:detail', name: '角色详情', type: 'API', httpMethod: 'GET', httpPath: '/api/system/role/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p23', code: 'system:role:create', name: '创建角色', type: 'API', httpMethod: 'POST', httpPath: '/api/system/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p24', code: 'system:role:update', name: '更新角色', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/role/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
-  { id: 'p25', code: 'system:role:bind-permission', name: '角色绑定权限', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/role/:id/permission', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p25', code: 'system:role:bind-group', name: '角色绑定权限组', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/role/:id/group', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p31', code: 'system:permission:list', name: '权限列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/permission', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p32', code: 'system:permission:status', name: '权限启停', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/permission/:id/status', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p41', code: 'system:user:role:list', name: '用户角色查询', type: 'API', httpMethod: 'GET', httpPath: '/api/system/user/:id/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p42', code: 'system:user:role:bind', name: '用户角色绑定', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/user/:id/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p51', code: 'system:http-record:list', name: '访问记录列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/http-records', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p52', code: 'system:http-record:detail', name: '访问记录详情', type: 'API', httpMethod: 'GET', httpPath: '/api/system/http-records/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p61', code: 'system:permission-group:list', name: '权限组列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/permission-group', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p62', code: 'system:permission-group:detail', name: '权限组详情', type: 'API', httpMethod: 'GET', httpPath: '/api/system/permission-group/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p63', code: 'system:permission-group:create', name: '创建权限组', type: 'API', httpMethod: 'POST', httpPath: '/api/system/permission-group', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p64', code: 'system:permission-group:update', name: '更新权限组', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/permission-group/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p65', code: 'system:permission-group:bind-permission', name: '权限组绑定权限', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/permission-group/:id/permission', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
 ]
+
+// ———————— 权限组 ————————
+const permissionGroups: MockPermissionGroup[] = [
+  { id: 'g1', code: 'system_user', name: '用户管理', status: 'ENABLED', remark: '用户菜单、用户 CRUD 与用户角色绑定', permissionIds: ['p1', 'p11', 'p12', 'p13', 'p14', 'p41', 'p42'], createTime: now(), updateTime: now() },
+  { id: 'g2', code: 'system_role', name: '角色管理', status: 'ENABLED', remark: '角色菜单、角色 CRUD 与角色绑定权限组', permissionIds: ['p2', 'p21', 'p22', 'p23', 'p24', 'p25'], createTime: now(), updateTime: now() },
+  { id: 'g3', code: 'system_permission', name: '权限管理', status: 'ENABLED', remark: '权限目录与权限组的查看、维护', permissionIds: ['p3', 'p5', 'p31', 'p32', 'p61', 'p62', 'p63', 'p64', 'p65'], createTime: now(), updateTime: now() },
+  { id: 'g4', code: 'system_http_record', name: '访问记录', status: 'ENABLED', remark: '访问记录菜单、列表与详情', permissionIds: ['p4', 'p51', 'p52'], createTime: now(), updateTime: now() },
+]
+let nextGroupId = permissionGroups.length + 1
 
 // ———————— 角色 ————————
 const roles: MockRole[] = [
@@ -130,7 +156,7 @@ const roles: MockRole[] = [
     builtin: true,
     status: 'ENABLED',
     remark: '内置角色，拥有全部权限',
-    permissionIds: [],
+    groupIds: [],
     createTime: now(),
     updateTime: now(),
   },
@@ -141,7 +167,7 @@ const roles: MockRole[] = [
     builtin: false,
     status: 'ENABLED',
     remark: '仅可查看用户列表',
-    permissionIds: ['p1', 'p11'],
+    groupIds: ['g1'],
     createTime: now(),
     updateTime: now(),
   },
@@ -253,22 +279,41 @@ function isSuper(user: MockUser): boolean {
   return user.roles.some((role) => role.code === 'super_admin' && role.status === 'ENABLED')
 }
 
+/** 角色所绑权限组的权限 ID（结构聚合，不看启停） */
+function aggregatedPermissionIdsOfRole(role: MockRole): string[] {
+  const ids = new Set<string>()
+  for (const groupId of role.groupIds) {
+    const group = permissionGroups.find((item) => item.id === groupId)
+    if (!group) continue
+    for (const permissionId of group.permissionIds) ids.add(permissionId)
+  }
+  return [...ids]
+}
+
+/** 用户经启用角色与启用权限组聚合出的启用权限 */
+function effectivePermissionsOfUser(user: MockUser): MockPermission[] {
+  const ids = new Set<string>()
+  for (const role of user.roles) {
+    if (role.status !== 'ENABLED') continue
+    for (const groupId of role.groupIds) {
+      const group = permissionGroups.find((item) => item.id === groupId)
+      if (!group || group.status !== 'ENABLED') continue
+      for (const permissionId of group.permissionIds) ids.add(permissionId)
+    }
+  }
+  return permissions.filter((item) => item.status === 'ENABLED' && ids.has(item.id))
+}
+
 function visibleMenus(user: MockUser): MockPermission[] {
   if (isSuper(user)) {
     return permissions.filter((item) => item.type === 'MENU' && item.status === 'ENABLED')
   }
-  const ids = new Set(user.roles.flatMap((role) => role.permissionIds))
-  return permissions.filter(
-    (item) => item.type === 'MENU' && item.status === 'ENABLED' && ids.has(item.id),
-  )
+  return effectivePermissionsOfUser(user).filter((item) => item.type === 'MENU')
 }
 
 function grantedCodes(user: MockUser): string[] {
   if (isSuper(user)) return ['*']
-  const ids = new Set(user.roles.flatMap((role) => role.permissionIds))
-  return permissions
-    .filter((item) => item.status === 'ENABLED' && ids.has(item.id))
-    .map((item) => item.code)
+  return effectivePermissionsOfUser(user).map((item) => item.code)
 }
 
 function identity(user: MockUser) {
@@ -456,7 +501,7 @@ const routes: MockRoute[] = [
       if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
       const role = roles.find((item) => item.id === params[0])
       if (!role) return sendJson(res, fail('角色不存在', 'ADMIN_ROLE_NOT_FOUND'))
-      sendJson(res, ok(role))
+      sendJson(res, ok({ ...role, permissionIds: aggregatedPermissionIdsOfRole(role) }))
     },
   },
   {
@@ -476,7 +521,7 @@ const routes: MockRoute[] = [
         builtin: false,
         status: 'ENABLED',
         remark: String(body.remark ?? ''),
-        permissionIds: [],
+        groupIds: [],
         createTime: now(),
         updateTime: now(),
       }
@@ -506,17 +551,112 @@ const routes: MockRoute[] = [
   },
   {
     method: 'PUT',
-    pattern: /^\/api\/system\/role\/([^/]+)\/permission$/,
+    pattern: /^\/api\/system\/role\/([^/]+)\/group$/,
     handler: async ({ req, res, params }) => {
       if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
       const body = await readBody(req)
       const role = roles.find((item) => item.id === params[0])
       if (!role) return sendJson(res, fail('角色不存在', 'ADMIN_ROLE_NOT_FOUND'))
       if (role.builtin) return sendJson(res, fail('内置角色不允许变更', 'ADMIN_BUILTIN_ROLE_IMMUTABLE'))
-      role.permissionIds = Array.isArray(body.permissionIds)
+      const groupIds = Array.isArray(body.groupIds) ? (body.groupIds as string[]) : []
+      const unknown = groupIds.find((id) => !permissionGroups.some((group) => group.id === id))
+      if (unknown) return sendJson(res, fail('权限组不存在', 'ADMIN_PERMISSION_GROUP_NOT_FOUND'))
+      const disabled = groupIds.find(
+        (id) => permissionGroups.find((group) => group.id === id)?.status !== 'ENABLED',
+      )
+      if (disabled) return sendJson(res, fail('关联的角色、权限组或权限已停用', 'ADMIN_RELATED_DISABLED'))
+      role.groupIds = [...new Set(groupIds)]
+      role.updateTime = now()
+      sendJson(res, ok(null))
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/system\/permission-group$/,
+    handler: async ({ req, res, query }) => {
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const keyword = (query.get('keyword') ?? '').trim().toLowerCase()
+      const status = query.get('status') ?? ''
+      const filtered = permissionGroups.filter((group) => {
+        const matchKeyword =
+          !keyword ||
+          group.code.toLowerCase().includes(keyword) ||
+          group.name.toLowerCase().includes(keyword)
+        return matchKeyword && (!status || group.status === status)
+      })
+      sendJson(res, paginate(filtered, query))
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/system\/permission-group\/([^/]+)$/,
+    handler: async ({ req, res, params }) => {
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const group = permissionGroups.find((item) => item.id === params[0])
+      if (!group) return sendJson(res, fail('权限组不存在', 'ADMIN_PERMISSION_GROUP_NOT_FOUND'))
+      sendJson(res, ok(group))
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/system\/permission-group$/,
+    handler: async ({ req, res }) => {
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const body = await readBody(req)
+      const code = String(body.code ?? '').trim()
+      if (permissionGroups.some((group) => group.code === code)) {
+        return sendJson(res, fail('权限组编码已存在', 'ADMIN_PERMISSION_GROUP_CODE_EXISTS'))
+      }
+      const group: MockPermissionGroup = {
+        id: `g${nextGroupId++}`,
+        code,
+        name: String(body.name ?? code),
+        status: 'ENABLED',
+        remark: String(body.remark ?? ''),
+        permissionIds: [],
+        createTime: now(),
+        updateTime: now(),
+      }
+      permissionGroups.push(group)
+      sendJson(res, ok(group))
+    },
+  },
+  {
+    method: 'PUT',
+    pattern: /^\/api\/system\/permission-group\/([^/]+)$/,
+    handler: async ({ req, res, params }) => {
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const body = await readBody(req)
+      const group = permissionGroups.find((item) => item.id === params[0])
+      if (!group) return sendJson(res, fail('权限组不存在', 'ADMIN_PERMISSION_GROUP_NOT_FOUND'))
+      if (body.name !== undefined) group.name = String(body.name)
+      if (body.remark !== undefined) group.remark = String(body.remark)
+      if (body.status !== undefined) {
+        group.status = body.status === 'DISABLED' ? 'DISABLED' : 'ENABLED'
+      }
+      group.updateTime = now()
+      sendJson(res, ok(null))
+    },
+  },
+  {
+    method: 'PUT',
+    pattern: /^\/api\/system\/permission-group\/([^/]+)\/permission$/,
+    handler: async ({ req, res, params }) => {
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const body = await readBody(req)
+      const group = permissionGroups.find((item) => item.id === params[0])
+      if (!group) return sendJson(res, fail('权限组不存在', 'ADMIN_PERMISSION_GROUP_NOT_FOUND'))
+      const permissionIds = Array.isArray(body.permissionIds)
         ? (body.permissionIds as string[])
         : []
-      role.updateTime = now()
+      const unknown = permissionIds.find((id) => !permissions.some((item) => item.id === id))
+      if (unknown) return sendJson(res, fail('权限不存在', 'ADMIN_PERMISSION_NOT_FOUND'))
+      const disabled = permissionIds.find(
+        (id) => permissions.find((item) => item.id === id)?.status !== 'ENABLED',
+      )
+      if (disabled) return sendJson(res, fail('关联的角色、权限组或权限已停用', 'ADMIN_RELATED_DISABLED'))
+      group.permissionIds = [...new Set(permissionIds)]
+      group.updateTime = now()
       sendJson(res, ok(null))
     },
   },

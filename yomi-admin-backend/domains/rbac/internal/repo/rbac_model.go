@@ -9,10 +9,12 @@ import (
 
 // 表名常量
 const (
-	tableRole              = "t_rbac_role"
-	tablePermission        = "t_rbac_permission"
-	tableUserRoleRel       = "t_rbac_user_role_rel"
-	tableRolePermissionRel = "t_rbac_role_permission_rel"
+	tableRole               = "t_rbac_role"
+	tablePermission         = "t_rbac_permission"
+	tablePermissionGroup    = "t_rbac_permission_group"
+	tableUserRoleRel        = "t_rbac_user_role_rel"
+	tableRoleGroupRel       = "t_rbac_role_group_rel"
+	tableGroupPermissionRel = "t_rbac_group_permission_rel"
 )
 
 // roleModel 是 t_rbac_role 的持久化模型
@@ -48,6 +50,20 @@ func (permissionModel) TableName() string {
 	return tablePermission
 }
 
+// permissionGroupModel 是 t_rbac_permission_group 的持久化模型
+type permissionGroupModel struct {
+	Code   string       `gorm:"column:code;size:64;uniqueIndex:uk_code"`
+	Name   string       `gorm:"column:name;size:64"`
+	Status enums.Status `gorm:"column:status;size:20"`
+	Remark string       `gorm:"column:remark;size:255"`
+	orm.BaseModel
+}
+
+// TableName 返回表名
+func (permissionGroupModel) TableName() string {
+	return tablePermissionGroup
+}
+
 // userRoleRelModel 是 t_rbac_user_role_rel 的持久化模型
 type userRoleRelModel struct {
 	UserID int64 `gorm:"column:user_id;uniqueIndex:uk_user_role"`
@@ -60,14 +76,26 @@ func (userRoleRelModel) TableName() string {
 	return tableUserRoleRel
 }
 
-// rolePermissionRelModel 是 t_rbac_role_permission_rel 的持久化模型
-type rolePermissionRelModel struct {
-	RoleID       int64 `gorm:"column:role_id;uniqueIndex:uk_role_permission"`
-	PermissionID int64 `gorm:"column:permission_id;uniqueIndex:uk_role_permission"`
+// roleGroupRelModel 是 t_rbac_role_group_rel 的持久化模型
+type roleGroupRelModel struct {
+	RoleID  int64 `gorm:"column:role_id;uniqueIndex:uk_role_group"`
+	GroupID int64 `gorm:"column:group_id;uniqueIndex:uk_role_group"`
 	orm.BaseModel
 }
 
 // TableName 返回表名
-func (rolePermissionRelModel) TableName() string {
-	return tableRolePermissionRel
+func (roleGroupRelModel) TableName() string {
+	return tableRoleGroupRel
+}
+
+// groupPermissionRelModel 是 t_rbac_group_permission_rel 的持久化模型
+type groupPermissionRelModel struct {
+	GroupID      int64 `gorm:"column:group_id;uniqueIndex:uk_group_permission"`
+	PermissionID int64 `gorm:"column:permission_id;uniqueIndex:uk_group_permission"`
+	orm.BaseModel
+}
+
+// TableName 返回表名
+func (groupPermissionRelModel) TableName() string {
+	return tableGroupPermissionRel
 }

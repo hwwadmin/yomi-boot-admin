@@ -9,7 +9,7 @@ Yomi 管理后台后端，Go 1.26 + [yomi-boot](https://gitee.com/hq_project/yom
 
 - 登录、当前用户、登出
 - 用户管理：分页、新增、编辑、删除
-- RBAC：角色、权限目录、角色绑权限、用户绑角色
+- RBAC：角色、权限目录、权限组，角色绑权限组、权限组绑权限、用户绑角色
 - 菜单与按钮权限下发，接口级鉴权
 - HTTP 访问记录：采集、落库、分页与详情
 - 统一响应格式
@@ -27,7 +27,7 @@ mysql -uroot -p < script/sql/020_rbac.sql
 mysql -uroot -p < script/sql/030_http_record.sql
 ```
 
-`020_rbac.sql` 会建 RBAC 表、写权限目录，并把 `admin` 设成内置超管。
+`020_rbac.sql` 会建 RBAC 表、写权限目录与种子权限组，并把 `admin` 设成内置超管。
 **先执行 SQL 再启动服务**，否则受保护接口会因为缺表报错。
 
 2. 配置：
@@ -53,7 +53,7 @@ YOMI_CONFIG=dev go run ./cmd
 ```text
 apps/server/        接口与用例：cmd、config、handler、usecase、bootstrap、support
 domains/user/       用户
-domains/rbac/       角色与权限
+domains/rbac/       角色、权限组与权限
 domains/httprecord/ 访问记录
 script/sql/         建库与种子 SQL
 script/dev/         开发脚本
@@ -75,20 +75,29 @@ script/dev/         开发脚本
 
 ## 权限模型
 
-- 角色表 `t_rbac_role`，权限表 `t_rbac_permission`，关系表 `t_rbac_user_role_rel`、
-  `t_rbac_role_permission_rel`。
+- 授权链路固定为 `用户 → 角色 → 权限组 → 权限`，角色不直连权限：
+  角色表 `t_rbac_role`、权限组表 `t_rbac_permission_group`、权限表 `t_rbac_permission`，
+  关系表 `t_rbac_user_role_rel`、`t_rbac_role_group_rel`、`t_rbac_group_permission_rel`。
+- 角色拥有的权限 = 所绑权限组内权限的去重并集，仓储层用 `DISTINCT` 聚合，
+  同一个权限无论被多少个角色、多少个权限组覆盖都只算一次。
+- 鉴权同时要求角色、权限组、权限三者都启用；停用权限组会立刻对使用它的所有角色失效
+  （权限不写入 Token，下一个请求即生效）。
+- 角色详情里的 `permissionIds` 是结构聚合（只看绑定关系，不看启停），
+  用于管理端展示；运行时鉴权会再叠加状态过滤。
 - `MENU` 权限对应前端路由；`API` 权限对应 `HTTP method + 路由模板`，
-  例如 `GET /api/system/users/:id`。
-- 鉴权按请求方法 + `c.FullPath()` 匹配 API 权限；超管直接放行。
+  例如 `GET /api/system/users/:id`。鉴权按请求方法 + `c.FullPath()` 匹配 API 权限；
+  内置超管 `super_admin` 直接放行，不依赖权限组。
 - 登录和 profile 返回用户可见菜单，前端用它过滤路由和侧栏。
-- 权限目录由 SQL 种子维护，管理端只读。新增路由要同时补 `020_rbac.sql` 和权限编码，
-  否则 `rbac_route_catalog_test.go` 会失败。
+- 权限目录由 SQL 种子维护，管理端只读。新增路由要同时补 `020_rbac.sql` 的权限与
+  权限组关系，否则 `rbac_route_catalog_test.go` 和 `TestRBACSeedPermissionGroupCoverage` 会失败。
+- 种子内置 `system_user`、`system_role`、`system_permission`、`system_http_record`
+  四个权限组，可直接组合成业务角色。
 
 ## 数据约定
 
 - 表名统一 `t_` 前缀；主键是应用生成的雪花 ID。
 - 状态/类型用 `varchar` + 大写枚举：`ENABLED`/`DISABLED`、`MENU`/`API`。
-- 角色、权限不软删除，用状态停用；关系表物理删除。
+- 角色、权限组、权限不软删除，用状态停用；关系表物理删除。
 - Entity 时间是 Unix 毫秒；接口里的 ID 用 `dto.JSONInt64`（字符串）。
 
 ## 访问记录

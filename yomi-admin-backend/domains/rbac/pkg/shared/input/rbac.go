@@ -28,9 +28,41 @@ type UpdateRoleInput struct {
 	OperatorID int64
 }
 
-// BindRolePermissionsInput 覆盖角色权限入参
-type BindRolePermissionsInput struct {
-	RoleID        int64
+// BindRoleGroupsInput 覆盖角色权限组入参
+type BindRoleGroupsInput struct {
+	RoleID     int64
+	GroupIDs   []int64
+	OperatorID int64
+}
+
+// PagePermissionGroupsInput 权限组分页查询入参
+type PagePermissionGroupsInput struct {
+	Keyword  string
+	Status   enums.Status
+	Page     int
+	PageSize int
+}
+
+// CreatePermissionGroupInput 创建权限组入参
+type CreatePermissionGroupInput struct {
+	Code       string
+	Name       string
+	Remark     string
+	OperatorID int64
+}
+
+// UpdatePermissionGroupInput 更新权限组入参；编码不可变
+type UpdatePermissionGroupInput struct {
+	ID         int64
+	Name       string
+	Remark     string
+	Status     enums.Status
+	OperatorID int64
+}
+
+// BindGroupPermissionsInput 覆盖权限组权限入参
+type BindGroupPermissionsInput struct {
+	GroupID       int64
 	PermissionIDs []int64
 	OperatorID    int64
 }
