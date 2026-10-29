@@ -86,6 +86,11 @@ token:
     - /api/v1/health/ops
     - /api/auth/captcha
     - /api/auth/login
+    # API 文档（Swagger UI）；与 RBAC skip 共用本清单，docs 关闭时仅为无效放行
+    - /api/system/api-doc
+    - /api/system/api-doc/schema
+    - /api/system/api-doc/swagger-ui.css
+    - /api/system/api-doc/swagger-ui-bundle.js
 
 snowflake:
   worker_id: 1
@@ -128,6 +133,9 @@ biz:
       projection_max_bytes: 8388608
       lock_wait_seconds: 2
       memory_sync_seconds: ${YOMI_ADMIN_BIZ_RBAC_CACHE_MEMORY_SYNC_SECONDS:5} # 内存快照同步周期（秒），0 表示关闭内存层
+  # API 文档（Swagger UI）；生产默认关闭，需要时用环境变量显式开启
+  docs:
+    enabled: ${YOMI_ADMIN_BIZ_DOCS_ENABLED:false}
 
 # HTTP 访问记录：中间件采集 + 进程内消费者落库，供后台「访问记录」页面查询
 http_record:

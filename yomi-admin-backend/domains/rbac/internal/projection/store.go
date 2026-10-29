@@ -81,7 +81,8 @@ type Store struct {
 
 // NewStore 创建投影存储
 func NewStore(cfg Config, rds redis.RedisService, locks distlock.DistLockFactory,
-	loader Loader, executor tx.Executor, ids snowflake.Generator) (*Store, error) {
+	loader Loader, executor tx.Executor, ids snowflake.Generator,
+) (*Store, error) {
 	normalized, err := cfg.withDefaults()
 	if err != nil {
 		return nil, err

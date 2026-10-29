@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	gitee.com/hq_project/yomi-boot v1.2.1
+	github.com/getkin/kin-openapi v0.152.0
 	github.com/gin-gonic/gin v1.12.0
 	yomi-admin-backend/domains/httprecord v0.0.0
 	yomi-admin-backend/domains/rbac v0.0.0
@@ -46,6 +47,8 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
+	github.com/go-openapi/jsonpointer v0.22.5 // indirect
+	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.1 // indirect
@@ -86,6 +89,8 @@ require (
 	github.com/mojocn/base64Captcha v1.3.8 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/natefinch/lumberjack v2.0.0+incompatible // indirect
+	github.com/oasdiff/yaml v0.1.1 // indirect
+	github.com/oasdiff/yaml3 v0.0.14 // indirect
 	github.com/panjf2000/ants/v2 v2.12.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
@@ -94,6 +99,7 @@ require (
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/redis/go-redis/v9 v9.20.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect

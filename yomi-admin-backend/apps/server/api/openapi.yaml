@@ -1,0 +1,1029 @@
+# OpenAPI 3.1 接口文档：yomi-admin-backend 管理端 API
+#
+# 本文件是 API 文档的唯一来源，手写维护；新增/下线路由必须同步修改，
+# internal/handler/api_doc_coverage_test.go 会对文档与已注册路由做双向对账。
+# 页面入口：GET /api/system/api-doc（Swagger UI），schema：GET /api/system/api-doc/schema。
+openapi: 3.1.0
+info:
+  title: yomi-admin-backend API
+  version: v0.1.0
+  description: |
+    yomi-admin-backend 管理端接口文档。
+
+    ## 协议约定
+    - 所有接口 HTTP 状态码恒为 200，业务成败由响应体 `code` 判定：`OK` 表示成功，其余为业务错误码（`msg` 为人读信息）。
+    - 响应包络统一为 `{"code","msg","timestamp","data"[,"total"]}`；分页接口的 `data` 为当前页数组，`total`（总条数）位于包络顶层。
+    - 雪花 ID 一律以字符串传输（避免 JS int64 精度丢失），如 `"1930000000000000001"`；请求中同名字段也接受数字。
+    - 时间戳均为 Unix 毫秒（UTC），由前端按客户端时区展示。
+    - 枚举为大写字符串：状态 `ENABLED` / `DISABLED`（用户、角色、权限、权限组通用），权限类型 `MENU` / `API`。
+    - 认证方式：`Authorization: Bearer <token>`，token 由登录接口签发；仅验证码与登录接口免认证。
+servers:
+  - url: /
+tags:
+  - name: 认证
+    description: 验证码、登录、当前用户与登出
+  - name: 用户
+    description: 系统用户管理
+  - name: 角色
+    description: 角色管理与权限组绑定
+  - name: 权限
+    description: 权限目录管理
+  - name: 权限组
+    description: 权限组管理与权限绑定
+  - name: 访问记录
+    description: HTTP 访问记录查询
+  - name: 鉴权缓存
+    description: RBAC 鉴权投影缓存维护
+security:
+  - bearerAuth: []
+paths:
+  /api/auth/captcha:
+    get:
+      tags: [认证]
+      operationId: getCaptcha
+      summary: 获取登录图形验证码
+      security: []
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/CaptchaOutput' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/auth/login:
+    post:
+      tags: [认证]
+      operationId: login
+      summary: 登录
+      description: 校验验证码（启用时）、账号密码与防爆破策略，签发访问 token。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/LoginOutput' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/auth/profile:
+    get:
+      tags: [认证]
+      operationId: getProfile
+      summary: 当前登录用户信息
+      description: 需携带有效 token（无需 API 权限）。
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/IdentityView' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/auth/logout:
+    post:
+      tags: [认证]
+      operationId: logout
+      summary: 登出
+      description: 撤销当前请求携带的 token。需携带有效 token（无需 API 权限）。
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/user:
+    get:
+      tags: [用户]
+      operationId: pageUsers
+      summary: 分页查询用户
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - { $ref: '#/components/parameters/Keyword' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data, total]
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: '#/components/schemas/UserItem' }
+                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/user/create:
+    post:
+      tags: [用户]
+      operationId: createUser
+      summary: 创建用户
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/user/update:
+    post:
+      tags: [用户]
+      operationId: updateUser
+      summary: 更新用户
+      description: 用户名不可变；停用操作会撤销该用户全部 token，且不能停用自己。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/user/delete:
+    post:
+      tags: [用户]
+      operationId: deleteUser
+      summary: 删除用户
+      description: 物理删除用户并清理角色绑定，撤销其全部 token；不能删除自己。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IdRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/user/role:
+    get:
+      tags: [用户]
+      operationId: getUserRoles
+      summary: 查询用户角色绑定
+      parameters:
+        - { $ref: '#/components/parameters/UserId' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/UserRolesOutput' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/user/bind-role:
+    post:
+      tags: [用户]
+      operationId: bindUserRoles
+      summary: 绑定用户角色
+      description: 以传入列表覆盖该用户的全部角色绑定。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BindUserRolesRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/role:
+    get:
+      tags: [角色]
+      operationId: pageRoles
+      summary: 分页查询角色
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - { $ref: '#/components/parameters/Keyword' }
+        - name: status
+          in: query
+          required: false
+          description: 按状态过滤，缺省查全部
+          schema: { $ref: '#/components/schemas/Status' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data, total]
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: '#/components/schemas/RoleItem' }
+                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/role/detail:
+    get:
+      tags: [角色]
+      operationId: getRoleDetail
+      summary: 查询角色详情
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/RoleDetail' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/role/create:
+    post:
+      tags: [角色]
+      operationId: createRole
+      summary: 创建角色
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRoleRequest' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/RoleItem' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/role/update:
+    post:
+      tags: [角色]
+      operationId: updateRole
+      summary: 更新角色
+      description: 角色编码不可变；启停走独立接口。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRoleRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/role/delete:
+    post:
+      tags: [角色]
+      operationId: deleteRole
+      summary: 删除角色
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IdRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/role/set-status:
+    post:
+      tags: [角色]
+      operationId: setRoleStatus
+      summary: 设置角色启停
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetStatusRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/role/bind-group:
+    post:
+      tags: [角色]
+      operationId: bindRoleGroups
+      summary: 绑定角色权限组
+      description: 以传入列表覆盖该角色的全部权限组绑定。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BindRoleGroupsRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/permission:
+    get:
+      tags: [权限]
+      operationId: pagePermissions
+      summary: 分页查询权限
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - { $ref: '#/components/parameters/Keyword' }
+        - name: type
+          in: query
+          required: false
+          description: 按权限类型过滤，缺省查全部
+          schema: { $ref: '#/components/schemas/PermissionType' }
+        - name: status
+          in: query
+          required: false
+          description: 按状态过滤，缺省查全部
+          schema: { $ref: '#/components/schemas/Status' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data, total]
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: '#/components/schemas/PermissionItem' }
+                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/permission/create:
+    post:
+      tags: [权限]
+      operationId: createPermission
+      summary: 创建权限
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePermissionRequest' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/PermissionItem' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/permission/update:
+    post:
+      tags: [权限]
+      operationId: updatePermission
+      summary: 更新权限
+      description: 编码与类型不可变；启停走独立接口。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePermissionRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/permission/delete:
+    post:
+      tags: [权限]
+      operationId: deletePermission
+      summary: 删除权限
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IdRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/permission/set-status:
+    post:
+      tags: [权限]
+      operationId: setPermissionStatus
+      summary: 设置权限启停
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetStatusRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/permission-group:
+    get:
+      tags: [权限组]
+      operationId: pagePermissionGroups
+      summary: 分页查询权限组
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - { $ref: '#/components/parameters/Keyword' }
+        - name: status
+          in: query
+          required: false
+          description: 按状态过滤，缺省查全部
+          schema: { $ref: '#/components/schemas/Status' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data, total]
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: '#/components/schemas/PermissionGroupItem' }
+                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/permission-group/detail:
+    get:
+      tags: [权限组]
+      operationId: getPermissionGroupDetail
+      summary: 查询权限组详情
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/PermissionGroupDetail' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/permission-group/create:
+    post:
+      tags: [权限组]
+      operationId: createPermissionGroup
+      summary: 创建权限组
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreatePermissionGroupRequest' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/PermissionGroupItem' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/permission-group/update:
+    post:
+      tags: [权限组]
+      operationId: updatePermissionGroup
+      summary: 更新权限组
+      description: 编码不可变；启停走独立接口。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdatePermissionGroupRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/permission-group/delete:
+    post:
+      tags: [权限组]
+      operationId: deletePermissionGroup
+      summary: 删除权限组
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IdRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/permission-group/set-status:
+    post:
+      tags: [权限组]
+      operationId: setPermissionGroupStatus
+      summary: 设置权限组启停
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetStatusRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/permission-group/bind-permission:
+    post:
+      tags: [权限组]
+      operationId: bindGroupPermissions
+      summary: 绑定权限组权限
+      description: 以传入列表覆盖该权限组的全部权限绑定。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BindGroupPermissionsRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/http-record:
+    get:
+      tags: [访问记录]
+      operationId: pageHttpRecords
+      summary: 分页查询 HTTP 访问记录
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - { $ref: '#/components/parameters/Keyword' }
+        - name: method
+          in: query
+          required: false
+          description: 请求方法精确匹配，如 GET / POST
+          schema: { type: string }
+        - name: statusClass
+          in: query
+          required: false
+          description: HTTP 状态码分类，如 2xx / 4xx / 5xx
+          schema: { type: string }
+        - name: userId
+          in: query
+          required: false
+          description: 按操作用户过滤
+          schema: { type: string, description: 雪花 ID }
+        - name: startTime
+          in: query
+          required: false
+          description: 起始时间（Unix 毫秒，含）
+          schema: { type: integer, format: int64 }
+        - name: endTime
+          in: query
+          required: false
+          description: 结束时间（Unix 毫秒，含）
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data, total]
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: '#/components/schemas/RecordItem' }
+                          total: { type: integer, format: int64, description: 满足条件的总条数 }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/http-record/detail:
+    get:
+      tags: [访问记录]
+      operationId: getHttpRecordDetail
+      summary: 查询访问记录详情
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/RecordDetail' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/rbac-cache/refresh:
+    post:
+      tags: [鉴权缓存]
+      operationId: refreshRbacCache
+      summary: 全量重建鉴权缓存
+      description: 全量重建 RBAC 鉴权投影缓存并写入 Redis，返回本次重建统计。
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/CacheRefreshOutput' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: '登录接口返回的 token，放在 `Authorization: Bearer <token>` 头中。'
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      description: 页码，从 1 开始，默认 1
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: 每页条数，默认 10，上限 100
+      schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+    Keyword:
+      name: keyword
+      in: query
+      required: false
+      description: 模糊匹配关键字
+      schema: { type: string }
+    Id:
+      name: id
+      in: query
+      required: true
+      description: 资源雪花 ID
+      schema: { type: string, description: 雪花 ID }
+    UserId:
+      name: userId
+      in: query
+      required: true
+      description: 用户雪花 ID
+      schema: { type: string, description: 雪花 ID }
+  responses:
+    VoidResult:
+      description: 无数据业务结果（恒 200）：成功时 code=OK 且无 data 字段；失败时 code 为业务错误码
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/EnvelopeBase'
+              - $ref: '#/components/schemas/EnvelopeError'
+  schemas:
+    EnvelopeBase:
+      type: object
+      description: 响应包络基底；code=OK 表示成功，HTTP 状态码恒为 200
+      required: [code, msg, timestamp]
+      properties:
+        code:
+          type: string
+          description: 业务码，成功为 OK
+          examples: [OK]
+        msg:
+          type: string
+          description: 人读信息
+          examples: [success]
+        timestamp:
+          type: integer
+          format: int64
+          description: 响应时间戳（Unix 毫秒）
+    EnvelopeError:
+      type: object
+      description: 失败包络（无 data 字段），code 为业务错误码，如 INVALID_INPUT、TOKEN_REQUIRED、ADMIN_PERMISSION_DENIED、ADMIN_USER_NOT_FOUND 等
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+    Status:
+      type: string
+      description: 启停状态，用户/角色/权限/权限组通用
+      enum: [ENABLED, DISABLED]
+    PermissionType:
+      type: string
+      description: 权限类型
+      enum: [MENU, API]
+    CaptchaOutput:
+      type: object
+      required: [id, image, expiresIn]
+      properties:
+        id: { type: string, description: 验证码 ID，登录时回传 }
+        image: { type: string, description: 验证码图像（base64 Data URL） }
+        expiresIn: { type: integer, description: 有效期（秒） }
+    MenuView:
+      type: object
+      required: [code, name, uiPath]
+      properties:
+        code: { type: string, description: 菜单编码 }
+        name: { type: string, description: 菜单名称 }
+        uiPath: { type: string, description: 前端路由路径 }
+    IdentityView:
+      type: object
+      description: 登录与当前用户接口共用的身份视图
+      required: [username, nickname, permissions, menus]
+      properties:
+        username: { type: string }
+        nickname: { type: string }
+        permissions:
+          type: array
+          description: 权限编码列表
+          items: { type: string }
+        menus:
+          type: array
+          items: { $ref: '#/components/schemas/MenuView' }
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+        captchaId: { type: string, description: 验证码 ID，启用验证码时必填 }
+        captchaCode: { type: string, description: 用户输入的验证码，启用验证码时必填 }
+    LoginOutput:
+      type: object
+      required: [token, user]
+      properties:
+        token: { type: string, description: '访问 token，后续请求放入 `Authorization: Bearer` 头' }
+        user: { $ref: '#/components/schemas/IdentityView' }
+    RoleBrief:
+      type: object
+      description: 用户列表中的角色摘要
+      required: [id, code, name, status]
+      properties:
+        id: { type: string, description: 雪花 ID }
+        code: { type: string }
+        name: { type: string }
+        status: { $ref: '#/components/schemas/Status' }
+    UserItem:
+      type: object
+      required: [id, username, nickname, email, phone, status, roles, createdAt]
+      properties:
+        id: { type: string, description: 雪花 ID }
+        username: { type: string }
+        nickname: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        status: { $ref: '#/components/schemas/Status' }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleBrief' }
+        createdAt: { type: integer, format: int64, description: 创建时间（Unix 毫秒） }
+    UserRolesOutput:
+      type: object
+      description: 用户角色绑定视图
+      required: [roles, roleIds]
+      properties:
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/RoleItem' }
+        roleIds:
+          type: array
+          description: 已绑定角色 ID
+          items: { type: string, description: 雪花 ID }
+    RoleItem:
+      type: object
+      required: [id, code, name, builtin, status, remark, createTime, updateTime]
+      properties:
+        id: { type: string, description: 雪花 ID }
+        code: { type: string, description: 角色编码，如 super_admin }
+        name: { type: string }
+        builtin: { type: boolean, description: 是否内置角色 }
+        status: { $ref: '#/components/schemas/Status' }
+        remark: { type: string }
+        createTime: { type: integer, format: int64, description: Unix 毫秒 }
+        updateTime: { type: integer, format: int64, description: Unix 毫秒 }
+    RoleDetail:
+      type: object
+      description: 角色详情（含绑定的权限组与聚合权限）
+      allOf:
+        - $ref: '#/components/schemas/RoleItem'
+        - type: object
+          required: [groupIds, permissionIds, effectivePermissionIds]
+          properties:
+            groupIds:
+              type: array
+              description: 已绑定权限组 ID
+              items: { type: string, description: 雪花 ID }
+            permissionIds:
+              type: array
+              description: 已绑权限组内权限 ID 的去重聚合
+              items: { type: string, description: 雪花 ID }
+            effectivePermissionIds:
+              type: array
+              description: 实际生效的权限 ID 子集（剔除停用权限/权限组）
+              items: { type: string, description: 雪花 ID }
+    PermissionItem:
+      type: object
+      required: [id, code, name, type, status, remark, createTime, updateTime]
+      properties:
+        id: { type: string, description: 雪花 ID }
+        code: { type: string, description: 权限编码 }
+        name: { type: string }
+        type: { $ref: '#/components/schemas/PermissionType' }
+        uiPath: { type: string, description: 菜单权限的前端路由路径，MENU 类型有值 }
+        httpMethod: { type: string, description: API 权限的请求方法，API 类型有值 }
+        httpPath: { type: string, description: API 权限的请求路径，API 类型有值 }
+        status: { $ref: '#/components/schemas/Status' }
+        remark: { type: string }
+        createTime: { type: integer, format: int64, description: Unix 毫秒 }
+        updateTime: { type: integer, format: int64, description: Unix 毫秒 }
+    PermissionGroupItem:
+      type: object
+      required: [id, code, name, status, remark, createTime, updateTime]
+      properties:
+        id: { type: string, description: 雪花 ID }
+        code: { type: string }
+        name: { type: string }
+        status: { $ref: '#/components/schemas/Status' }
+        remark: { type: string }
+        createTime: { type: integer, format: int64, description: Unix 毫秒 }
+        updateTime: { type: integer, format: int64, description: Unix 毫秒 }
+    PermissionGroupDetail:
+      type: object
+      description: 权限组详情（含已绑权限 ID）
+      allOf:
+        - $ref: '#/components/schemas/PermissionGroupItem'
+        - type: object
+          required: [permissionIds]
+          properties:
+            permissionIds:
+              type: array
+              items: { type: string, description: 雪花 ID }
+    RecordItem:
+      type: object
+      description: HTTP 访问记录列表项
+      required: [id, serviceType, serviceVersion, traceId, requestAt, durationMs, method, path, route, clientIp, userId, clientType, statusCode, bizCode, bizMsg]
+      properties:
+        id: { type: string, description: 雪花 ID }
+        serviceType: { type: string, description: 服务标识 }
+        serviceVersion: { type: string, description: 服务版本 }
+        traceId: { type: string, description: 链路追踪 ID }
+        requestAt: { type: integer, format: int64, description: 请求时间（Unix 毫秒） }
+        durationMs: { type: integer, format: int64, description: 耗时（毫秒） }
+        method: { type: string, description: 请求方法 }
+        path: { type: string, description: 实际请求路径 }
+        route: { type: string, description: 命中的路由模板 }
+        clientIp: { type: string, description: 客户端 IP }
+        userId: { type: string, description: 操作用户雪花 ID，未登录为 "0" }
+        clientType: { type: string, description: 客户端类型，如 admin }
+        statusCode: { type: integer, description: HTTP 状态码 }
+        bizCode: { type: string, description: 业务码 }
+        bizMsg: { type: string, description: 业务信息 }
+    RecordDetail:
+      type: object
+      description: HTTP 访问记录详情
+      allOf:
+        - $ref: '#/components/schemas/RecordItem'
+        - type: object
+          required: [query, userAgent, requestHeaders, requestBody, requestBodyTruncated, responseBody, responseBodyTruncated, createTime]
+          properties:
+            query: { type: string, description: 原始查询串 }
+            userAgent: { type: string }
+            requestHeaders: { type: string, description: 请求头（敏感字段已脱敏） }
+            requestBody: { type: string, description: 请求体（敏感字段已脱敏） }
+            requestBodyTruncated: { type: boolean, description: 请求体是否被截断 }
+            responseBody: { type: string, description: 响应体（敏感字段已脱敏） }
+            responseBodyTruncated: { type: boolean, description: 响应体是否被截断 }
+            createTime: { type: integer, format: int64, description: 落库时间（Unix 毫秒） }
+    CacheRefreshOutput:
+      type: object
+      description: 鉴权缓存重建统计
+      required: [version, builtAt, roleCount, permissionCount, permissionGroupCount, relationCount, durationMs]
+      properties:
+        version: { type: string, description: 本次投影版本号 }
+        builtAt: { type: integer, format: int64, description: 构建时间（Unix 毫秒） }
+        roleCount: { type: integer, description: 角色数量 }
+        permissionCount: { type: integer, description: 权限数量 }
+        permissionGroupCount: { type: integer, description: 权限组数量 }
+        relationCount: { type: integer, description: 绑定关系数量 }
+        durationMs: { type: integer, format: int64, description: 重建耗时（毫秒） }
+    IdRequest:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, description: 资源雪花 ID（也接受数字） }
+    SetStatusRequest:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string, description: 资源雪花 ID（也接受数字） }
+        status: { $ref: '#/components/schemas/Status' }
+    CreateUserRequest:
+      type: object
+      required: [username, password, nickname, status]
+      properties:
+        username: { type: string, description: 登录名，创建后不可变 }
+        password: { type: string }
+        nickname: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        status: { $ref: '#/components/schemas/Status' }
+    UpdateUserRequest:
+      type: object
+      required: [id, nickname, status]
+      properties:
+        id: { type: string, description: 用户雪花 ID（也接受数字） }
+        nickname: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        status: { $ref: '#/components/schemas/Status' }
+    BindUserRolesRequest:
+      type: object
+      required: [userId, roleIds]
+      properties:
+        userId: { type: string, description: 用户雪花 ID（也接受数字） }
+        roleIds:
+          type: array
+          description: 覆盖后的角色 ID 全集（空数组清空绑定）
+          items: { type: string, description: 雪花 ID }
+    CreateRoleRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, description: 角色编码，创建后不可变 }
+        name: { type: string }
+        remark: { type: string }
+    UpdateRoleRequest:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, description: 角色雪花 ID（也接受数字） }
+        name: { type: string }
+        remark: { type: string }
+    BindRoleGroupsRequest:
+      type: object
+      required: [roleId, groupIds]
+      properties:
+        roleId: { type: string, description: 角色雪花 ID（也接受数字） }
+        groupIds:
+          type: array
+          description: 覆盖后的权限组 ID 全集（空数组清空绑定）
+          items: { type: string, description: 雪花 ID }
+    CreatePermissionRequest:
+      type: object
+      required: [code, name, type]
+      properties:
+        code: { type: string, description: 权限编码，创建后不可变 }
+        name: { type: string }
+        type: { $ref: '#/components/schemas/PermissionType' }
+        uiPath: { type: string, description: MENU 类型的前端路由路径 }
+        httpMethod: { type: string, description: API 类型的请求方法，如 GET / POST }
+        httpPath: { type: string, description: API 类型的请求路径，如 /api/system/user }
+        remark: { type: string }
+    UpdatePermissionRequest:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, description: 权限雪花 ID（也接受数字） }
+        name: { type: string }
+        uiPath: { type: string }
+        httpMethod: { type: string }
+        httpPath: { type: string }
+        remark: { type: string }
+    CreatePermissionGroupRequest:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, description: 权限组编码，创建后不可变 }
+        name: { type: string }
+        remark: { type: string }
+    UpdatePermissionGroupRequest:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, description: 权限组雪花 ID（也接受数字） }
+        name: { type: string }
+        remark: { type: string }
+    BindGroupPermissionsRequest:
+      type: object
+      required: [groupId, permissionIds]
+      properties:
+        groupId: { type: string, description: 权限组雪花 ID（也接受数字） }
+        permissionIds:
+          type: array
+          description: 覆盖后的权限 ID 全集（空数组清空绑定）
+          items: { type: string, description: 雪花 ID }

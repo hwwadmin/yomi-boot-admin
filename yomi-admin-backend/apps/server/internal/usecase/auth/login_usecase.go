@@ -3,10 +3,10 @@ package auth
 
 import (
 	"context"
+	"yomi-admin-backend/domains/user/service_contract"
 
 	loginguard "yomi-admin-backend/apps/server/internal/support/loginguard"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
-	"yomi-admin-backend/domains/user/service_contract"
 
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 

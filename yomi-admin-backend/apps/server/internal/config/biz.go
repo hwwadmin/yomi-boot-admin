@@ -15,6 +15,7 @@ type BootConfig struct {
 	Captcha    CaptchaConfig    `mapstructure:"captcha"`
 	Rbac       RbacConfig       `mapstructure:"rbac"`
 	LoginGuard LoginGuardConfig `mapstructure:"login_guard"`
+	Docs       DocsConfig       `mapstructure:"docs"`
 }
 
 // ConfigSection 返回 biz 配置段
@@ -26,6 +27,9 @@ func ConfigSection() config.Section {
 		if err := c.Rbac.Validate(); err != nil {
 			return err
 		}
-		return c.LoginGuard.Validate()
+		if err := c.LoginGuard.Validate(); err != nil {
+			return err
+		}
+		return c.Docs.Validate()
 	})
 }

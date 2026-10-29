@@ -59,6 +59,16 @@ script/dev/         开发脚本
 - 变更接口统一为 `POST /api/{resource}/{action}`，ID 用 Body 里的 `id` / `{resource}Id`。
 - 查询接口：分页 `GET /api/{resource}`，详情 `GET /api/{resource}/detail?id=`。
 
+## API 文档（OpenAPI 3.1 + Swagger UI）
+
+- 文档源：`apps/server/api/openapi.yaml`（OpenAPI 3.1，手写维护，随二进制内嵌）。
+- 页面入口：`GET /api/system/api-doc`（Swagger UI）；schema：`GET /api/system/api-doc/schema`。
+- 开关：`biz.docs.enabled`，dev 默认开、prod 默认关（可用 `YOMI_ADMIN_BIZ_DOCS_ENABLED` 覆盖）；
+  四条文档路由已加进 `token.skip_validate_paths` 免鉴权（与 RBAC 放行清单共用）。
+- 新增/下线路由必须同步修改 `openapi.yaml`：`internal/handler/api_doc_coverage_test.go`
+  对文档与已注册路由双向对账，`api/embed_test.go` 校验文档是合法的 3.1 文档。
+- 更换 Swagger UI 资源版本：`bash script/dev/fetch_swagger_ui.sh [版本号]`（当前内嵌 5.34.0）。
+
 
 ## 数据约定
 

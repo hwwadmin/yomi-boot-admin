@@ -172,7 +172,7 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	registerHttpRecordHandler(slot, c.records.Records)
 	guard := superadmin.New(c.users.Users, c.rbac.Admin, newSuperAdminLocker(c.lock))
 
-	return []router.Registrar{
+	registrars := []router.Registrar{
 		corehandler.NewHealthHandler("/v1/health", "/v1/health/ops", c.appCtx),
 		apphandler.NewAuthHandler(
 			authusecase.NewLoginUsecase(c.users.Users, c.rbac.Auth, c.token, c.captcha, c.loginGuard),
@@ -221,6 +221,12 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 			rbacusecase.NewRefreshRbacCacheUsecase(c.rbac.Cache),
 		),
 	}
+	// API 文档默认关闭（biz.docs.enabled），避免生产环境暴露路由信息
+	bizCfg := config.MustSection[svcconfig.BootConfig](slot.Config, svcconfig.SectionKey)
+	if bizCfg.Docs.EnabledOrDefault() {
+		registrars = append(registrars, apphandler.NewApiDocHandler())
+	}
+	return registrars
 }
 
 // Middlewares 在默认中间件链后追加 RBAC 鉴权
