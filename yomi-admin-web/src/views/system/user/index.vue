@@ -345,8 +345,10 @@ async function handleDelete(row: UserItem) {
             :disabled="role.status === 'DISABLED'"
           >
             {{ role.name }} ({{ role.code }})
+            <span v-if="role.status === 'DISABLED'">（已停用）</span>
           </el-option>
         </el-select>
+        <p class="role-hint">已停用的角色不可选择；若用户当前绑定了已停用角色，请移除后再保存。</p>
       </div>
       <template #footer>
         <el-button @click="roleDialogVisible = false">取消</el-button>
@@ -394,5 +396,11 @@ async function handleDelete(row: UserItem) {
 
 .role-select {
   width: 100%;
+}
+
+.role-hint {
+  margin: 8px 0 0;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 </style>

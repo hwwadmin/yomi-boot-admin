@@ -154,6 +154,22 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	if err != nil || len(aggregated) != 3 || aggregated[0] != 10 || aggregated[1] != 11 || aggregated[2] != 12 {
 		t.Fatalf("角色聚合权限不符: ids=%v err=%v", aggregated, err)
 	}
+	// 生效权限：停用权限组（22）下的权限不计入
+	effective, err := r.ListEffectivePermissionIDsByRoleID(ctx, 2)
+	if err != nil || len(effective) != 2 || effective[0] != 10 || effective[1] != 11 {
+		t.Fatalf("角色生效权限不符: ids=%v err=%v", effective, err)
+	}
+	// 停用权限即使挂在启用组下也不计入
+	if err := r.ReplaceGroupPermissions(ctx, 21, []*entity.GroupPermissionRel{
+		{ID: 104, GroupID: 21, PermissionID: 11},
+		{ID: 105, GroupID: 21, PermissionID: 13},
+	}, 1); err != nil {
+		t.Fatalf("绑定权限组权限失败: %v", err)
+	}
+	if effective, err := r.ListEffectivePermissionIDsByRoleID(ctx, 2); err != nil ||
+		len(effective) != 2 || effective[0] != 10 || effective[1] != 11 {
+		t.Fatalf("停用权限不应计入生效集合: ids=%v err=%v", effective, err)
+	}
 
 	// 用户角色绑定
 	if err := r.ReplaceUserRoles(ctx, 7, []*entity.UserRoleRel{{ID: 300, UserID: 7, RoleID: 2}}, 1); err != nil {
@@ -210,10 +226,6 @@ func TestRbacRepoCRUDAndAuthQueries(t *testing.T) {
 	enabledMenus, err := r.ListEnabledMenus(ctx)
 	if err != nil || len(enabledMenus) != 2 {
 		t.Fatalf("启用菜单列表不符: menus=%+v err=%v", enabledMenus, err)
-	}
-	enabledCodes, err := r.ListEnabledPermissionCodes(ctx)
-	if err != nil || len(enabledCodes) != 3 {
-		t.Fatalf("启用权限编码不符: codes=%v err=%v", enabledCodes, err)
 	}
 
 	// 分页

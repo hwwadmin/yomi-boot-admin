@@ -41,11 +41,13 @@ type PermissionGroup struct {
 	UpdateTime int64 // Unix 毫秒时间戳
 }
 
-// RoleDetail 表示角色详情；PermissionIDs 是所绑权限组的去重聚合
+// RoleDetail 表示角色详情；PermissionIDs 是所绑权限组的去重聚合（含停用项），
+// EffectivePermissionIDs 只统计启用权限组下的启用权限，供界面标注未生效项。
 type RoleDetail struct {
-	Role          *Role
-	GroupIDs      []int64
-	PermissionIDs []int64
+	Role                   *Role
+	GroupIDs               []int64
+	PermissionIDs          []int64
+	EffectivePermissionIDs []int64
 }
 
 // PermissionGroupDetail 表示权限组详情（含已绑权限 ID）

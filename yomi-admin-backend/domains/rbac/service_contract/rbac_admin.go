@@ -59,8 +59,9 @@ type RbacAdminService interface {
 	DeleteUserRoles(ctx context.Context, userID int64) error
 	// ListRolesByUserIDs 按用户批量查询已绑角色
 	ListRolesByUserIDs(ctx context.Context, userIDs []int64) (map[int64][]*entity.Role, error)
-	// ListRolesByIDs 按主键批量查询角色
-	ListRolesByIDs(ctx context.Context, ids []int64) ([]*entity.Role, error)
+	// ResolveBindingRoles 规范化并校验待绑定的角色：去重、存在性与启用态。
+	// 与 BindUserRoles 共用同一套规则，供编排层在超管策略检查前取得角色实体。
+	ResolveBindingRoles(ctx context.Context, ids []int64) ([]*entity.Role, error)
 	// ListUserIDsWithEnabledSuperAdmin 列出拥有启用态超管角色的用户 ID
 	ListUserIDsWithEnabledSuperAdmin(ctx context.Context) ([]int64, error)
 }

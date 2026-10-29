@@ -93,6 +93,18 @@ JOIN t_rbac_group_permission_rel gp ON gp.group_id = rg.group_id
 JOIN t_rbac_permission p ON p.id = gp.permission_id AND p.delete_time IS NULL
 WHERE rg.role_id = ?
 ORDER BY gp.permission_id`
+
+	// sqlListEffectivePermissionIDsByRoleID 查询角色实际生效的权限 ID（启用权限组下的启用权限）
+	sqlListEffectivePermissionIDsByRoleID = `
+SELECT DISTINCT gp.permission_id
+FROM t_rbac_role_group_rel rg
+JOIN t_rbac_permission_group g ON g.id = rg.group_id AND g.delete_time IS NULL
+JOIN t_rbac_group_permission_rel gp ON gp.group_id = g.id
+JOIN t_rbac_permission p ON p.id = gp.permission_id AND p.delete_time IS NULL
+WHERE rg.role_id = ?
+  AND g.status = ?
+  AND p.status = ?
+ORDER BY gp.permission_id`
 )
 
 // RbacRepo 角色、权限组、权限与关系仓储实现
@@ -444,7 +456,10 @@ func (r *RbacRepo) UpdatePermissionStatus(ctx context.Context, id int64, status 
 	return nil
 }
 
-// CreatePermission 创建权限
+// CreatePermission 创建权限。
+//
+// 三个唯一键（编码、菜单路径、接口路由）都收敛为 ErrDuplicatedKey，
+// 具体撞了哪个字段由服务层回查确认，仓储不解析驱动错误里的索引名。
 func (r *RbacRepo) CreatePermission(ctx context.Context, permission *entity.Permission, operatorID int64) error {
 	if err := r.Create(ctx, toPermissionModel(permission, operatorID)); err != nil {
 		if yomidb.IsDuplicateKey(err, r.dbType) {
@@ -546,6 +561,17 @@ func (r *RbacRepo) ListPermissionIDsByRoleID(ctx context.Context, roleID int64) 
 	return ids, nil
 }
 
+// ListEffectivePermissionIDsByRoleID 列出角色实际生效的权限 ID（启用权限组下的启用权限）
+func (r *RbacRepo) ListEffectivePermissionIDsByRoleID(ctx context.Context, roleID int64) ([]int64, error) {
+	var ids []int64
+	if err := tx.Exec(ctx, r.DB).
+		Raw(sqlListEffectivePermissionIDsByRoleID, roleID, enums.StatusEnabled, enums.StatusEnabled).
+		Scan(&ids).Error; err != nil {
+		return nil, errors.Wrap(err, "查询角色生效权限失败")
+	}
+	return ids, nil
+}
+
 // DeleteRoleGroupsByRoleID 硬删除角色全部权限组关系
 func (r *RbacRepo) DeleteRoleGroupsByRoleID(ctx context.Context, roleID int64) error {
 	if err := tx.Exec(ctx, r.DB).
@@ -567,17 +593,6 @@ func (r *RbacRepo) CountRoleGroupsByGroupID(ctx context.Context, groupID int64) 
 		return 0, errors.Wrap(err, "统计权限组角色绑定失败")
 	}
 	return total, nil
-}
-
-// DeleteRoleGroupsByGroupID 硬删除权限组全部角色关系
-func (r *RbacRepo) DeleteRoleGroupsByGroupID(ctx context.Context, groupID int64) error {
-	if err := tx.Exec(ctx, r.DB).
-		Unscoped().
-		Where("group_id = ?", groupID).
-		Delete(&roleGroupRelModel{}).Error; err != nil {
-		return errors.Wrap(err, "清理权限组角色关系失败")
-	}
-	return nil
 }
 
 // ListPermissionIDsByGroupID 列出权限组已绑权限 ID
@@ -775,19 +790,6 @@ func (r *RbacRepo) ListPermissionCodesByUserID(ctx context.Context, userID int64
 		Raw(sqlListPermissionCodesByUserID, userID, enums.StatusEnabled, enums.StatusEnabled, enums.StatusEnabled).
 		Scan(&codes).Error; err != nil {
 		return nil, errors.Wrap(err, "查询用户权限编码失败")
-	}
-	return codes, nil
-}
-
-// ListEnabledPermissionCodes 列出全部启用权限编码
-func (r *RbacRepo) ListEnabledPermissionCodes(ctx context.Context) ([]string, error) {
-	var codes []string
-	if err := tx.Exec(ctx, r.DB).
-		Model(&permissionModel{}).
-		Where("status = ?", enums.StatusEnabled).
-		Order("code ASC").
-		Pluck("code", &codes).Error; err != nil {
-		return nil, errors.Wrap(err, "查询启用权限编码失败")
 	}
 	return codes, nil
 }

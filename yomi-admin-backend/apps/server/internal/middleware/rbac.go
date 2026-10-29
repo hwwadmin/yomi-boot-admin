@@ -27,7 +27,9 @@ func RBAC(auth rbaccontract.RbacAuthService, skip map[string]struct{}) gin.Handl
 
 		path := c.FullPath()
 		if path == "" {
-			c.Next()
+			// 未匹配到路由（404/405）：默认拒绝，避免将来挂上兜底处理器时绕过鉴权
+			corehandler.WriteBusinessError(c, errors.Sentinel(rbaccontract.ErrPermissionDenied))
+			c.Abort()
 			return
 		}
 

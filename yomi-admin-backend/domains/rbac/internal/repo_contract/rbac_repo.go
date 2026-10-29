@@ -78,10 +78,10 @@ type RbacRepo interface {
 	DeleteRoleGroupsByRoleID(ctx context.Context, roleID int64) error
 	// CountRoleGroupsByGroupID 统计绑定了权限组的角色数
 	CountRoleGroupsByGroupID(ctx context.Context, groupID int64) (int64, error)
-	// DeleteRoleGroupsByGroupID 硬删除权限组全部角色关系
-	DeleteRoleGroupsByGroupID(ctx context.Context, groupID int64) error
 	// ListPermissionIDsByRoleID 列出角色所绑权限组的权限 ID（去重聚合）
 	ListPermissionIDsByRoleID(ctx context.Context, roleID int64) ([]int64, error)
+	// ListEffectivePermissionIDsByRoleID 列出角色实际生效的权限 ID：仅统计启用权限组下的启用权限
+	ListEffectivePermissionIDsByRoleID(ctx context.Context, roleID int64) ([]int64, error)
 
 	// ListPermissionIDsByGroupID 列出权限组已绑权限 ID
 	ListPermissionIDsByGroupID(ctx context.Context, groupID int64) ([]int64, error)
@@ -112,6 +112,4 @@ type RbacRepo interface {
 	ListEnabledMenus(ctx context.Context) ([]*entity.Permission, error)
 	// ListPermissionCodesByUserID 列出用户拥有的启用权限编码
 	ListPermissionCodesByUserID(ctx context.Context, userID int64) ([]string, error)
-	// ListEnabledPermissionCodes 列出全部启用权限编码
-	ListEnabledPermissionCodes(ctx context.Context) ([]string, error)
 }

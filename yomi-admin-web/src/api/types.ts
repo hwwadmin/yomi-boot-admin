@@ -111,12 +111,14 @@ export interface RoleItem {
   updateTime: number
 }
 
-/** 角色详情（含已绑权限组与聚合权限 ID） */
+/** 角色详情（含已绑权限组、聚合权限与生效权限 ID） */
 export interface RoleDetail extends RoleItem {
   /** 已绑权限组 ID */
   groupIds: string[]
-  /** 权限组内权限的去重聚合（只读）；实际生效还取决于启停状态 */
+  /** 权限组内权限的去重聚合（只读），含停用权限组与停用权限 */
   permissionIds: string[]
+  /** 实际生效的权限 ID：仅启用权限组下的启用权限，用于标注未生效项 */
+  effectivePermissionIds: string[]
 }
 
 /** 角色创建/更新请求体；启停走独立接口 */

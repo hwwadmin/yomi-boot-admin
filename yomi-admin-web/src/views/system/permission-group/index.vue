@@ -394,6 +394,7 @@ async function savePermissions() {
             />
           </el-tab-pane>
         </el-tabs>
+        <span class="hint">停用的权限可以绑定，但不会授予访问能力。</span>
       </div>
       <template #footer>
         <el-button @click="permissionDrawerVisible = false">取消</el-button>
@@ -451,6 +452,13 @@ async function savePermissions() {
 
 .muted {
   margin-left: 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.hint {
+  display: block;
+  margin: 8px 0 0;
   color: var(--el-text-color-secondary);
   font-size: 12px;
 }

@@ -17,6 +17,8 @@ type fakeRepo struct {
 	userRoles        map[int64][]int64
 	roleGroups       map[int64][]int64
 	groupPermissions map[int64][]int64
+	// createPermission 非空时替代默认插入行为，用于模拟并发写入撞唯一键
+	createPermission func(*entity.Permission) error
 }
 
 var _ repo_contract.RbacRepo = (*fakeRepo)(nil)
@@ -231,6 +233,9 @@ func (r *fakeRepo) UpdatePermissionStatus(_ context.Context, id int64, status en
 }
 
 func (r *fakeRepo) CreatePermission(_ context.Context, permission *entity.Permission, _ int64) error {
+	if r.createPermission != nil {
+		return r.createPermission(permission)
+	}
 	r.permissions[permission.ID] = permission
 	return nil
 }
@@ -292,18 +297,35 @@ func (r *fakeRepo) CountRoleGroupsByGroupID(_ context.Context, groupID int64) (i
 	return total, nil
 }
 
-func (r *fakeRepo) DeleteRoleGroupsByGroupID(_ context.Context, groupID int64) error {
-	for roleID, groupIDs := range r.roleGroups {
-		r.roleGroups[roleID] = removeInt64(groupIDs, groupID)
-	}
-	return nil
-}
-
 func (r *fakeRepo) ListPermissionIDsByRoleID(_ context.Context, roleID int64) ([]int64, error) {
 	seen := make(map[int64]struct{})
 	ids := make([]int64, 0)
 	for _, groupID := range r.roleGroups[roleID] {
 		for _, permissionID := range r.groupPermissions[groupID] {
+			if _, ok := seen[permissionID]; ok {
+				continue
+			}
+			seen[permissionID] = struct{}{}
+			ids = append(ids, permissionID)
+		}
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	return ids, nil
+}
+
+func (r *fakeRepo) ListEffectivePermissionIDsByRoleID(_ context.Context, roleID int64) ([]int64, error) {
+	seen := make(map[int64]struct{})
+	ids := make([]int64, 0)
+	for _, groupID := range r.roleGroups[roleID] {
+		group, ok := r.permissionGroups[groupID]
+		if !ok || group.Status != enums.StatusEnabled {
+			continue
+		}
+		for _, permissionID := range r.groupPermissions[groupID] {
+			permission, ok := r.permissions[permissionID]
+			if !ok || permission.Status != enums.StatusEnabled {
+				continue
+			}
 			if _, ok := seen[permissionID]; ok {
 				continue
 			}
@@ -424,23 +446,6 @@ func (r *fakeRepo) ListPermissionCodesByUserID(_ context.Context, userID int64) 
 	codes := make([]string, 0)
 	seen := make(map[string]struct{})
 	for _, permission := range r.enabledPermissionsOf(userID) {
-		if _, ok := seen[permission.Code]; ok {
-			continue
-		}
-		seen[permission.Code] = struct{}{}
-		codes = append(codes, permission.Code)
-	}
-	sort.Strings(codes)
-	return codes, nil
-}
-
-func (r *fakeRepo) ListEnabledPermissionCodes(_ context.Context) ([]string, error) {
-	codes := make([]string, 0)
-	seen := make(map[string]struct{})
-	for _, permission := range r.permissions {
-		if permission.Status != enums.StatusEnabled {
-			continue
-		}
 		if _, ok := seen[permission.Code]; ok {
 			continue
 		}

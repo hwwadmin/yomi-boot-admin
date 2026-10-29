@@ -88,7 +88,7 @@ function validateHTTPPath(_rule: unknown, value: string, callback: (error?: Erro
   if (form.type !== 'API') return callback()
   const httpPath = value?.trim() ?? ''
   if (!httpPath) return callback(new Error('请输入接口路径'))
-  if (!httpPath.startsWith('/api/')) return callback(new Error('接口路径需以 /api/ 开头'))
+  if (!httpPath.startsWith('/')) return callback(new Error('接口路径需以 / 开头'))
   callback()
 }
 
@@ -351,6 +351,7 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
           </el-form-item>
           <el-form-item label="接口路径" prop="httpPath">
             <el-input v-model="form.httpPath" placeholder="例如 /api/system/user" maxlength="191" />
+            <span class="form-hint">填 gin 路由模板，以 / 开头即可，不强制 /api 前缀</span>
           </el-form-item>
         </template>
         <el-form-item label="备注">
@@ -396,5 +397,13 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
 
 .method-select {
   width: 100%;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.4;
 }
 </style>

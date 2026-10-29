@@ -21,10 +21,9 @@ type UserReader interface {
 	GetByID(ctx context.Context, id int64) (*userentity.User, error)
 }
 
-// RoleReader 读取角色与超管关系
+// RoleReader 读取超管关系
 type RoleReader interface {
 	ListUserIDsWithEnabledSuperAdmin(ctx context.Context) ([]int64, error)
-	ListRolesByIDs(ctx context.Context, ids []int64) ([]*rbacentity.Role, error)
 }
 
 // Locker 串行化所有会改变启用态超管集合的操作。
@@ -87,21 +86,20 @@ func (g *Guard) EnsureCanManageUser(ctx context.Context, operatorID, targetUserI
 //
 // 必须在 WithLock 内调用，且锁需覆盖后续写入与提交。
 //
+// roles 由调用方传入，且必须是已规范化并校验过的角色（存在、启用）；
+// 本方法只判断超管身份与集合变化，不重复实现“ID 规范化 / 存在性 / 启用态”规则。
+//
 // 规则：
 //   - 授予或回收超管角色，操作者必须是启用态超管；
 //   - 超管不能解绑自己的超管角色；
 //   - 变更后启用态超管集合不能为空。
-func (g *Guard) EnsureCanBindRoles(ctx context.Context, operatorID, targetUserID int64, roleIDs []int64) error {
+func (g *Guard) EnsureCanBindRoles(ctx context.Context, operatorID, targetUserID int64, roles []*rbacentity.Role) error {
 	target, err := g.users.GetByID(ctx, targetUserID)
 	if err != nil {
 		return err
 	}
 
 	enabledSupers, err := g.enabledSuperUserIDs(ctx)
-	if err != nil {
-		return err
-	}
-	roles, err := g.rbac.ListRolesByIDs(ctx, roleIDs)
 	if err != nil {
 		return err
 	}

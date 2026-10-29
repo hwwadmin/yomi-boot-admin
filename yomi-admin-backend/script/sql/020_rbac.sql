@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `t_rbac_permission` (
     `permission_type` VARCHAR(20)  NOT NULL COMMENT '权限类型：MENU-菜单，API-接口',
     `ui_path`         VARCHAR(191) DEFAULT NULL COMMENT '菜单路径，permission_type=MENU 时必填',
     `http_method`     VARCHAR(16)  DEFAULT NULL COMMENT 'HTTP 方法，permission_type=API 时必填',
-    `http_path`       VARCHAR(191) DEFAULT NULL COMMENT 'gin 路由模板（含 /api），permission_type=API 时必填',
+    `http_path`       VARCHAR(191) DEFAULT NULL COMMENT 'gin 路由模板（以 / 开头，通常含 /api），permission_type=API 时必填',
     `status`          VARCHAR(20)  NOT NULL DEFAULT 'ENABLED' COMMENT '状态：ENABLED-启用，DISABLED-禁用',
     `remark`          VARCHAR(255) NOT NULL DEFAULT '' COMMENT '备注',
     `create_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

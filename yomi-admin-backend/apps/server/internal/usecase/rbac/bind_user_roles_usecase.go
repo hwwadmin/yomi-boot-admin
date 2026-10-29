@@ -3,6 +3,7 @@ package rbac
 import (
 	"context"
 
+	rbacentity "yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
@@ -21,7 +22,7 @@ type BindUserRolesInput struct {
 // superAdminPolicy 超管相关编排策略
 type superAdminPolicy interface {
 	WithLock(ctx context.Context, fn func(context.Context) error) error
-	EnsureCanBindRoles(ctx context.Context, operatorID, targetUserID int64, roleIDs []int64) error
+	EnsureCanBindRoles(ctx context.Context, operatorID, targetUserID int64, roles []*rbacentity.Role) error
 }
 
 // BindUserRolesUsecase 用户角色绑定编排
@@ -46,7 +47,12 @@ func (uc *BindUserRolesUsecase) Execute(ctx context.Context, in *BindUserRolesIn
 	roleIDs := in.RoleIDs.Int64Slice()
 	return uc.guard.WithLock(ctx, func(lockCtx context.Context) error {
 		return uc.tx.Run(lockCtx, func(txCtx context.Context) error {
-			if err := uc.guard.EnsureCanBindRoles(txCtx, in.OperatorID, userID, roleIDs); err != nil {
+			// 角色校验只在这里做一次：结果同时喂给超管策略与实际绑定，策略层不再重复实现规则
+			roles, err := uc.rbac.ResolveBindingRoles(txCtx, roleIDs)
+			if err != nil {
+				return err
+			}
+			if err := uc.guard.EnsureCanBindRoles(txCtx, in.OperatorID, userID, roles); err != nil {
 				return err
 			}
 			return uc.rbac.BindUserRoles(txCtx, &rbacinput.BindUserRolesInput{

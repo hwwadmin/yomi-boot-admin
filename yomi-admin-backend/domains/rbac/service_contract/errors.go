@@ -26,8 +26,8 @@ var (
 	ErrPermissionGroupBoundToRoles = errors.NewBiz("ADMIN_PERMISSION_GROUP_BOUND_TO_ROLES", "权限组已绑定角色，无法删除")
 	// ErrBuiltinRoleImmutable 内置角色不允许变更或删除
 	ErrBuiltinRoleImmutable = errors.NewBiz("ADMIN_BUILTIN_ROLE_IMMUTABLE", "内置角色不允许变更或删除")
-	// ErrRelatedDisabled 关联的角色、权限组或权限已停用
-	ErrRelatedDisabled = errors.NewBiz("ADMIN_RELATED_DISABLED", "关联的角色、权限组或权限已停用")
+	// ErrRelatedDisabled 绑定给用户的角色已停用；权限组与权限允许先绑后启用，不再报此错误
+	ErrRelatedDisabled = errors.NewBiz("ADMIN_RELATED_DISABLED", "绑定的角色已停用，请先启用该角色或从选择中移除")
 	// ErrInvalidInput 参数不合法
 	ErrInvalidInput = errors.NewBiz("ADMIN_INVALID_INPUT", "参数不合法")
 	// ErrCacheDisabled 鉴权缓存未启用

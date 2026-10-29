@@ -174,10 +174,21 @@ const groups = ref<PermissionGroupItem[]>([])
 const permissions = ref<PermissionItem[]>([])
 const selectedGroupIds = ref<string[]>([])
 const aggregatedPermissionIds = ref<string[]>([])
+const effectivePermissionIds = ref<string[]>([])
 
 /** 角色权限来自权限组的去重聚合，这里只做只读展示 */
 const aggregatedPermissions = computed(() =>
   permissions.value.filter((item) => aggregatedPermissionIds.value.includes(item.id)),
+)
+
+/** 判断权限是否真正生效：只有启用权限组下的启用权限才算 */
+function isPermissionEffective(id: string): boolean {
+  return effectivePermissionIds.value.includes(id)
+}
+
+/** 未生效的聚合权限数量，用于提示文案 */
+const ineffectiveCount = computed(
+  () => aggregatedPermissions.value.filter((item) => !isPermissionEffective(item.id)).length,
 )
 
 async function openGroupDrawer(row: RoleItem) {
@@ -194,6 +205,7 @@ async function openGroupDrawer(row: RoleItem) {
     permissions.value = allPermissions
     selectedGroupIds.value = detail.groupIds
     aggregatedPermissionIds.value = detail.permissionIds
+    effectivePermissionIds.value = detail.effectivePermissionIds ?? []
   } finally {
     groupLoading.value = false
   }
@@ -374,6 +386,9 @@ async function saveGroups() {
             <el-tag v-if="group.status === 'DISABLED'" type="info" size="small">已停用</el-tag>
           </el-checkbox>
         </el-checkbox-group>
+        <span class="muted hint">
+          停用的权限组可以绑定，但不会授予任何权限。
+        </span>
         <el-empty
           v-if="!groupLoading && groups.length === 0"
           description="暂无权限组，请先在「权限组」中创建"
@@ -383,13 +398,22 @@ async function saveGroups() {
           聚合权限（{{ aggregatedPermissions.length }} 项，自动去重）
         </el-divider>
         <div class="permission-tags">
-          <el-tag v-for="item in aggregatedPermissions" :key="item.id" size="small" type="info">
+          <el-tag
+            v-for="item in aggregatedPermissions"
+            :key="item.id"
+            size="small"
+            :type="isPermissionEffective(item.id) ? 'info' : 'warning'"
+          >
             {{ item.name }}
+            <span v-if="!isPermissionEffective(item.id)">（未生效）</span>
           </el-tag>
           <span v-if="aggregatedPermissions.length === 0" class="muted">
             该角色尚未绑定任何权限组
           </span>
         </div>
+        <span v-if="ineffectiveCount > 0" class="muted hint">
+          标注“未生效”的 {{ ineffectiveCount }} 项来自已停用的权限组，或该权限本身已停用，不会授予访问能力。
+        </span>
       </div>
       <template #footer>
         <el-button @click="groupDrawerVisible = false">取消</el-button>
@@ -447,6 +471,13 @@ async function saveGroups() {
 
 .muted {
   margin-left: 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.hint {
+  display: block;
+  margin: 8px 0 0;
   color: var(--el-text-color-secondary);
   font-size: 12px;
 }

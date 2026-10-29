@@ -43,12 +43,17 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, in *UpdateUserInput) e
 	if id <= 0 {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
-	if id == in.OperatorID && in.Status != enums.UserStatusEnabled {
+	if !enums.IsValidUserStatus(in.Status) {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	disabling := in.Status != enums.UserStatusEnabled
+	if id == in.OperatorID && disabling {
 		return support.ErrCannotOperateSelf
 	}
 
 	update := func(txCtx context.Context) error {
-		if in.Status != enums.UserStatusEnabled {
+		if disabling {
 			if err := uc.guard.EnsureCanManageUser(txCtx, in.OperatorID, id); err != nil {
 				return err
 			}
@@ -64,8 +69,8 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, in *UpdateUserInput) e
 	}
 
 	var err error
-	if in.Status != enums.UserStatusEnabled {
-		// 非启用状态可能移除超管账号或减少启用态超管集合，必须串行化。
+	if disabling {
+		// 停用可能移除超管账号或减少启用态超管集合，必须串行化。
 		err = uc.guard.WithLock(ctx, func(lockCtx context.Context) error {
 			return uc.tx.Run(lockCtx, update)
 		})
@@ -77,7 +82,7 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, in *UpdateUserInput) e
 		return err
 	}
 
-	if in.Status != enums.UserStatusEnabled {
+	if disabling {
 		return revokeUserTokens(ctx, uc.token, id)
 	}
 	return nil

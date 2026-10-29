@@ -23,8 +23,12 @@ import (
 )
 
 const (
-	// lockTTL 覆盖一次全量读取与写入的耗时上限，超时自动释放
-	lockTTL = 10 * time.Second
+	// lockTTL 覆盖一次六表全量构建与写回的耗时上限，超时自动释放。
+	//
+	// 必须明显大于一次构建的耗时：构建期间锁一旦过期，其它实例就会进来重复重建，
+	// 先写入的新快照还可能被后写入的旧快照覆盖。代价是进程异常退出后残留锁最多
+	// 压制一个 TTL 的重建，这期间读请求按未命中降级为 SQL 直查，不影响正确性。
+	lockTTL = 30 * time.Second
 	// unlockTimeout 是释放锁的最长等待时间
 	unlockTimeout = 3 * time.Second
 	// fallbackWarnInterval 是降级告警的最小间隔，避免 Redis 故障期间刷日志

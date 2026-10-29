@@ -60,7 +60,7 @@ func (s *RbacAdminService) PageRoles(ctx context.Context, in *input.PageRolesInp
 	return &output.PageRolesOutput{Items: items, Total: total}, nil
 }
 
-// GetRole 查询角色详情：已绑权限组 + 组内权限的去重聚合
+// GetRole 查询角色详情：已绑权限组、组内权限的去重聚合，以及实际生效的权限子集
 func (s *RbacAdminService) GetRole(ctx context.Context, id int64) (*entity.RoleDetail, error) {
 	if id <= 0 {
 		return nil, errors.Sentinel(service_contract.ErrRoleNotFound)
@@ -82,7 +82,16 @@ func (s *RbacAdminService) GetRole(ctx context.Context, id int64) (*entity.RoleD
 	if err != nil {
 		return nil, err
 	}
-	return &entity.RoleDetail{Role: role, GroupIDs: groupIDs, PermissionIDs: permissionIDs}, nil
+	effectiveIDs, err := s.repo.ListEffectivePermissionIDsByRoleID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &entity.RoleDetail{
+		Role:                   role,
+		GroupIDs:               groupIDs,
+		PermissionIDs:          permissionIDs,
+		EffectivePermissionIDs: effectiveIDs,
+	}, nil
 }
 
 // CreateRole 创建角色
@@ -207,7 +216,10 @@ func (s *RbacAdminService) SetRoleStatus(ctx context.Context, in *input.SetRoleS
 	return s.repo.UpdateRoleStatus(ctx, role.ID, in.Status, in.OperatorID)
 }
 
-// BindRoleGroups 覆盖角色权限组；角色权限始终来自权限组的去重聚合
+// BindRoleGroups 覆盖角色权限组；角色权限始终来自权限组的去重聚合。
+//
+// 停用的权限组允许绑定：它不会授予任何权限，由界面标注状态；
+// 实际生效范围取决于权限组与权限本身的启停。
 func (s *RbacAdminService) BindRoleGroups(ctx context.Context, in *input.BindRoleGroupsInput) error {
 	if in == nil || in.RoleID <= 0 {
 		return errors.Sentinel(service_contract.ErrRoleNotFound)
@@ -236,11 +248,6 @@ func (s *RbacAdminService) BindRoleGroups(ctx context.Context, in *input.BindRol
 		}
 		if len(groups) != len(groupIDs) {
 			return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
-		}
-		for _, group := range groups {
-			if group.Status != enums.StatusEnabled {
-				return errors.Sentinel(service_contract.ErrRelatedDisabled)
-			}
 		}
 	}
 
@@ -409,7 +416,9 @@ func (s *RbacAdminService) SetPermissionGroupStatus(ctx context.Context, in *inp
 	return s.repo.UpdatePermissionGroupStatus(ctx, group.ID, in.Status, in.OperatorID)
 }
 
-// BindGroupPermissions 覆盖权限组权限
+// BindGroupPermissions 覆盖权限组权限。
+//
+// 停用的权限允许绑定：它不会授予任何权限，由界面标注状态。
 func (s *RbacAdminService) BindGroupPermissions(ctx context.Context, in *input.BindGroupPermissionsInput) error {
 	if in == nil || in.GroupID <= 0 {
 		return errors.Sentinel(service_contract.ErrPermissionGroupNotFound)
@@ -435,11 +444,6 @@ func (s *RbacAdminService) BindGroupPermissions(ctx context.Context, in *input.B
 		}
 		if len(permissions) != len(permissionIDs) {
 			return errors.Sentinel(service_contract.ErrPermissionNotFound)
-		}
-		for _, permission := range permissions {
-			if permission.Status != enums.StatusEnabled {
-				return errors.Sentinel(service_contract.ErrRelatedDisabled)
-			}
 		}
 	}
 
@@ -517,7 +521,7 @@ func (s *RbacAdminService) CreatePermission(ctx context.Context, in *input.Creat
 	permission.Remark = remark
 	if err := s.repo.CreatePermission(ctx, permission, in.OperatorID); err != nil {
 		if errors.Is(err, repo_contract.ErrDuplicatedKey) {
-			return nil, errors.Sentinel(service_contract.ErrPermissionResourceExists)
+			return nil, s.resolveCreatePermissionConflict(ctx, code, permission)
 		}
 		return nil, err
 	}
@@ -628,22 +632,9 @@ func (s *RbacAdminService) BindUserRoles(ctx context.Context, in *input.BindUser
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 
-	roleIDs, err := normalizeIDs(in.RoleIDs)
+	roleIDs, _, err := s.resolveBindingRoles(ctx, in.RoleIDs)
 	if err != nil {
 		return err
-	}
-
-	roles, err := s.repo.FindRolesByIDs(ctx, roleIDs)
-	if err != nil {
-		return err
-	}
-	if len(roles) != len(roleIDs) {
-		return errors.Sentinel(service_contract.ErrRoleNotFound)
-	}
-	for _, role := range roles {
-		if role.Status != enums.StatusEnabled {
-			return errors.Sentinel(service_contract.ErrRelatedDisabled)
-		}
 	}
 
 	rels := make([]*entity.UserRoleRel, 0, len(roleIDs))
@@ -674,16 +665,36 @@ func (s *RbacAdminService) ListRolesByUserIDs(ctx context.Context, userIDs []int
 	return s.repo.ListRolesByUserIDs(ctx, userIDs)
 }
 
-// ListRolesByIDs 按主键批量查询角色
-func (s *RbacAdminService) ListRolesByIDs(ctx context.Context, ids []int64) ([]*entity.Role, error) {
-	roleIDs, err := normalizeIDs(ids)
+// ResolveBindingRoles 供编排层在超管策略检查前取得待绑定的角色。
+// 规则与 BindUserRoles 完全一致：ID 去重、角色必须存在且处于启用态。
+func (s *RbacAdminService) ResolveBindingRoles(ctx context.Context, ids []int64) ([]*entity.Role, error) {
+	_, roles, err := s.resolveBindingRoles(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
-	if len(roleIDs) == 0 {
-		return []*entity.Role{}, nil
+	return roles, nil
+}
+
+// resolveBindingRoles 是“角色能否绑定”规则的唯一实现：规范化 ID、校验存在性与启用态。
+func (s *RbacAdminService) resolveBindingRoles(ctx context.Context, ids []int64) ([]int64, []*entity.Role, error) {
+	roleIDs, err := normalizeIDs(ids)
+	if err != nil {
+		return nil, nil, err
 	}
-	return s.repo.FindRolesByIDs(ctx, roleIDs)
+
+	roles, err := s.repo.FindRolesByIDs(ctx, roleIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(roles) != len(roleIDs) {
+		return nil, nil, errors.Sentinel(service_contract.ErrRoleNotFound)
+	}
+	for _, role := range roles {
+		if role.Status != enums.StatusEnabled {
+			return nil, nil, errors.Sentinel(service_contract.ErrRelatedDisabled)
+		}
+	}
+	return roleIDs, roles, nil
 }
 
 // ListUserIDsWithEnabledSuperAdmin 列出拥有启用态超管角色的用户 ID
@@ -716,9 +727,11 @@ func validUIPath(uiPath string) bool {
 	return strings.HasPrefix(uiPath, "/") && len(uiPath) <= maxResourceLength && !containsSpace(uiPath)
 }
 
-// validHTTPPath 判断接口路由模板是否合法
+// validHTTPPath 判断接口路由模板是否合法：以 / 开头、长度受限、不含空白。
+//
+// 不强制 /api 前缀，便于对接网关改写或多前缀部署；路径是否真能匹配到路由由配置者自行保证。
 func validHTTPPath(httpPath string) bool {
-	return strings.HasPrefix(httpPath, "/api/") && len(httpPath) <= maxResourceLength && !containsSpace(httpPath)
+	return strings.HasPrefix(httpPath, "/") && len(httpPath) <= maxResourceLength && !containsSpace(httpPath)
 }
 
 // validHTTPMethod 判断 HTTP 方法是否合法
@@ -756,6 +769,27 @@ func normalizePermissionResource(permissionType enums.PermissionType, uiPath, ht
 	default:
 		return nil, false
 	}
+}
+
+// resolveCreatePermissionConflict 在插入撞唯一键时回查冲突字段，返回准确的业务错误。
+//
+// 仓储把重复键统一收敛成一个哨兵，无法区分撞的是编码还是资源；预检查与插入之间存在
+// 并发窗口，因此这里按“编码优先”的顺序回查确认，避免把编码冲突误报成资源冲突。
+func (s *RbacAdminService) resolveCreatePermissionConflict(ctx context.Context, code string, permission *entity.Permission) error {
+	_, found, err := s.repo.FindPermissionByCode(ctx, code)
+	if err != nil {
+		return err
+	}
+	if found {
+		return errors.Sentinel(service_contract.ErrPermissionCodeExists)
+	}
+
+	if err := s.ensurePermissionResourceFree(ctx, permission, 0); err != nil {
+		return err
+	}
+
+	// 冲突行在回查前已被删除等极端情况：保守返回资源冲突，不暴露数据库细节
+	return errors.Sentinel(service_contract.ErrPermissionResourceExists)
 }
 
 // ensurePermissionResourceFree 校验权限资源未被其它权限占用

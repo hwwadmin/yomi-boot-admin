@@ -98,6 +98,25 @@ func (f *fakeTokenService) RevokeByUserID(_ context.Context, userID int64) error
 	return nil
 }
 
+// TestUpdateUserRejectsInvalidStatus 校验状态缺省或非法时直接报参数错误，不进入超管锁与后续流程
+func TestUpdateUserRejectsInvalidStatus(t *testing.T) {
+	for _, status := range []enums.UserStatus{"", "UNKNOWN"} {
+		users := &fakeUserService{}
+		guard := &fakeGuard{}
+		tokens := &fakeTokenService{}
+		uc := NewUpdateUserUsecase(users, guard, fakeExecutor{}, tokens)
+
+		err := uc.Execute(context.Background(), &UpdateUserInput{ID: dto.JSONInt64(8), Status: status, OperatorID: 1})
+		if !errors.Is(err, service_contract.ErrInvalidInput) {
+			t.Fatalf("状态 %q 期望 ErrInvalidInput，实际 %v", status, err)
+		}
+		if guard.locks != 0 || guard.called != 0 || users.updated != nil || len(tokens.revoked) != 0 {
+			t.Fatalf("状态 %q 不应触达锁/策略/写库/撤令牌: locks=%d called=%d updated=%v revoked=%v",
+				status, guard.locks, guard.called, users.updated, tokens.revoked)
+		}
+	}
+}
+
 func TestUpdateUserCannotDisableSelf(t *testing.T) {
 	users := &fakeUserService{}
 	guard := &fakeGuard{}
