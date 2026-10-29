@@ -46,13 +46,13 @@ func NewRoleHandler(
 
 // Routes 注册角色管理路由
 func (h *RoleHandler) Routes(router *gin.RouterGroup) {
-	router.GET("/system/role", h.page)
-	router.GET("/system/role/detail", h.get)
-	router.POST("/system/role/create", h.create)
-	router.POST("/system/role/update", h.update)
-	router.POST("/system/role/delete", h.delete)
-	router.POST("/system/role/set-status", h.setStatus)
-	router.POST("/system/role/bind-group", h.bindGroups)
+	router.GET("/api/system/role", h.page)
+	router.GET("/api/system/role/detail", h.get)
+	router.POST("/api/system/role/create", h.create)
+	router.POST("/api/system/role/update", h.update)
+	router.POST("/api/system/role/delete", h.delete)
+	router.POST("/api/system/role/set-status", h.setStatus)
+	router.POST("/api/system/role/bind-group", h.bindGroups)
 }
 
 func (h *RoleHandler) page(c *gin.Context) {

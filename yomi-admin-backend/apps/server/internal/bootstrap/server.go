@@ -103,10 +103,9 @@ func load(slot *plugin.PluginSlot) container {
 			panic("yomi-admin: biz.login_guard 需要启用 ratelimit 插件（ratelimit.enabled=true）")
 		}
 
-		// 公开路由只在 biz.auth.public_paths 声明：这里把它同时注入令牌中间件的跳过清单，
-		// 并生成 RBAC 的跳过集合，保证"哪些路由免鉴权"只有一个来源。
-		httpCfg := config.MustSection[routerplugin.BootConfig](slot.Config, routerplugin.SectionKey).ToConfig()
-		rbacSkip, anonymousPaths := splitPublicRoutes(bizCfg.Auth.PublicRoutes(httpCfg.RouterPrefixClean()))
+		// 公开路由只在 biz.auth.public_paths 声明（path 为完整 URI）：这里把它同时注入
+		// 令牌中间件的跳过清单，并生成 RBAC 的跳过集合，保证"哪些路由免鉴权"只有一个来源。
+		rbacSkip, anonymousPaths := splitPublicRoutes(bizCfg.Auth.PublicRoutes())
 		config.MustSection[tokenplugin.BootConfig](slot.Config, tokenplugin.SectionKey).SkipValidatePaths = anonymousPaths
 
 		captchaStore, err := captcha.NewRedisStore(redisPlugin.Service(), captcha.RedisStoreConfig{
@@ -186,7 +185,7 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	guard := superadmin.New(c.users.Users, c.rbac.Admin, newSuperAdminLocker(c.lock))
 
 	registrars := []router.Registrar{
-		corehandler.NewHealthHandler("/v1/health", "/v1/health/ops", c.appCtx),
+		corehandler.NewHealthHandler("/api/v1/health", "/api/v1/health/ops", c.appCtx),
 		apphandler.NewAuthHandler(
 			authusecase.NewLoginUsecase(c.users.Users, c.rbac.Auth, c.token, c.captcha, c.loginGuard),
 			c.captcha,
@@ -242,7 +241,7 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 		registrars = append(registrars, apphandler.NewApiDocHandler())
 		httpCfg := config.MustSection[routerplugin.BootConfig](slot.Config, routerplugin.SectionKey).ToConfig()
 		logger.Info(slot.RuntimeContext(), "API 文档已启用",
-			"url", fmt.Sprintf("http://127.0.0.1:%d%s/system/api-doc", httpCfg.Port, httpCfg.RouterPrefixClean()))
+			"url", fmt.Sprintf("http://127.0.0.1:%d%s/api/system/api-doc", httpCfg.Port, httpCfg.RouterPrefixClean()))
 	}
 	return registrars
 }

@@ -46,13 +46,13 @@ func NewPermissionGroupHandler(
 
 // Routes 注册权限组管理路由
 func (h *PermissionGroupHandler) Routes(router *gin.RouterGroup) {
-	router.GET("/system/permission-group", h.page)
-	router.GET("/system/permission-group/detail", h.get)
-	router.POST("/system/permission-group/create", h.create)
-	router.POST("/system/permission-group/update", h.update)
-	router.POST("/system/permission-group/delete", h.delete)
-	router.POST("/system/permission-group/set-status", h.setStatus)
-	router.POST("/system/permission-group/bind-permission", h.bindPermissions)
+	router.GET("/api/system/permission-group", h.page)
+	router.GET("/api/system/permission-group/detail", h.get)
+	router.POST("/api/system/permission-group/create", h.create)
+	router.POST("/api/system/permission-group/update", h.update)
+	router.POST("/api/system/permission-group/delete", h.delete)
+	router.POST("/api/system/permission-group/set-status", h.setStatus)
+	router.POST("/api/system/permission-group/bind-permission", h.bindPermissions)
 }
 
 func (h *PermissionGroupHandler) page(c *gin.Context) {

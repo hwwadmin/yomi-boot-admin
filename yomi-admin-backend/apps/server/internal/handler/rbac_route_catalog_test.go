@@ -41,7 +41,7 @@ func TestRBACRouteCatalogCoverage(t *testing.T) {
 	(&HttpRecordHandler{}).Routes(group)
 	(&RbacCacheHandler{}).Routes(group)
 	NewApiDocHandler().Routes(group)
-	corehandler.NewHealthHandler("/v1/health", "/v1/health/ops",
+	corehandler.NewHealthHandler("/api/v1/health", "/api/v1/health/ops",
 		appctx.NewAppCtx("yomi-admin-test", "test", "test")).Routes(group)
 
 	registered := make(map[string]struct{})
@@ -115,13 +115,11 @@ func readPublicRoutes(t *testing.T) (string, map[string]struct{}) {
 	if err := v.UnmarshalKey(svcconfig.SectionKey, &bizCfg); err != nil {
 		t.Fatalf("解析 biz 配置段失败: %v", err)
 	}
+	// router_prefix 未配置时为空串：路由的 /api 前缀已写在各 handler 的 URI 里
 	prefix := strings.TrimSpace(v.GetString("http.router_prefix"))
-	if prefix == "" {
-		prefix = "/api"
-	}
 
 	routes := make(map[string]struct{}, len(bizCfg.Auth.PublicPaths))
-	for _, route := range bizCfg.Auth.PublicRoutes(prefix) {
+	for _, route := range bizCfg.Auth.PublicRoutes() {
 		routes[route.Method+" "+route.Path] = struct{}{}
 	}
 	if len(routes) == 0 {

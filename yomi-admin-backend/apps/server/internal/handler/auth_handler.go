@@ -39,11 +39,11 @@ func NewAuthHandler(
 
 // Routes 注册认证路由
 func (h *AuthHandler) Routes(router *gin.RouterGroup) {
-	router.GET("/auth/captcha", h.captcha)
-	router.POST("/auth/login", h.login)
-	router.GET("/auth/profile", h.profile)
-	router.POST("/auth/logout", h.logout)
-	router.POST("/auth/password", h.changePassword)
+	router.GET("/api/auth/captcha", h.captcha)
+	router.POST("/api/auth/login", h.login)
+	router.GET("/api/auth/profile", h.profile)
+	router.POST("/api/auth/logout", h.logout)
+	router.POST("/api/auth/password", h.changePassword)
 }
 
 func (h *AuthHandler) captcha(c *gin.Context) {

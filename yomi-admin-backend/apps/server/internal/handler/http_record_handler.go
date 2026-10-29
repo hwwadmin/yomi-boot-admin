@@ -27,8 +27,8 @@ func NewHttpRecordHandler(
 
 // Routes 注册 HTTP 访问记录路由
 func (h *HttpRecordHandler) Routes(router *gin.RouterGroup) {
-	router.GET("/system/http-record", h.page)
-	router.GET("/system/http-record/detail", h.get)
+	router.GET("/api/system/http-record", h.page)
+	router.GET("/api/system/http-record/detail", h.get)
 }
 
 func (h *HttpRecordHandler) page(c *gin.Context) {

@@ -22,7 +22,7 @@ func NewRbacCacheHandler(refreshUC *rbacusecase.RefreshRbacCacheUsecase) *RbacCa
 
 // Routes 注册鉴权缓存维护路由
 func (h *RbacCacheHandler) Routes(router *gin.RouterGroup) {
-	router.POST("/system/rbac-cache/refresh", h.refresh)
+	router.POST("/api/system/rbac-cache/refresh", h.refresh)
 }
 
 func (h *RbacCacheHandler) refresh(c *gin.Context) {

@@ -6,7 +6,7 @@ app:
 
 http:
   port: 8080
-  router_prefix: /api
+  # router_prefix 仅在需要系统标识前缀时配置（如 /yomi-admin）；当前未使用，路由的 /api 前缀写在各 handler 的 URI 里
   read_timeout_seconds: 30
   write_timeout_seconds: 30
   read_header_timeout_seconds: 5
@@ -127,23 +127,24 @@ biz:
     enabled: ${YOMI_ADMIN_BIZ_DOCS_ENABLED:false}
 
   # 公开路由：免令牌 / 免接口权限的路由只在这里声明，代码里不再硬编码。
-  # path 省略 http.router_prefix（启动时自动拼接）；token=false 表示连令牌都不校验。
+  # path 是对外完整 URI（含 /api）；将来若配置 router_prefix（系统标识前缀），声明需同步加上该前缀。
+  # token=false 表示连令牌都不校验。
   auth:
     public_paths:
       # 完全公开：不校验令牌，也不校验接口权限
-      - { method: GET, path: /v1/health, token: false }
-      - { method: GET, path: /v1/health/ops, token: false }
-      - { method: GET, path: /auth/captcha, token: false }
-      - { method: POST, path: /auth/login, token: false }
+      - { method: GET, path: /api/v1/health, token: false }
+      - { method: GET, path: /api/v1/health/ops, token: false }
+      - { method: GET, path: /api/auth/captcha, token: false }
+      - { method: POST, path: /api/auth/login, token: false }
       # API 文档（Swagger UI 与静态资源）；docs 关闭时这里只是无效声明
-      - { method: GET, path: /system/api-doc, token: false }
-      - { method: GET, path: /system/api-doc/schema, token: false }
-      - { method: GET, path: /system/api-doc/swagger-ui.css, token: false }
-      - { method: GET, path: /system/api-doc/swagger-ui-bundle.js, token: false }
+      - { method: GET, path: /api/system/api-doc, token: false }
+      - { method: GET, path: /api/system/api-doc/schema, token: false }
+      - { method: GET, path: /api/system/api-doc/swagger-ui.css, token: false }
+      - { method: GET, path: /api/system/api-doc/swagger-ui-bundle.js, token: false }
       # 登录即可：校验令牌，但不校验接口权限
-      - { method: GET, path: /auth/profile, token: true }
-      - { method: POST, path: /auth/logout, token: true }
-      - { method: POST, path: /auth/password, token: true }
+      - { method: GET, path: /api/auth/profile, token: true }
+      - { method: POST, path: /api/auth/logout, token: true }
+      - { method: POST, path: /api/auth/password, token: true }
 
 # HTTP 访问记录：中间件采集 + 进程内消费者落库，供后台「访问记录」页面查询
 http_record:

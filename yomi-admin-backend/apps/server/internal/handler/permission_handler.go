@@ -40,11 +40,11 @@ func NewPermissionHandler(
 
 // Routes 注册权限目录管理路由
 func (h *PermissionHandler) Routes(router *gin.RouterGroup) {
-	router.GET("/system/permission", h.page)
-	router.POST("/system/permission/create", h.create)
-	router.POST("/system/permission/update", h.update)
-	router.POST("/system/permission/delete", h.delete)
-	router.POST("/system/permission/set-status", h.setStatus)
+	router.GET("/api/system/permission", h.page)
+	router.POST("/api/system/permission/create", h.create)
+	router.POST("/api/system/permission/update", h.update)
+	router.POST("/api/system/permission/delete", h.delete)
+	router.POST("/api/system/permission/set-status", h.setStatus)
 }
 
 func (h *PermissionHandler) page(c *gin.Context) {

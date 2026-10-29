@@ -24,7 +24,8 @@ var apidocSelfRoutes = map[string]struct{}{
 func TestAPIDocCoverage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
-	group := engine.Group("/api")
+	// 路由的 /api 前缀已写在各 handler 的 URI 里，测试引擎不再加 group 前缀
+	group := engine.Group("")
 	(&AuthHandler{}).Routes(group)
 	(&UserHandler{}).Routes(group)
 	(&RoleHandler{}).Routes(group)

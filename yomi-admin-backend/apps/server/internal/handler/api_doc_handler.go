@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"net/http"
+	"strings"
 	"yomi-admin-backend/apps/server/api"
 
 	"github.com/gin-gonic/gin"
@@ -13,12 +14,12 @@ import (
 //go:embed swaggerui/swagger-ui-bundle.js swaggerui/swagger-ui.css
 var swaggerUI embed.FS
 
-// API 文档路由段（相对 router group；实际路径带 /api 前缀）
+// API 文档路由（完整路径，含 /api 前缀）
 const (
-	apiDocPagePath   = "/system/api-doc"
-	apiDocSchemaPath = "/system/api-doc/schema"
-	apiDocCSSPath    = "/system/api-doc/swagger-ui.css"
-	apiDocJSPath     = "/system/api-doc/swagger-ui-bundle.js"
+	apiDocPagePath   = "/api/system/api-doc"
+	apiDocSchemaPath = "/api/system/api-doc/schema"
+	apiDocCSSPath    = "/api/system/api-doc/swagger-ui.css"
+	apiDocJSPath     = "/api/system/api-doc/swagger-ui-bundle.js"
 )
 
 // apiDocPageTemplate 是 Swagger UI 页面模板；三个 %s 依次为 css/js/schema 绝对地址
@@ -65,7 +66,8 @@ func NewApiDocHandler() *ApiDocHandler {
 
 // Routes 注册文档路由；页面内三个地址均按当前 router 前缀拼接为绝对路径
 func (h *ApiDocHandler) Routes(router *gin.RouterGroup) {
-	base := router.BasePath()
+	// BasePath 为 "/" 时（未配置 router_prefix）去掉尾部斜杠，避免拼出 //api/... 的协议相对地址
+	base := strings.TrimSuffix(router.BasePath(), "/")
 	h.pageHTML = []byte(fmt.Sprintf(apiDocPageTemplate,
 		base+apiDocCSSPath, base+apiDocJSPath, base+apiDocSchemaPath))
 	router.GET(apiDocPagePath, h.page)

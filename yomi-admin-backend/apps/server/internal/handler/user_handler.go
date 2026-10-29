@@ -46,13 +46,13 @@ func NewUserHandler(
 
 // Routes 注册系统用户路由
 func (h *UserHandler) Routes(router *gin.RouterGroup) {
-	router.GET("/system/user", h.page)
-	router.POST("/system/user/create", h.create)
-	router.POST("/system/user/update", h.update)
-	router.POST("/system/user/delete", h.delete)
-	router.POST("/system/user/reset-password", h.resetPassword)
-	router.GET("/system/user/role", h.getRoles)
-	router.POST("/system/user/bind-role", h.bindRoles)
+	router.GET("/api/system/user", h.page)
+	router.POST("/api/system/user/create", h.create)
+	router.POST("/api/system/user/update", h.update)
+	router.POST("/api/system/user/delete", h.delete)
+	router.POST("/api/system/user/reset-password", h.resetPassword)
+	router.GET("/api/system/user/role", h.getRoles)
+	router.POST("/api/system/user/bind-role", h.bindRoles)
 }
 
 func (h *UserHandler) page(c *gin.Context) {
