@@ -16,7 +16,7 @@ info:
     - 雪花 ID 一律以字符串传输（避免 JS int64 精度丢失），如 `"1930000000000000001"`；请求中同名字段也接受数字。
     - 时间戳均为 Unix 毫秒（UTC），由前端按客户端时区展示。
     - 枚举为大写字符串：状态 `ENABLED` / `DISABLED`（用户、角色、权限、权限组通用），权限类型 `MENU` / `API`。
-    - 认证方式：`Authorization: Bearer <token>`，token 由登录接口签发；仅验证码与登录接口免认证。
+    - 认证方式：`Authorization: Bearer <token>`，token 由登录接口签发；免认证路由（验证码、登录、登录页配置、健康检查等）由服务端配置 `biz.auth.public_paths` 声明。
 servers:
   - url: /
 tags:
@@ -56,6 +56,27 @@ paths:
                         required: [data]
                         properties:
                           data: { $ref: '#/components/schemas/CaptchaOutput' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/auth/config:
+    get:
+      tags: [认证]
+      operationId: getLoginConfig
+      summary: 登录页公开配置
+      description: 下发登录页所需的开关（如是否需要图形验证码），供前端在登录前渲染表单；免认证。
+      security: []
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/LoginConfig' }
                   - $ref: '#/components/schemas/EnvelopeError'
   /api/auth/login:
     post:
@@ -764,6 +785,12 @@ components:
         id: { type: string, description: 验证码 ID，登录时回传 }
         image: { type: string, description: 验证码图像（base64 Data URL） }
         expiresIn: { type: integer, description: 有效期（秒） }
+    LoginConfig:
+      type: object
+      description: 登录页公开配置
+      required: [captchaRequired]
+      properties:
+        captchaRequired: { type: boolean, description: 登录是否需要图形验证码（由 biz.captcha.enabled 决定） }
     MenuView:
       type: object
       required: [code, name, uiPath]
@@ -789,8 +816,8 @@ components:
       type: object
       required: [username, password]
       properties:
-        username: { type: string }
-        password: { type: string }
+        username: { type: string, description: 登录名，最长 64 字节，超限返回 ADMIN_INVALID_INPUT }
+        password: { type: string, description: 密码，最长 72 字节，超限返回 ADMIN_INVALID_INPUT }
         captchaId: { type: string, description: 验证码 ID，启用验证码时必填 }
         captchaCode: { type: string, description: 用户输入的验证码，启用验证码时必填 }
     LoginOutput:

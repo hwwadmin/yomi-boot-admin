@@ -390,6 +390,15 @@ interface MockRoute {
 const routes: MockRoute[] = [
   {
     method: 'GET',
+    pattern: /^\/api\/auth\/config$/,
+    handler: async ({ res }) => {
+      await delay(50)
+      // mock 演示开启验证码，与后端默认部署一致
+      sendJson(res, ok({ captchaRequired: true }))
+    },
+  },
+  {
+    method: 'GET',
     pattern: /^\/api\/auth\/captcha$/,
     handler: async ({ res }) => {
       await delay(80)

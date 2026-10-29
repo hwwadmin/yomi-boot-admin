@@ -2,7 +2,7 @@
 import type { FormInstance, FormRules } from 'element-plus'
 import { Key, Lock, User } from '@element-plus/icons-vue'
 
-import { getCaptcha } from '@/api/auth'
+import { getCaptcha, getLoginConfig } from '@/api/auth'
 import type { CaptchaChallenge } from '@/api/types'
 import { useUserStore } from '@/stores/user'
 
@@ -19,16 +19,28 @@ const captchaLoading = ref(false)
 const captchaStale = ref(false)
 const form = reactive({ username: '', password: '', captchaCode: '' })
 
-const rules: FormRules = {
+// 登录页配置未返回前按需要验证码处理，避免已启用部署出现表单闪变
+const captchaRequired = ref(true)
+
+const rules = computed<FormRules>(() => ({
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
-}
+  captchaCode: captchaRequired.value
+    ? [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+    : [],
+}))
 
 const showMockTip = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true'
 
+/** 拉取登录页配置；失败按需要验证码处理，后续登录会暴露真实错误 */
+async function loadLoginConfig() {
+  const config = await getLoginConfig()
+  captchaRequired.value = config.captchaRequired
+}
+
 /** 拉取新验证码；刷新失败（如触发限流）时保留当前图片 */
 async function refreshCaptcha() {
+  if (captchaLoading.value) return
   captchaLoading.value = true
   try {
     captcha.value = await getCaptcha()
@@ -41,6 +53,8 @@ async function refreshCaptcha() {
 }
 
 async function handleLogin() {
+  // 提交中直接忽略重复触发（回车键不经过按钮的 loading 禁用态）
+  if (loading.value) return
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
   loading.value = true
@@ -48,8 +62,8 @@ async function handleLogin() {
     await userStore.login(
       form.username.trim(),
       form.password,
-      captcha.value?.id ?? '',
-      form.captchaCode.trim(),
+      captchaRequired.value ? (captcha.value?.id ?? '') : '',
+      captchaRequired.value ? form.captchaCode.trim() : '',
     )
     ElMessage.success('登录成功')
     const redirect = (route.query.redirect as string) || '/'
@@ -58,13 +72,20 @@ async function handleLogin() {
     // 登录失败时验证码已在服务端消费：清空输入并尝试换一张
     form.captchaCode = ''
     captchaStale.value = true
-    await refreshCaptcha()
+    if (captchaRequired.value) await refreshCaptcha()
   } finally {
     loading.value = false
   }
 }
 
-onMounted(refreshCaptcha)
+onMounted(async () => {
+  try {
+    await loadLoginConfig()
+  } catch {
+    // 配置拉取失败按需要验证码处理
+  }
+  if (captchaRequired.value) await refreshCaptcha()
+})
 </script>
 
 <template>
@@ -79,6 +100,7 @@ onMounted(refreshCaptcha)
             placeholder="用户名"
             :prefix-icon="User"
             autocomplete="username"
+            maxlength="64"
           />
         </el-form-item>
         <el-form-item prop="password">
@@ -89,9 +111,10 @@ onMounted(refreshCaptcha)
             :prefix-icon="Lock"
             show-password
             autocomplete="current-password"
+            maxlength="72"
           />
         </el-form-item>
-        <el-form-item prop="captchaCode">
+        <el-form-item v-if="captchaRequired" prop="captchaCode">
           <div class="captcha-row">
             <el-input
               v-model="form.captchaCode"

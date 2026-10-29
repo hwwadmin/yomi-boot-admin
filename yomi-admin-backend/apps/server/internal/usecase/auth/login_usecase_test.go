@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 	"yomi-admin-backend/apps/server/internal/support/loginguard"
@@ -47,15 +48,19 @@ func (f *fakeAuthService) ListMenus(context.Context, int64) ([]*rbacentity.Permi
 	return f.menus, nil
 }
 
-// fakeTokenService 是令牌服务测试桩
+// fakeTokenService 是令牌服务测试桩；可注入签发失败
 type fakeTokenService struct {
 	token.TokenService
 	value   string
+	err     error
 	session *token.TokenSession
 }
 
 func (f *fakeTokenService) Issue(_ context.Context, session *token.TokenSession) (string, error) {
 	f.session = session
+	if f.err != nil {
+		return "", f.err
+	}
 	return f.value, nil
 }
 
@@ -300,5 +305,53 @@ func TestLoginIgnoresGuardResetFailure(t *testing.T) {
 	}
 	if out.Token != "tok" {
 		t.Fatalf("登录出参不符: %+v", out)
+	}
+}
+
+// TestLoginKeepsFailureBudgetWhenIssueFails 校验清零发生在整条链路成功之后：
+// 聚合权限或签发令牌失败时，失败预算必须保留，下一次尝试仍受既有约束。
+func TestLoginKeepsFailureBudgetWhenIssueFails(t *testing.T) {
+	users := &fakeUserService{out: &useroutput.AuthenticateOutput{User: &userentity.User{
+		ID:       7,
+		Username: "admin",
+		Nickname: "超级管理员",
+	}}}
+	guard := &fakeLoginGuard{}
+
+	uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{err: errors.New("issue down")}, &fakeCaptchaVerifier{}, guard)
+	if _, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1"); err == nil {
+		t.Fatal("签发令牌失败应向上传播")
+	}
+	if guard.successCalls != 0 {
+		t.Fatalf("签发令牌失败时不应清空失败预算: %d", guard.successCalls)
+	}
+}
+
+// TestLoginRejectsOversizedInput 校验超长入参在入口被拒：不消耗尝试配额、不触达验证码与领域层
+func TestLoginRejectsOversizedInput(t *testing.T) {
+	cases := []struct {
+		name     string
+		username string
+		password string
+	}{
+		{name: "用户名超过 64 字节", username: strings.Repeat("a", 65), password: "secret"},
+		{name: "密码超过 72 字节", username: "admin", password: strings.Repeat("p", 73)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			users := &fakeUserService{}
+			captcha := &fakeCaptchaVerifier{}
+			guard := &fakeLoginGuard{}
+
+			uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{}, captcha, guard)
+			_, err := uc.Execute(context.Background(), &LoginInput{Username: tc.username, Password: tc.password}, "10.0.0.1")
+			if !errors.Is(err, usercontract.ErrInvalidInput) {
+				t.Fatalf("期望 ErrInvalidInput，实际 %v", err)
+			}
+			if guard.beforeCalls != 0 || captcha.calls != 0 || users.calls != 0 {
+				t.Fatalf("超长入参不应触达后续步骤: guard=%d captcha=%d users=%d",
+					guard.beforeCalls, captcha.calls, users.calls)
+			}
+		})
 	}
 }

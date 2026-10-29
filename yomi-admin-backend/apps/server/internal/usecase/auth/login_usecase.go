@@ -11,8 +11,14 @@ import (
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 
 	"gitee.com/hq_project/yomi-boot/component/common/token"
+	"gitee.com/hq_project/yomi-boot/component/core/bc/passwd"
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
 	"gitee.com/hq_project/yomi-boot/component/core/logger"
+)
+
+const (
+	// maxLoginUsernameBytes 与用户表 username 列宽（VARCHAR(64)）一致
+	maxLoginUsernameBytes = 64
 )
 
 // captchaVerifier 校验登录图像验证码
@@ -61,8 +67,22 @@ type LoginOutput struct {
 	User  *IdentityView `json:"user"`
 }
 
+// validateLoginInput 限制登录入参长度：超长输入直接拒绝，不进入限流、领域层与数据库。
+//
+// 用户名上限与用户表列宽一致；密码上限取自 bcrypt 的 72 字节（超过必然校验失败）。
+// 空值仍由领域层按凭证错误处理，这里只拦长度。
+func validateLoginInput(in *LoginInput) error {
+	if len(in.Username) > maxLoginUsernameBytes || len(in.Password) > passwd.MaxPasswordBytes {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+	return nil
+}
+
 // Execute 编排登录
 func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP string) (*LoginOutput, error) {
+	if err := validateLoginInput(in); err != nil {
+		return nil, err
+	}
 	decision, err := uc.guard.BeforeAttempt(ctx, in.Username, clientIP)
 	if err != nil {
 		return nil, errors.WrapBiz(err, ErrLoginGuardUnavailable.Code, ErrLoginGuardUnavailable.Message)
@@ -100,10 +120,6 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP st
 		return nil, err
 	}
 
-	if err := uc.guard.RecordSuccess(ctx, in.Username, clientIP); err != nil {
-		logger.Warn(ctx, "清空账号登录失败计数失败", "error", err)
-	}
-
 	identity, err := buildIdentityView(ctx, out.User, uc.auth)
 	if err != nil {
 		return nil, err
@@ -119,6 +135,12 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP st
 	tokenValue, err := uc.token.Issue(ctx, session)
 	if err != nil {
 		return nil, errors.Wrap(err, "签发令牌失败")
+	}
+
+	// 整条登录链路成功后才清空失败预算：聚合权限或签发令牌失败时保留计数，
+	// 下一次尝试仍受既有预算约束。清零失败只记日志，不影响登录返回。
+	if err := uc.guard.RecordSuccess(ctx, in.Username, clientIP); err != nil {
+		logger.Warn(ctx, "清空账号登录失败计数失败", "error", err)
 	}
 
 	return &LoginOutput{Token: tokenValue, User: identity}, nil

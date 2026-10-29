@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { AxiosRequestConfig } from 'axios'
+import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 
 import { useUserStore } from '@/stores/user'
 import { expireSession } from '@/utils/auth'
@@ -14,6 +14,63 @@ const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 15000,
 })
+
+/** POST 防重复提交窗口：窗口内相同「方法+地址+请求体」的请求共享同一次结果 */
+const POST_DEDUP_WINDOW_MS = 500
+
+interface PostRecord {
+  promise: Promise<AxiosResponse<ApiResponse<unknown>>>
+  /** 请求是否已落定；进行中的请求始终共享 */
+  state: { settled: boolean; settledAt: number }
+}
+
+const postRecords = new Map<string, PostRecord>()
+
+/** POST 去重键：方法 + 地址 + 请求体（同址同参才视为重复，不同实体的并发提交互不影响） */
+function postKey(config: AxiosRequestConfig): string {
+  const data = config.data
+  const body = data == null ? '' : typeof data === 'string' ? data : JSON.stringify(data)
+  return `POST ${config.url ?? ''} ${body}`
+}
+
+/**
+ * 发送请求；POST 默认防重复提交：
+ * 相同键的请求在进行中或落定后窗口内只发一次，重复调用共享同一次结果，
+ * 双击 / 回车重复触发不再产生第二个请求；窗口过后的再次调用照常发起。
+ *
+ * 不用 VueUse 防抖的原因：trailing 防抖给每个请求加固定延迟、窗口外的重复点击仍会
+ * 重发，且会把窗口内两次「不同参数」的 POST 折叠成最后一次（丢失首次意图）；
+ * 这里的窗口跟随请求本身（进行中 + 落定后短窗复用），零额外延迟且不丢意图。
+ * 输入触发的请求（如搜索）仍应在调用点用 useDebounceFn 防抖。
+ */
+function send<T>(config: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>>> {
+  if ((config.method ?? '').toLowerCase() !== 'post') {
+    return service.request<ApiResponse<T>>(config)
+  }
+
+  const key = postKey(config)
+  const now = Date.now()
+
+  // 惰性清理窗口外的历史记录
+  for (const [k, record] of postRecords) {
+    if (record.state.settled && now - record.state.settledAt >= POST_DEDUP_WINDOW_MS) {
+      postRecords.delete(k)
+    }
+  }
+
+  const existing = postRecords.get(key)
+  if (existing && (!existing.state.settled || now - existing.state.settledAt < POST_DEDUP_WINDOW_MS)) {
+    return existing.promise as Promise<AxiosResponse<ApiResponse<T>>>
+  }
+
+  const state = { settled: false, settledAt: 0 }
+  const promise = service.request<ApiResponse<unknown>>(config).finally(() => {
+    state.settled = true
+    state.settledAt = Date.now()
+  })
+  postRecords.set(key, { promise, state })
+  return promise as Promise<AxiosResponse<ApiResponse<T>>>
+}
 
 service.interceptors.request.use((config) => {
   const userStore = useUserStore()
@@ -53,10 +110,11 @@ service.interceptors.response.use(
 
 /**
  * 业务请求：响应拦截器保证只有 code === 'OK' 才会正常返回，这里直接解出 data。
- * 业务错误 / Token 失效 / 网络错误一律走 reject，调用方 catch 后无需重复提示。
+ * POST 默认防重复提交（见 send），业务错误 / Token 失效 / 网络错误一律走 reject，
+ * 调用方 catch 后无需重复提示。
  */
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
-  const response = await service.request<ApiResponse<T>>(config)
+  const response = await send<T>(config)
   return response.data.data
 }
 
@@ -65,7 +123,7 @@ export async function request<T>(config: AxiosRequestConfig): Promise<T> {
  * 统一映射成前端分页组件使用的 { list, total }。
  */
 export async function requestPage<T>(config: AxiosRequestConfig): Promise<{ list: T[]; total: number }> {
-  const response = await service.request<ApiResponse<T[]>>(config)
+  const response = await send<T[]>(config)
   return {
     list: response.data.data ?? [],
     total: response.data.total ?? 0,

@@ -82,34 +82,25 @@ func (g *Guard) BeforeAttempt(ctx context.Context, account, clientIP string) (De
 	return Decision{Outcome: OutcomeAllowed}, nil
 }
 
+// dimensionLocks 是一次失败记账后各维度的锁时长；0 表示该维度未触发锁定
+type dimensionLocks struct {
+	ip      time.Duration
+	pair    time.Duration
+	account time.Duration
+}
+
 // RecordFailure 记录一次凭证失败，返回本次是否触发锁定。
 //
-// 三个维度都会记账，命中任意一个维度即视为锁定；账号为空时只记 IP 维度。
+// 涉及的维度在单次 Redis 往返内原子记账：三个维度都会记账，命中任意一个维度即视为锁定；
+// 账号为空时只记 IP 维度。不存在"部分维度记上、部分丢失"的中间态。
 func (g *Guard) RecordFailure(ctx context.Context, account, clientIP string) (Decision, error) {
 	if !g.policy.Enabled {
 		return Decision{Outcome: OutcomeAllowed}, nil
 	}
 
-	ip := ipID(clientIP)
-	id := accountID(account)
-
-	ipLock, err := g.recordFailure(ctx, g.ipKey(ip, "fail"), g.ipKey(ip, "lock"),
-		g.policy.IPFailWindow, g.policy.IPFailures, g.policy.IPLock)
+	locks, err := g.recordFailure(ctx, account, clientIP)
 	if err != nil {
 		return Decision{}, err
-	}
-
-	var pairLock, accountLock time.Duration
-	if id != "" {
-		pairLock, err = g.recordFailure(ctx, g.pairKey(id, ip, "fail"), g.pairKey(id, ip, "lock"),
-			g.policy.PairWindow, g.policy.PairFailures, g.policy.PairLock)
-		if err != nil {
-			return Decision{}, err
-		}
-		accountLock, err = g.recordAccountFailure(ctx, id)
-		if err != nil {
-			return Decision{}, err
-		}
 	}
 
 	decision := Decision{Outcome: OutcomeAllowed}
@@ -122,9 +113,9 @@ func (g *Guard) RecordFailure(ctx context.Context, account, clientIP string) (De
 			decision = Decision{Outcome: OutcomeLocked, RetryAfter: lock}
 		}
 	}
-	applyLock("ip", ipLock)
-	applyLock("pair", pairLock)
-	applyLock("account", accountLock)
+	applyLock("ip", locks.ip)
+	applyLock("pair", locks.pair)
+	applyLock("account", locks.account)
 	return decision, nil
 }
 
@@ -146,27 +137,46 @@ func (g *Guard) RecordSuccess(ctx context.Context, account, clientIP string) err
 	)
 }
 
-// recordFailure 累加一个固定锁时长的失败维度
-func (g *Guard) recordFailure(ctx context.Context, failKey, lockKey string, window time.Duration, threshold int64, lock time.Duration) (time.Duration, error) {
-	lockMs, err := g.evalInt64(ctx, recordFailureScript, []string{failKey, lockKey},
-		window.Milliseconds(), threshold, lock.Milliseconds())
-	if err != nil {
-		return 0, err
-	}
-	return time.Duration(lockMs) * time.Millisecond, nil
-}
+// recordFailure 在单次 Redis 往返内累加一次凭证失败涉及的全部维度。
+//
+// 账号为空只记 IP 维度；否则 IP、IP+账号、账号三个维度在同一个 Lua 脚本内原子生效，
+// 脚本失败时三个维度都不会落账，由调用方按"保护不可用"统一处理。
+func (g *Guard) recordFailure(ctx context.Context, account, clientIP string) (dimensionLocks, error) {
+	ip := ipID(clientIP)
+	id := accountID(account)
 
-// recordAccountFailure 累加账号维度失败次数，并按等级升级锁定时长
-func (g *Guard) recordAccountFailure(ctx context.Context, account string) (time.Duration, error) {
-	lockMs, err := g.evalInt64(ctx, recordAccountFailureScript,
-		[]string{g.accountKey(account, "fail"), g.accountKey(account, "lock"), g.accountKey(account, "level")},
-		g.policy.AccountWindow.Milliseconds(), g.policy.AccountFailures,
-		g.policy.AccountLock.Milliseconds(), g.policy.AccountMaxLock.Milliseconds(),
-		g.policy.LevelTTL.Milliseconds())
-	if err != nil {
-		return 0, err
+	var keys []string
+	var args []any
+	if id == "" {
+		keys = []string{g.ipKey(ip, "fail"), g.ipKey(ip, "lock")}
+		args = []any{
+			g.policy.IPFailWindow.Milliseconds(), g.policy.IPFailures, g.policy.IPLock.Milliseconds(),
+		}
+	} else {
+		keys = []string{
+			g.ipKey(ip, "fail"), g.ipKey(ip, "lock"),
+			g.pairKey(id, ip, "fail"), g.pairKey(id, ip, "lock"),
+			g.accountKey(id, "fail"), g.accountKey(id, "lock"), g.accountKey(id, "level"),
+		}
+		args = []any{
+			g.policy.IPFailWindow.Milliseconds(), g.policy.IPFailures, g.policy.IPLock.Milliseconds(),
+			g.policy.PairWindow.Milliseconds(), g.policy.PairFailures, g.policy.PairLock.Milliseconds(),
+			g.policy.AccountWindow.Milliseconds(), g.policy.AccountFailures, g.policy.AccountLock.Milliseconds(),
+			g.policy.AccountMaxLock.Milliseconds(), g.policy.LevelTTL.Milliseconds(),
+		}
 	}
-	return time.Duration(lockMs) * time.Millisecond, nil
+
+	locks, err := g.evalLocks(ctx, recordFailureScript, keys, args...)
+	if err != nil {
+		return dimensionLocks{}, err
+	}
+	if len(locks) == 0 {
+		return dimensionLocks{}, errors.New("loginguard: 失败记账脚本未返回结果")
+	}
+	if len(locks) >= 3 {
+		return dimensionLocks{ip: locks[0], pair: locks[1], account: locks[2]}, nil
+	}
+	return dimensionLocks{ip: locks[0]}, nil
 }
 
 // evalInt64 执行返回整数的 Lua 脚本
@@ -175,13 +185,40 @@ func (g *Guard) evalInt64(ctx context.Context, script string, keys []string, arg
 	if err != nil {
 		return 0, err
 	}
-	switch value := result.(type) {
+	return scriptInt64(result)
+}
+
+// evalLocks 执行返回"各维度锁时长（毫秒）数组"的 Lua 脚本
+func (g *Guard) evalLocks(ctx context.Context, script string, keys []string, args ...any) ([]time.Duration, error) {
+	result, err := g.redis.OpsScript4Eval(ctx, script, keys, args...)
+	if err != nil {
+		return nil, err
+	}
+	values, ok := result.([]any)
+	if !ok {
+		return nil, errors.Newf("loginguard: 脚本返回类型异常 %T", result)
+	}
+
+	locks := make([]time.Duration, 0, len(values))
+	for _, value := range values {
+		ms, err := scriptInt64(value)
+		if err != nil {
+			return nil, err
+		}
+		locks = append(locks, time.Duration(ms)*time.Millisecond)
+	}
+	return locks, nil
+}
+
+// scriptInt64 把 Redis 脚本返回的整数值转换为 int64
+func scriptInt64(value any) (int64, error) {
+	switch v := value.(type) {
 	case int64:
-		return value, nil
+		return v, nil
 	case int:
-		return int64(value), nil
+		return int64(v), nil
 	default:
-		return 0, errors.Newf("loginguard: 脚本返回类型异常 %T", result)
+		return 0, errors.Newf("loginguard: 脚本返回类型异常 %T", value)
 	}
 }
 

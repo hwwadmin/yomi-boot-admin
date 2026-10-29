@@ -59,15 +59,16 @@ func Options() boot.Options {
 
 // container 保存 Wire 与 Middlewares 共用的装配结果
 type container struct {
-	users      userprovider.Module
-	rbac       rbacprovider.Module
-	records    httprecordprovider.Module
-	tx         tx.Executor
-	token      token.TokenService
-	captcha    *authusecase.CaptchaUsecase
-	loginGuard *loginguard.Guard
-	appCtx     appctx.AppCtx
-	lock       distlock.DistLockFactory
+	users       userprovider.Module
+	rbac        rbacprovider.Module
+	records     httprecordprovider.Module
+	tx          tx.Executor
+	token       token.TokenService
+	captcha     *authusecase.CaptchaUsecase
+	loginGuard  *loginguard.Guard
+	loginConfig *authusecase.LoginConfigUsecase
+	appCtx      appctx.AppCtx
+	lock        distlock.DistLockFactory
 	// rbacSkip 是免接口权限校验的路由集合，键为 "GET /api/auth/login"，由 biz.auth.public_paths 生成
 	rbacSkip map[string]struct{}
 }
@@ -152,8 +153,9 @@ func load(slot *plugin.PluginSlot) container {
 				rateLimitPlugin.Limiter(),
 				bizCfg.LoginGuard.ToPolicy(),
 			),
-			appCtx: appCtxPlugin.AppCtx(),
-			lock:   redisPlugin.DistLockFactory(),
+			loginConfig: authusecase.NewLoginConfigUsecase(bizCfg.Captcha.EnabledOrDefault()),
+			appCtx:      appCtxPlugin.AppCtx(),
+			lock:        redisPlugin.DistLockFactory(),
 
 			rbacSkip: rbacSkip,
 		}
@@ -192,6 +194,7 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 			authusecase.NewProfileUsecase(c.users.Users, c.rbac.Auth),
 			authusecase.NewLogoutUsecase(c.token),
 			authusecase.NewChangePasswordUsecase(c.users.Users, c.token),
+			c.loginConfig,
 		),
 		apphandler.NewUserHandler(
 			userusecase.NewPageUsersUsecase(c.users.Users, c.rbac.Admin),

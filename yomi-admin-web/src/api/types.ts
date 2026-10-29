@@ -35,6 +35,12 @@ export interface CaptchaChallenge {
   expiresIn: number
 }
 
+/** 登录页公开配置 */
+export interface LoginConfig {
+  /** 登录是否需要图形验证码（由 biz.captcha.enabled 决定） */
+  captchaRequired: boolean
+}
+
 /** 登录参数 */
 export interface LoginParams {
   username: string

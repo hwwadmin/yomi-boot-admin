@@ -194,7 +194,7 @@ func TestBeforeAttemptLimiterFailure(t *testing.T) {
 }
 
 func TestRecordFailureReturnsMaxLock(t *testing.T) {
-	redis := &fakeScriptExecutor{results: []any{int64(0), int64(600000), int64(900000)}}
+	redis := &fakeScriptExecutor{results: []any{[]any{int64(0), int64(600000), int64(900000)}}}
 	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
 
 	decision, err := guard.RecordFailure(context.Background(), "admin", "10.0.0.1")
@@ -204,19 +204,60 @@ func TestRecordFailureReturnsMaxLock(t *testing.T) {
 	if decision.Outcome != OutcomeLocked || decision.RetryAfter != 15*time.Minute {
 		t.Fatalf("期望取最大锁定时长 15m: %+v", decision)
 	}
-	if len(redis.calls) != 3 {
-		t.Fatalf("应依次记录 IP、组合、账号三个维度: %d", len(redis.calls))
+}
+
+// TestRecordFailureSingleRoundTrip 校验三个维度在单次脚本调用内原子记账
+func TestRecordFailureSingleRoundTrip(t *testing.T) {
+	redis := &fakeScriptExecutor{results: []any{[]any{int64(0), int64(600000), int64(900000)}}}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	if _, err := guard.RecordFailure(context.Background(), "admin", "10.0.0.1"); err != nil {
+		t.Fatalf("记账失败: %v", err)
 	}
-	if redis.calls[0].script != recordFailureScript || redis.calls[1].script != recordFailureScript {
-		t.Fatal("IP 与组合维度应使用固定锁脚本")
+	if len(redis.calls) != 1 {
+		t.Fatalf("三个维度应在一次脚本调用内记账，实际 %d 次", len(redis.calls))
 	}
-	if redis.calls[2].script != recordAccountFailureScript {
-		t.Fatal("账号维度应使用升级锁脚本")
+
+	call := redis.calls[0]
+	if call.script != recordFailureScript {
+		t.Fatal("应使用合并后的失败记账脚本")
+	}
+
+	ip := ipID("10.0.0.1")
+	id := accountID("admin")
+	wantKeys := []string{
+		guard.ipKey(ip, "fail"), guard.ipKey(ip, "lock"),
+		guard.pairKey(id, ip, "fail"), guard.pairKey(id, ip, "lock"),
+		guard.accountKey(id, "fail"), guard.accountKey(id, "lock"), guard.accountKey(id, "level"),
+	}
+	if len(call.keys) != len(wantKeys) {
+		t.Fatalf("key 数量不符: %d", len(call.keys))
+	}
+	for i, want := range wantKeys {
+		if call.keys[i] != want {
+			t.Fatalf("keys[%d] = %s, want %s", i, call.keys[i], want)
+		}
+	}
+
+	policy := DefaultPolicy()
+	wantArgs := []any{
+		policy.IPFailWindow.Milliseconds(), policy.IPFailures, policy.IPLock.Milliseconds(),
+		policy.PairWindow.Milliseconds(), policy.PairFailures, policy.PairLock.Milliseconds(),
+		policy.AccountWindow.Milliseconds(), policy.AccountFailures, policy.AccountLock.Milliseconds(),
+		policy.AccountMaxLock.Milliseconds(), policy.LevelTTL.Milliseconds(),
+	}
+	if len(call.args) != len(wantArgs) {
+		t.Fatalf("argv 数量不符: %d", len(call.args))
+	}
+	for i, want := range wantArgs {
+		if call.args[i] != want {
+			t.Fatalf("args[%d] = %v, want %v", i, call.args[i], want)
+		}
 	}
 }
 
 func TestRecordFailureWithoutAccountRecordsIPOnly(t *testing.T) {
-	redis := &fakeScriptExecutor{}
+	redis := &fakeScriptExecutor{results: []any{[]any{int64(0)}}}
 	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
 
 	decision, err := guard.RecordFailure(context.Background(), "", "10.0.0.1")
@@ -228,6 +269,26 @@ func TestRecordFailureWithoutAccountRecordsIPOnly(t *testing.T) {
 	}
 	if len(redis.calls) != 1 {
 		t.Fatalf("空账号只应记录 IP 维度: %d", len(redis.calls))
+	}
+	if len(redis.calls[0].keys) != 2 {
+		t.Fatalf("空账号只应有 IP 两个 key: %+v", redis.calls[0].keys)
+	}
+	if redis.calls[0].keys[0] != guard.ipKey(ipID("10.0.0.1"), "fail") {
+		t.Fatalf("key 不是 IP 失败计数: %s", redis.calls[0].keys[0])
+	}
+}
+
+// TestRecordFailurePairLockOnly 校验只有组合维度触发锁定时按组合锁时长返回
+func TestRecordFailurePairLockOnly(t *testing.T) {
+	redis := &fakeScriptExecutor{results: []any{[]any{int64(0), int64(600000), int64(0)}}}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	decision, err := guard.RecordFailure(context.Background(), "admin", "10.0.0.1")
+	if err != nil {
+		t.Fatalf("记账失败: %v", err)
+	}
+	if decision.Outcome != OutcomeLocked || decision.RetryAfter != 10*time.Minute {
+		t.Fatalf("期望锁定 10m: %+v", decision)
 	}
 }
 

@@ -1,7 +1,19 @@
 import { request } from '@/utils/request'
-import type { CaptchaChallenge, ChangePasswordPayload, LoginParams, LoginResult, UserInfo } from './types'
+import type {
+  CaptchaChallenge,
+  ChangePasswordPayload,
+  LoginConfig,
+  LoginParams,
+  LoginResult,
+  UserInfo,
+} from './types'
 
-/** 登录图像验证码 */
+/** 登录页公开配置（验证码开关等） */
+export function getLoginConfig() {
+  return request<LoginConfig>({ url: '/auth/config', method: 'get' })
+}
+
+/** 登录图形验证码 */
 export function getCaptcha() {
   return request<CaptchaChallenge>({ url: '/auth/captcha', method: 'get' })
 }

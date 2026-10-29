@@ -134,6 +134,7 @@ biz:
       - { method: GET, path: /api/v1/health, token: false }
       - { method: GET, path: /api/v1/health/ops, token: false }
       - { method: GET, path: /api/auth/captcha, token: false }
+      - { method: GET, path: /api/auth/config, token: false }
       - { method: POST, path: /api/auth/login, token: false }
       # API 文档（Swagger UI 与静态资源）；docs 关闭时这里只是无效声明
       - { method: GET, path: /api/system/api-doc, token: false }

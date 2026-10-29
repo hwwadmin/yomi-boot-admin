@@ -15,31 +15,43 @@ end
 return maxTTL
 `
 
-// recordFailureScript 累加失败次数，达到阈值后写入固定时长的锁。
-// KEYS: fail, lock；ARGV: windowMs, threshold, lockMs
+// recordFailureScript 在一次调用内累加一次凭证失败涉及的全部维度，任一维度达到阈值即写锁，原子生效。
+//
+// KEYS: ip.fail, ip.lock [, pair.fail, pair.lock, account.fail, account.lock, account.level]
+// ARGV: ipWindowMs, ipThreshold, ipLockMs
+//
+//	[, pairWindowMs, pairThreshold, pairLockMs,
+//	   accountWindowMs, accountThreshold, accountBaseLockMs, accountMaxLockMs, accountLevelTtlMs]
+//
+// KEYS 为 2 个时只记 IP 维度（空账号）；7 个时同时记 IP、IP+账号、账号三个维度。
+// 返回与维度顺序一致的锁时长（毫秒）数组，0 表示该维度未触发锁定。
 const recordFailureScript = `
-local count = redis.call('INCR', KEYS[1])
-if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end
-if count < tonumber(ARGV[2]) then return 0 end
+local function recordFixed(failKey, lockKey, windowMs, threshold, lockMs)
+	local count = redis.call('INCR', failKey)
+	if count == 1 then redis.call('PEXPIRE', failKey, windowMs) end
+	if count < tonumber(threshold) then return 0 end
+	redis.call('PSETEX', lockKey, tonumber(lockMs), '1')
+	redis.call('DEL', failKey)
+	return tonumber(lockMs)
+end
 
-local lockMs = tonumber(ARGV[3])
-redis.call('PSETEX', KEYS[2], lockMs, '1')
-redis.call('DEL', KEYS[1])
-return lockMs
-`
+local function recordEscalating(failKey, lockKey, levelKey, windowMs, threshold, baseLockMs, maxLockMs, levelTtlMs)
+	local count = redis.call('INCR', failKey)
+	if count == 1 then redis.call('PEXPIRE', failKey, windowMs) end
+	if count < tonumber(threshold) then return 0 end
+	local level = redis.call('INCR', levelKey)
+	redis.call('PEXPIRE', levelKey, levelTtlMs)
+	local lock = math.floor(math.min(tonumber(maxLockMs), tonumber(baseLockMs) * 2 ^ (level - 1)))
+	redis.call('PSETEX', lockKey, lock, '1')
+	redis.call('DEL', failKey)
+	return lock
+end
 
-// recordAccountFailureScript 累加账号失败次数，达到阈值后按等级翻倍锁定。
-// KEYS: fail, lock, level；ARGV: windowMs, threshold, baseLockMs, maxLockMs, levelTtlMs
-const recordAccountFailureScript = `
-local count = redis.call('INCR', KEYS[1])
-if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end
-if count < tonumber(ARGV[2]) then return 0 end
-
-local level = redis.call('INCR', KEYS[3])
-redis.call('PEXPIRE', KEYS[3], ARGV[5])
-local lockMs = math.floor(math.min(tonumber(ARGV[4]), tonumber(ARGV[3]) * 2 ^ (level - 1)))
-
-redis.call('PSETEX', KEYS[2], lockMs, '1')
-redis.call('DEL', KEYS[1])
-return lockMs
+local locks = {}
+locks[1] = recordFixed(KEYS[1], KEYS[2], ARGV[1], ARGV[2], ARGV[3])
+if #KEYS >= 7 then
+	locks[2] = recordFixed(KEYS[3], KEYS[4], ARGV[4], ARGV[5], ARGV[6])
+	locks[3] = recordEscalating(KEYS[5], KEYS[6], KEYS[7], ARGV[7], ARGV[8], ARGV[9], ARGV[10], ARGV[11])
+end
+return locks
 `

@@ -18,6 +18,7 @@ type AuthHandler struct {
 	profileUC  *authusecase.ProfileUsecase
 	logoutUC   *authusecase.LogoutUsecase
 	passwordUC *authusecase.ChangePasswordUsecase
+	configUC   *authusecase.LoginConfigUsecase
 }
 
 // NewAuthHandler 创建认证 Handler
@@ -27,6 +28,7 @@ func NewAuthHandler(
 	profileUC *authusecase.ProfileUsecase,
 	logoutUC *authusecase.LogoutUsecase,
 	passwordUC *authusecase.ChangePasswordUsecase,
+	configUC *authusecase.LoginConfigUsecase,
 ) *AuthHandler {
 	return &AuthHandler{
 		loginUC:    loginUC,
@@ -34,16 +36,25 @@ func NewAuthHandler(
 		profileUC:  profileUC,
 		logoutUC:   logoutUC,
 		passwordUC: passwordUC,
+		configUC:   configUC,
 	}
 }
 
 // Routes 注册认证路由
 func (h *AuthHandler) Routes(router *gin.RouterGroup) {
 	router.GET("/api/auth/captcha", h.captcha)
+	router.GET("/api/auth/config", h.loginConfig)
 	router.POST("/api/auth/login", h.login)
 	router.GET("/api/auth/profile", h.profile)
 	router.POST("/api/auth/logout", h.logout)
 	router.POST("/api/auth/password", h.changePassword)
+}
+
+// loginConfig 下发登录页公开配置（验证码开关等），免认证
+func (h *AuthHandler) loginConfig(c *gin.Context) {
+	corehandler.Handle(c, func(ctx context.Context) (*authusecase.LoginConfigOutput, error) {
+		return h.configUC.Execute(), nil
+	})
 }
 
 func (h *AuthHandler) captcha(c *gin.Context) {
