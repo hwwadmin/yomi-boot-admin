@@ -1,28 +1,11 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
-import { Avatar, Grid, Key, Odometer, Tickets, User } from '@element-plus/icons-vue'
-
 import { useAppStore } from '@/stores/app'
 import { usePermissionStore } from '@/stores/permission'
-
-// 菜单图标映射：路由 meta.icon 为 @element-plus/icons-vue 的组件名
-const iconMap: Record<string, Component> = { Odometer, User, Avatar, Key, Grid, Tickets }
-
-function resolveIcon(name?: string): Component | undefined {
-  return name ? iconMap[name] : undefined
-}
+import SidebarItem from './SidebarItem.vue'
 
 const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const route = useRoute()
-
-const menus = computed(() =>
-  permissionStore.menus.map((item) => ({
-    path: item.path.startsWith('/') ? item.path : `/${item.path}`,
-    title: item.meta?.title ?? '',
-    icon: item.meta?.icon,
-  })),
-)
 </script>
 
 <template>
@@ -34,12 +17,7 @@ const menus = computed(() =>
       :collapse="appStore.sidebarCollapsed"
       :collapse-transition="false"
     >
-      <el-menu-item v-for="item in menus" :key="item.path" :index="item.path">
-        <el-icon v-if="resolveIcon(item.icon)">
-          <component :is="resolveIcon(item.icon)" />
-        </el-icon>
-        <template #title>{{ item.title }}</template>
-      </el-menu-item>
+      <SidebarItem v-for="item in permissionStore.menus" :key="item.path" :item="item" />
     </el-menu>
   </el-scrollbar>
 </template>

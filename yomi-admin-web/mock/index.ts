@@ -112,8 +112,8 @@ const now = () => Date.now()
 // ———————— 权限目录 ————————
 const permissions: MockPermission[] = [
   { id: 'p1', code: 'system:user', name: '系统用户', type: 'MENU', uiPath: '/system/user', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
-  { id: 'p2', code: 'system:role', name: '角色管理', type: 'MENU', uiPath: '/system/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
-  { id: 'p3', code: 'system:permission', name: '权限管理', type: 'MENU', uiPath: '/system/permission', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p2', code: 'system:role', name: '角色', type: 'MENU', uiPath: '/system/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p3', code: 'system:permission', name: '权限', type: 'MENU', uiPath: '/system/permission', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p4', code: 'system:http-record', name: '访问记录', type: 'MENU', uiPath: '/system/http-record', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p5', code: 'system:permission-group', name: '权限组', type: 'MENU', uiPath: '/system/permission-group', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p11', code: 'system:user:list', name: '用户列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/users', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },

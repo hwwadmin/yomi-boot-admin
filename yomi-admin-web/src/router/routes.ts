@@ -29,22 +29,30 @@ export const staticRoutes: RouteRecordRaw[] = [
         meta: { title: '系统用户', icon: 'User' },
       },
       {
-        path: 'system/role',
-        name: 'system-role',
-        component: () => import('@/views/system/role/index.vue'),
-        meta: { title: '角色管理', icon: 'Avatar' },
-      },
-      {
-        path: 'system/permission',
-        name: 'system-permission',
-        component: () => import('@/views/system/permission/index.vue'),
-        meta: { title: '权限管理', icon: 'Key' },
-      },
-      {
-        path: 'system/permission-group',
-        name: 'system-permission-group',
-        component: () => import('@/views/system/permission-group/index.vue'),
-        meta: { title: '权限组', icon: 'Grid' },
+        // 纯分组路由：无组件，子路由使用绝对路径，子页面 URL 与后端菜单 uiPath 保持不变
+        path: 'system/rbac',
+        name: 'system-rbac',
+        meta: { title: '权限管理', icon: 'Lock' },
+        children: [
+          {
+            path: '/system/role',
+            name: 'system-role',
+            component: () => import('@/views/system/role/index.vue'),
+            meta: { title: '角色', icon: 'Avatar' },
+          },
+          {
+            path: '/system/permission-group',
+            name: 'system-permission-group',
+            component: () => import('@/views/system/permission-group/index.vue'),
+            meta: { title: '权限组', icon: 'Grid' },
+          },
+          {
+            path: '/system/permission',
+            name: 'system-permission',
+            component: () => import('@/views/system/permission/index.vue'),
+            meta: { title: '权限', icon: 'Key' },
+          },
+        ],
       },
       {
         path: 'system/http-record',

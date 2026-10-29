@@ -118,17 +118,21 @@ VALUES (100000000000000101, 'super_admin', '超级管理员', 1, 'ENABLED', '内
 -- 接口权限目录以种子为唯一来源，先清空保证路由调整后不留旧记录
 DELETE FROM `t_rbac_permission` WHERE `permission_type` = 'API';
 
--- 菜单权限
+-- 菜单权限，名称与前端导航（权限管理下的 角色 / 权限组 / 权限）保持一致
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001001, 'system:user', '系统用户', 'MENU', '/system/user', NULL, NULL, 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001002, 'system:role', '角色管理', 'MENU', '/system/role', NULL, NULL, 'ENABLED');
+VALUES (100000000000001002, 'system:role', '角色', 'MENU', '/system/role', NULL, NULL, 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001003, 'system:permission', '权限管理', 'MENU', '/system/permission', NULL, NULL, 'ENABLED');
+VALUES (100000000000001003, 'system:permission', '权限', 'MENU', '/system/permission', NULL, NULL, 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001004, 'system:http-record', '访问记录', 'MENU', '/system/http-record', NULL, NULL, 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001005, 'system:permission-group', '权限组', 'MENU', '/system/permission-group', NULL, NULL, 'ENABLED');
+
+-- INSERT IGNORE 不会更新已存在的行，这里显式修正既有库中的旧菜单名称
+UPDATE `t_rbac_permission` SET `name` = '角色' WHERE `code` = 'system:role' AND `permission_type` = 'MENU';
+UPDATE `t_rbac_permission` SET `name` = '权限' WHERE `code` = 'system:permission' AND `permission_type` = 'MENU';
 
 -- 用户接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
