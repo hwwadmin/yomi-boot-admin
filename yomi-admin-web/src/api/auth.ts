@@ -1,5 +1,10 @@
 import { request } from '@/utils/request'
-import type { LoginParams, LoginResult, UserInfo } from './types'
+import type { CaptchaChallenge, LoginParams, LoginResult, UserInfo } from './types'
+
+/** 登录图像验证码 */
+export function getCaptcha() {
+  return request<CaptchaChallenge>({ url: '/auth/captcha', method: 'get' })
+}
 
 /** 登录 */
 export function login(data: LoginParams) {

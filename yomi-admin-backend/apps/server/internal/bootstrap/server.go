@@ -3,6 +3,7 @@ package bootstrap
 
 import (
 	"sync"
+	svcconfig "yomi-admin-backend/apps/server/internal/config"
 	"yomi-admin-backend/apps/server/internal/middleware"
 	"yomi-admin-backend/apps/server/internal/support/superadmin"
 
@@ -18,6 +19,7 @@ import (
 
 	"gitee.com/hq_project/yomi-boot/boot"
 	"gitee.com/hq_project/yomi-boot/boot/server"
+	"gitee.com/hq_project/yomi-boot/component/common/captcha"
 	"gitee.com/hq_project/yomi-boot/component/common/db/tx"
 	"gitee.com/hq_project/yomi-boot/component/common/distlock"
 	"gitee.com/hq_project/yomi-boot/component/common/token"
@@ -38,11 +40,15 @@ import (
 // envPrefix 是配置环境变量前缀
 const envPrefix = "YOMI_ADMIN"
 
-// Options 返回启动选项：中间件链统一在组合根登记
+// Options 返回启动选项：中间件链与业务配置段统一在组合根登记
 func Options() boot.Options {
+	var pluginOpts plugin.PluginOptions
+	pluginOpts.AddConfigSection(svcconfig.ConfigSection())
+
 	return boot.Options{
 		EnvPrefix:   envPrefix,
 		Middlewares: Middlewares,
+		Plugin:      pluginOpts,
 	}
 }
 
@@ -53,6 +59,7 @@ type container struct {
 	records httprecordprovider.Module
 	tx      tx.Executor
 	token   token.TokenService
+	captcha *authusecase.CaptchaUsecase
 	appCtx  appctx.AppCtx
 	lock    distlock.DistLockFactory
 }
@@ -78,6 +85,14 @@ func load(slot *plugin.PluginSlot) container {
 			panic("yomi-admin: 需要启用 db、redis、token、snowflake 插件")
 		}
 
+		bizCfg := config.MustSection[svcconfig.BootConfig](slot.Config, svcconfig.SectionKey)
+		captchaStore, err := captcha.NewRedisStore(redisPlugin.Service(), captcha.RedisStoreConfig{
+			KeyPrefix: bizCfg.Captcha.KeyPrefixOrDefault(),
+		})
+		if err != nil {
+			panic(err)
+		}
+
 		appContainer = container{
 			users: userprovider.Provide(userprovider.Deps{
 				DB:          db.DB(),
@@ -93,8 +108,12 @@ func load(slot *plugin.PluginSlot) container {
 				DB:          db.DB(),
 				IDGenerator: snowflakePlugin.Generator(),
 			}),
-			tx:     txPlugin.Executor(),
-			token:  tokenPlugin.Service(),
+			tx:    txPlugin.Executor(),
+			token: tokenPlugin.Service(),
+			captcha: authusecase.NewCaptchaUsecase(
+				captcha.MustNew(captchaStore, bizCfg.Captcha.ToConfig()),
+				bizCfg.Captcha.EnabledOrDefault(),
+			),
 			appCtx: appCtxPlugin.AppCtx(),
 			lock:   redisPlugin.DistLockFactory(),
 		}
@@ -111,7 +130,8 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	return []router.Registrar{
 		corehandler.NewHealthHandler("/v1/health", "/v1/health/ops", c.appCtx),
 		apphandler.NewAuthHandler(
-			authusecase.NewLoginUsecase(c.users.Users, c.rbac.Auth, c.token),
+			authusecase.NewLoginUsecase(c.users.Users, c.rbac.Auth, c.token, c.captcha),
+			c.captcha,
 			authusecase.NewProfileUsecase(c.users.Users, c.rbac.Auth),
 			authusecase.NewLogoutUsecase(c.token),
 		),

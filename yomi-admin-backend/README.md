@@ -7,7 +7,7 @@ Yomi 管理后台后端，Go 1.26 + [yomi-boot](https://gitee.com/hq_project/yom
 
 ## 能做什么
 
-- 登录、当前用户、登出
+- 登录（含图像验证码）、当前用户、登出
 - 用户管理：分页、新增、编辑、删除
 - RBAC：角色、权限目录、权限组，角色绑权限组、权限组绑权限、用户绑角色
 - 菜单与按钮权限下发，接口级鉴权
@@ -51,7 +51,7 @@ YOMI_CONFIG=dev go run ./cmd
 ## 目录
 
 ```text
-apps/server/        接口与用例：cmd、config、handler、usecase、bootstrap、support
+apps/server/        接口与用例：cmd、config、internal/{handler,usecase,bootstrap,support,config}
 domains/user/       用户
 domains/rbac/       角色、权限组与权限
 domains/httprecord/ 访问记录
@@ -61,6 +61,23 @@ script/dev/         开发脚本
 
 简单说：`handler` 只接参数；`usecase` 管流程、事务和鉴权；`domain` 管业务规则和存储；
 `support` 放多个模块共用的小规则，比如超管保护。三个 domain 都是独立的 Go module，可以单独复用。
+
+## 登录验证码
+
+- 使用 yomi-boot 的 `component/common/captcha`，默认 4 位数字、160x60、180 秒有效。
+  答案只以 SHA-256 摘要写入 Redis（key `yomi:captcha:login:{id}`），校验时原子取出并删除，
+  同一个验证码至多成功使用一次。
+- `GET /api/auth/captcha` 返回 `{ id, image, expiresIn }`，`image` 是 `data:image/png;base64,...`，
+  可直接作为 `img src`；响应带 `Cache-Control: no-store`。该接口不需要 Token 与 API 权限。
+- 登录入参增加 `captchaId`、`captchaCode`，后端先校验验证码再校验账号密码。失败码：
+  `ADMIN_CAPTCHA_REQUIRED`（未填写）、`ADMIN_CAPTCHA_INVALID`（失效/已用）、
+  `ADMIN_CAPTCHA_MISMATCH`（答案错误）、`ADMIN_CAPTCHA_GENERATE_FAILED` /
+  `ADMIN_CAPTCHA_UNAVAILABLE`（服务异常）。
+- 配置在 `biz.captcha`（`config/dev.yml`、`prod.yml`）：`enabled`、`driver`、`length`、
+  `width`、`height`、`ttl_seconds`、`key_prefix`。跑集成测试时用
+  `YOMI_ADMIN_BIZ_CAPTCHA_ENABLED=false` 关闭登录校验；关闭后 `/api/auth/captcha`
+  仍可访问，只是登录不再强制校验。
+- 生产环境建议对验证码生成接口按 IP 限流（当前未接入限流组件）。
 
 ## 超管与 Token
 
@@ -121,7 +138,8 @@ make test         # 单元测试
 make cross-build  # 交叉编译
 ```
 
-集成测试要先启动服务：`go test ./apps/server/test -v`
+集成测试要先启动服务：`go test ./apps/server/test -v`。服务启用了登录验证码时，集成测试
+会在登录处跳过；需要完整跑通时以 `YOMI_ADMIN_BIZ_CAPTCHA_ENABLED=false` 启动服务。
 
 ## 响应格式
 

@@ -35,6 +35,13 @@ func requireServer(t *testing.T) {
 	}
 }
 
+// captchaFailureCodes 表示登录需要图像验证码的业务码
+var captchaFailureCodes = map[string]struct{}{
+	"ADMIN_CAPTCHA_REQUIRED": {},
+	"ADMIN_CAPTCHA_INVALID":  {},
+	"ADMIN_CAPTCHA_MISMATCH": {},
+}
+
 // login 登录并返回 Token
 func login(t *testing.T, username, password string) string {
 	t.Helper()
@@ -47,7 +54,17 @@ func login(t *testing.T, username, password string) string {
 		t.Fatalf("登录接口不可达: %s", body)
 	}
 
-	parsed := parseSuccess(t, body)
+	parsed, ok := response.Enc().Parse([]byte(body))
+	if !ok {
+		t.Fatalf("响应不符合默认协议: %s", body)
+	}
+	if _, required := captchaFailureCodes[parsed.Code]; required {
+		t.Skip("服务启用了登录图像验证码：请以 biz.captcha.enabled=false（或 YOMI_ADMIN_BIZ_CAPTCHA_ENABLED=false）启动服务后运行集成测试")
+	}
+	if !response.Enc().IsSuccess(parsed.Code) {
+		t.Fatalf("登录失败 code=%s body=%s", parsed.Code, body)
+	}
+
 	var data struct {
 		Token string `json:"token"`
 	}

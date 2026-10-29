@@ -78,10 +78,22 @@ token:
   skip_validate_paths:
     - /api/v1/health
     - /api/v1/health/ops
+    - /api/auth/captcha
     - /api/auth/login
 
 snowflake:
   worker_id: 1
+
+# 业务配置段
+biz:
+  captcha:
+    enabled: ${YOMI_ADMIN_BIZ_CAPTCHA_ENABLED:true}
+    driver: digit
+    length: 4
+    width: 160
+    height: 60
+    ttl_seconds: 180
+    key_prefix: yomi:captcha:login
 
 # HTTP 访问记录：中间件采集 + 进程内消费者落库，供后台「访问记录」页面查询
 http_record:

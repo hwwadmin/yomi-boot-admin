@@ -14,8 +14,8 @@ export const useUserStore = defineStore('user', () => {
   const permissions = computed(() => userInfo.value?.permissions ?? [])
 
   /** 登录并保存 token 与用户信息（错误提示由 request 拦截器统一处理） */
-  async function login(username: string, password: string) {
-    const { token: newToken, user } = await loginApi({ username, password })
+  async function login(username: string, password: string, captchaId: string, captchaCode: string) {
+    const { token: newToken, user } = await loginApi({ username, password, captchaId, captchaCode })
     token.value = newToken
     userInfo.value = user
   }

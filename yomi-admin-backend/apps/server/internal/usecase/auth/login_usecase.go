@@ -12,22 +12,30 @@ import (
 	"gitee.com/hq_project/yomi-boot/component/core/errors"
 )
 
-// LoginUsecase 登录编排：领域鉴权 + 聚合权限 + 签发 Token
+// captchaVerifier 校验登录图像验证码
+type captchaVerifier interface {
+	Verify(ctx context.Context, id, code string) error
+}
+
+// LoginUsecase 登录编排：验证码 + 领域鉴权 + 聚合权限 + 签发 Token
 type LoginUsecase struct {
-	users service_contract.UserService
-	auth  rbaccontract.RbacAuthService
-	token token.TokenService
+	users   service_contract.UserService
+	auth    rbaccontract.RbacAuthService
+	token   token.TokenService
+	captcha captchaVerifier
 }
 
 // NewLoginUsecase 创建登录用例
-func NewLoginUsecase(users service_contract.UserService, auth rbaccontract.RbacAuthService, tokenService token.TokenService) *LoginUsecase {
-	return &LoginUsecase{users: users, auth: auth, token: tokenService}
+func NewLoginUsecase(users service_contract.UserService, auth rbaccontract.RbacAuthService, tokenService token.TokenService, captcha captchaVerifier) *LoginUsecase {
+	return &LoginUsecase{users: users, auth: auth, token: tokenService, captcha: captcha}
 }
 
 // LoginInput HTTP 登录入参
 type LoginInput struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	CaptchaID   string `json:"captchaId"`
+	CaptchaCode string `json:"captchaCode"`
 }
 
 // LoginOutput HTTP 登录出参
@@ -38,6 +46,10 @@ type LoginOutput struct {
 
 // Execute 编排登录
 func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput) (*LoginOutput, error) {
+	if err := uc.captcha.Verify(ctx, in.CaptchaID, in.CaptchaCode); err != nil {
+		return nil, err
+	}
+
 	out, err := uc.users.Authenticate(ctx, &userinput.AuthenticateInput{
 		Username: in.Username,
 		Password: in.Password,

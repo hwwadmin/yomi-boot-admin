@@ -15,6 +15,7 @@ import (
 
 // skipRBACCatalog 无需 API 权限的公开路由
 var skipRBACCatalog = map[string]struct{}{
+	"GET /api/auth/captcha": {},
 	"POST /api/auth/login":  {},
 	"GET /api/auth/profile": {},
 	"POST /api/auth/logout": {},

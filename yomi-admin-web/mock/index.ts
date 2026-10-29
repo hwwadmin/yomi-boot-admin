@@ -240,6 +240,20 @@ const httpRecords: MockHttpRecord[] = httpRecordSeeds.map((seed, index) => {
 })
 
 const tokenToUsername = new Map<string, string>()
+const captchaStore = new Map<string, { code: string; expiresAt: number }>()
+
+/** 生成 mock 验证码：SVG 里直接画出答案，方便本地手动登录 */
+function createCaptcha() {
+  for (const [key, value] of captchaStore) {
+    if (value.expiresAt < now()) captchaStore.delete(key)
+  }
+  const code = String(Math.floor(1000 + Math.random() * 9000))
+  const id = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+  const expiresIn = 180
+  captchaStore.set(id, { code, expiresAt: now() + expiresIn * 1000 })
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="60" viewBox="0 0 160 60"><rect width="160" height="60" fill="#f2f3f5"/><text x="80" y="42" text-anchor="middle" font-family="monospace" font-size="32" font-weight="700" letter-spacing="8" fill="#303133">${code}</text></svg>`
+  return { id, image: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, expiresIn }
+}
 
 // ———————— 工具 ————————
 function readBody(req: Connect.IncomingMessage): Promise<Record<string, unknown>> {
@@ -370,13 +384,34 @@ interface MockRoute {
 
 const routes: MockRoute[] = [
   {
+    method: 'GET',
+    pattern: /^\/api\/auth\/captcha$/,
+    handler: async ({ res }) => {
+      await delay(80)
+      sendJson(res, ok(createCaptcha()))
+    },
+  },
+  {
     method: 'POST',
     pattern: /^\/api\/auth\/login$/,
     handler: async ({ req, res }) => {
       const body = await readBody(req)
       const username = String(body.username ?? '')
       const password = String(body.password ?? '')
+      const captchaId = String(body.captchaId ?? '')
+      const captchaCode = String(body.captchaCode ?? '').trim()
       await delay(200)
+
+      // 与后端一致：先校验并消费验证码
+      const issued = captchaStore.get(captchaId)
+      captchaStore.delete(captchaId)
+      if (!issued || issued.expiresAt < now()) {
+        return sendJson(res, fail('验证码已失效，请刷新后重试', 'ADMIN_CAPTCHA_INVALID'))
+      }
+      if (issued.code !== captchaCode) {
+        return sendJson(res, fail('验证码错误', 'ADMIN_CAPTCHA_MISMATCH'))
+      }
+
       const user = users.find((item) => item.username === username)
       const valid = user && (password === 'admin123' || password === 'test1234')
       if (!user || !valid) {

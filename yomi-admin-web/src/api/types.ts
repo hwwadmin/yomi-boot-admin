@@ -25,10 +25,22 @@ export interface PageResult<T> {
 /** 启停状态，与后端 Status 枚举一致 */
 export type Status = 'ENABLED' | 'DISABLED'
 
+/** 登录图像验证码 */
+export interface CaptchaChallenge {
+  /** 校验时原样回传的标识 */
+  id: string
+  /** data:image/png;base64,...，可直接作为 img src */
+  image: string
+  /** 剩余有效期（秒） */
+  expiresIn: number
+}
+
 /** 登录参数 */
 export interface LoginParams {
   username: string
   password: string
+  captchaId: string
+  captchaCode: string
 }
 
 /** 登录结果 */

@@ -13,20 +13,32 @@ import (
 // AuthHandler 认证相关路由
 type AuthHandler struct {
 	loginUC   *authusecase.LoginUsecase
+	captchaUC *authusecase.CaptchaUsecase
 	profileUC *authusecase.ProfileUsecase
 	logoutUC  *authusecase.LogoutUsecase
 }
 
 // NewAuthHandler 创建认证 Handler
-func NewAuthHandler(loginUC *authusecase.LoginUsecase, profileUC *authusecase.ProfileUsecase, logoutUC *authusecase.LogoutUsecase) *AuthHandler {
-	return &AuthHandler{loginUC: loginUC, profileUC: profileUC, logoutUC: logoutUC}
+func NewAuthHandler(
+	loginUC *authusecase.LoginUsecase,
+	captchaUC *authusecase.CaptchaUsecase,
+	profileUC *authusecase.ProfileUsecase,
+	logoutUC *authusecase.LogoutUsecase,
+) *AuthHandler {
+	return &AuthHandler{loginUC: loginUC, captchaUC: captchaUC, profileUC: profileUC, logoutUC: logoutUC}
 }
 
 // Routes 注册认证路由
 func (h *AuthHandler) Routes(router *gin.RouterGroup) {
+	router.GET("/auth/captcha", h.captcha)
 	router.POST("/auth/login", h.login)
 	router.GET("/auth/profile", h.profile)
 	router.POST("/auth/logout", h.logout)
+}
+
+func (h *AuthHandler) captcha(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	corehandler.Handle(c, h.captchaUC.Generate)
 }
 
 func (h *AuthHandler) login(c *gin.Context) {
