@@ -27,6 +27,8 @@ const apiDocPageTemplate = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8"/>
   <title>yomi-admin API 文档</title>
+  <!-- data:, 声明空图标，避免浏览器请求 /favicon.ico 落进鉴权中间件产生 ERROR 日志 -->
+  <link rel="icon" href="data:,"/>
   <link rel="stylesheet" href="%s"/>
 </head>
 <body>
