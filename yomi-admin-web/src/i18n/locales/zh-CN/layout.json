@@ -36,7 +36,8 @@
     "newPassword": "新密码",
     "confirmPassword": "确认新密码",
     "oldPlaceholder": "请输入原密码",
-    "newPlaceholder": "6-72 位，修改后需重新登录",
+    "newPlaceholder": "请输入新密码",
+    "newHint": "6-72 位，修改后需重新登录",
     "confirmPlaceholder": "请再次输入新密码",
     "success": "密码已修改，请使用新密码重新登录",
     "validation": {

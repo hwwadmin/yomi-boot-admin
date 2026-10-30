@@ -116,6 +116,11 @@ html.dark .el-table {
 }
 
 /* ———————— 弹窗 / 抽屉 ———————— */
+/* EP 在 .el-dialog 上重复声明了该变量（16px），会盖掉 :root 里的 24px，这里按设计基线覆盖回来 */
+.el-dialog {
+  --el-dialog-padding-primary: 24px;
+}
+
 .el-dialog__header {
   padding-bottom: 16px;
   margin-bottom: 20px;

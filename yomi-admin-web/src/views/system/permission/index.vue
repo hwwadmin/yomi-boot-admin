@@ -396,7 +396,13 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
       width="560px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="130px">
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-width="130px"
+        :validate-on-rule-change="false"
+      >
         <el-form-item :label="t('system.permission.dialog.type')" prop="type">
           <el-radio-group v-model="form.type" :disabled="editingId !== null">
             <el-radio value="MENU">{{ t('system.permission.type.menu') }}</el-radio>

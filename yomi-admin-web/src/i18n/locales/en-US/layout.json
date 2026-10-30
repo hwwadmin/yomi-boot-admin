@@ -36,7 +36,8 @@
     "newPassword": "New password",
     "confirmPassword": "Confirm new password",
     "oldPlaceholder": "Enter your current password",
-    "newPlaceholder": "6-72 characters. You will be signed out after changing it",
+    "newPlaceholder": "Enter a new password",
+    "newHint": "6-72 characters. You will be signed out after changing it",
     "confirmPlaceholder": "Enter the new password again",
     "success": "Password changed. Sign in again with the new password",
     "validation": {

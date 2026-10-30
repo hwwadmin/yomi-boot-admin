@@ -205,7 +205,8 @@ async function handleChangePassword() {
         ref="changePwdRef"
         :model="changePwdForm"
         :rules="changePwdRules"
-        label-width="110px"
+        label-width="auto"
+        :validate-on-rule-change="false"
       >
         <el-form-item :label="t('layout.changePassword.oldPassword')" prop="oldPassword">
           <el-input
@@ -226,6 +227,7 @@ async function handleChangePassword() {
             :placeholder="t('layout.changePassword.newPlaceholder')"
             maxlength="72"
           />
+          <span class="form-hint">{{ t('layout.changePassword.newHint') }}</span>
         </el-form-item>
         <el-form-item :label="t('layout.changePassword.confirmPassword')" prop="confirmPassword">
           <el-input
@@ -342,6 +344,14 @@ async function handleChangePassword() {
 
 .user-caret {
   color: var(--app-text-3);
+}
+
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 @media (max-width: 768px) {

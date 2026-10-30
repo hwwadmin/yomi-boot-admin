@@ -464,7 +464,13 @@ async function handleRevokeAllSessions() {
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-width="110px"
+        :validate-on-rule-change="false"
+      >
         <el-form-item :label="t('common.field.username')" prop="username">
           <el-input
             v-model="form.username"
@@ -549,19 +555,29 @@ async function handleRevokeAllSessions() {
       :close-on-click-modal="false"
       @closed="resetPwdRef?.clearValidate()"
     >
-      <el-form ref="resetPwdRef" :model="resetPwdForm" :rules="resetPwdRules" label-width="110px">
-        <div class="role-target">
-          {{ t('system.user.roleDialog.userLabel') }}<strong>{{ resetPwdTarget?.nickname }}</strong>
-          <span class="role-username">{{ resetPwdTarget?.username }}</span>
-        </div>
+      <el-form
+        ref="resetPwdRef"
+        :model="resetPwdForm"
+        :rules="resetPwdRules"
+        label-width="auto"
+        :validate-on-rule-change="false"
+      >
+        <el-form-item :label="t('system.user.resetPassword.userLabel')">
+          <span class="reset-pwd-user">
+            <strong>{{ resetPwdTarget?.nickname }}</strong>
+            <span class="role-username">{{ resetPwdTarget?.username }}</span>
+          </span>
+        </el-form-item>
         <el-form-item :label="t('system.user.resetPassword.newPassword')" prop="newPassword">
           <el-input
             v-model="resetPwdForm.newPassword"
             type="password"
             show-password
+            autocomplete="new-password"
             :placeholder="t('system.user.resetPassword.placeholder')"
             maxlength="72"
           />
+          <span class="form-hint">{{ t('system.user.resetPassword.hint') }}</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -674,6 +690,18 @@ async function handleRevokeAllSessions() {
 .role-target {
   margin-bottom: 12px;
   color: var(--el-text-color-regular);
+}
+
+.reset-pwd-user {
+  color: var(--el-text-color-regular);
+}
+
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .role-username {

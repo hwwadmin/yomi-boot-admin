@@ -47,8 +47,10 @@
   },
   "resetPassword": {
     "title": "Reset password",
+    "userLabel": "User",
     "newPassword": "New password",
-    "placeholder": "6-72 characters. The user must sign in again after the reset",
+    "placeholder": "Enter a new password",
+    "hint": "6-72 characters. The user must sign in again after the reset",
     "success": "Password reset. The user must sign in with the new password"
   },
   "session": {

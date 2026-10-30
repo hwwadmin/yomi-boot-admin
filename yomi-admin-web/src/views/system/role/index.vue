@@ -398,7 +398,13 @@ async function saveGroups() {
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-width="100px"
+        :validate-on-rule-change="false"
+      >
         <el-form-item :label="t('system.role.dialog.code')" prop="code">
           <el-input
             v-model="form.code"

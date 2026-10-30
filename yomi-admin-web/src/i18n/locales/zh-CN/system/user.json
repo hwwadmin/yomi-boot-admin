@@ -47,8 +47,10 @@
   },
   "resetPassword": {
     "title": "重置密码",
+    "userLabel": "用户",
     "newPassword": "新密码",
-    "placeholder": "6-72 位，重置后该用户需重新登录",
+    "placeholder": "请输入新密码",
+    "hint": "6-72 位，重置后该用户需重新登录",
     "success": "密码已重置，该用户需使用新密码重新登录"
   },
   "session": {

@@ -409,7 +409,13 @@ async function savePermissions() {
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="130px">
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-width="130px"
+        :validate-on-rule-change="false"
+      >
         <el-form-item :label="t('system.permissionGroup.dialog.code')" prop="code">
           <el-input
             v-model="form.code"

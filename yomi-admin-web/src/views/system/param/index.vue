@@ -375,7 +375,13 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
       width="600px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="130px">
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-width="130px"
+        :validate-on-rule-change="false"
+      >
         <el-form-item :label="t('system.param.dialog.name')" prop="name">
           <el-input v-model="form.name" maxlength="64" />
         </el-form-item>
