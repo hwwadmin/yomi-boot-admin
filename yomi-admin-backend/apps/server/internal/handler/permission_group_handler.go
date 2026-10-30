@@ -1,4 +1,4 @@
-// Package handler HTTP 适配层
+// Package handler 入口适配层：HTTP 路由与插件消费回调
 package handler
 
 import (

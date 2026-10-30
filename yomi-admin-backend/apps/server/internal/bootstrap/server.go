@@ -8,6 +8,7 @@ import (
 	"yomi-admin-backend/apps/server/internal/middleware"
 	"yomi-admin-backend/apps/server/internal/support/loginguard"
 	"yomi-admin-backend/apps/server/internal/support/superadmin"
+	superadminredislock "yomi-admin-backend/apps/server/internal/support/superadmin/redislock"
 
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
 
@@ -191,8 +192,8 @@ func toRbacCacheOptions(cfg svcconfig.RbacCacheConfig) rbacprovider.CacheOptions
 // Wire 根据插件插槽装配 HTTP 服务
 func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	c := load(slot)
-	registerHttpRecordHandler(slot, c.records.Records)
-	guard := superadmin.New(c.users.Users, c.rbac.Admin, newSuperAdminLocker(c.lock))
+	registerHttpRecordHandler(slot, httprecoreusecase.NewSaveRecordUsecase(c.records.Records))
+	guard := superadmin.New(c.users.Users, c.rbac.Admin, superadminredislock.New(c.lock))
 
 	// 会话管理依赖基础库的 ListByUserID：它已由 *token.Service 实现，但尚未进入
 	// TokenService 接口，这里做能力断言桥接；缺失时启动即失败，避免运行期才 500。

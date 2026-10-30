@@ -1,4 +1,4 @@
-package bootstrap
+package redislock
 
 import (
 	"context"
@@ -45,9 +45,9 @@ func (f *fakeLockFactory) GetLock(string, ...distlock.LockOption) distlock.Lock 
 	return f.lock
 }
 
-func TestSuperAdminLockerRunsFnAndUnlocks(t *testing.T) {
+func TestLockerRunsFnAndUnlocks(t *testing.T) {
 	lock := &fakeLock{acquired: true}
-	locker := newSuperAdminLocker(&fakeLockFactory{lock: lock})
+	locker := New(&fakeLockFactory{lock: lock})
 
 	called := false
 	err := locker.WithLock(context.Background(), func(context.Context) error {
@@ -62,9 +62,9 @@ func TestSuperAdminLockerRunsFnAndUnlocks(t *testing.T) {
 	}
 }
 
-func TestSuperAdminLockerFailsClosedWhenBusy(t *testing.T) {
+func TestLockerFailsClosedWhenBusy(t *testing.T) {
 	lock := &fakeLock{acquired: false}
-	locker := newSuperAdminLocker(&fakeLockFactory{lock: lock})
+	locker := New(&fakeLockFactory{lock: lock})
 
 	called := false
 	err := locker.WithLock(context.Background(), func(context.Context) error {
@@ -79,9 +79,9 @@ func TestSuperAdminLockerFailsClosedWhenBusy(t *testing.T) {
 	}
 }
 
-func TestSuperAdminLockerFailsClosedWhenRedisError(t *testing.T) {
+func TestLockerFailsClosedWhenRedisError(t *testing.T) {
 	lock := &fakeLock{acquireErr: fmt.Errorf("redis down")}
-	locker := newSuperAdminLocker(&fakeLockFactory{lock: lock})
+	locker := New(&fakeLockFactory{lock: lock})
 
 	called := false
 	err := locker.WithLock(context.Background(), func(context.Context) error {

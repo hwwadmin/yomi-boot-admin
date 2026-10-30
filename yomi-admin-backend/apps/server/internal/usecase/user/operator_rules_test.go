@@ -27,6 +27,10 @@ type fakeUserService struct {
 }
 
 func (f *fakeUserService) Update(_ context.Context, in *userinput.UpdateUserInput) error {
+	// 与领域实现一致：状态合法性由领域拒绝，编排层不做重复校验
+	if !enums.IsValidUserStatus(in.Status) {
+		return errors.Sentinel(service_contract.ErrInvalidInput)
+	}
 	f.updated = in
 	return nil
 }
@@ -108,7 +112,7 @@ func (f *fakeTokenService) RevokeByUserID(_ context.Context, userID int64) error
 	return nil
 }
 
-// TestUpdateUserRejectsInvalidStatus 校验状态缺省或非法时直接报参数错误，不进入超管锁与后续流程
+// TestUpdateUserRejectsInvalidStatus 校验状态缺省或非法时由领域以参数错误拒绝，编排层不进入超管锁与写库
 func TestUpdateUserRejectsInvalidStatus(t *testing.T) {
 	for _, status := range []enums.UserStatus{"", "UNKNOWN"} {
 		users := &fakeUserService{}

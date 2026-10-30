@@ -43,11 +43,9 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, in *UpdateUserInput) e
 	if id <= 0 {
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
-	if !enums.IsValidUserStatus(in.Status) {
-		return errors.Sentinel(service_contract.ErrInvalidInput)
-	}
-
-	disabling := in.Status != enums.UserStatusEnabled
+	// 状态合法性由领域校验；这里只判断本次是否移除启用态，决定要不要进超管锁。
+	// 非法状态会走不加锁路径，最终由领域以 ErrInvalidInput 拒绝。
+	disabling := in.Status == enums.UserStatusDisabled
 	if id == in.OperatorID && disabling {
 		return support.ErrCannotOperateSelf
 	}
