@@ -1,6 +1,5 @@
 import { request, requestPage } from '@/utils/request'
 import type {
-  PageQuery,
   PageResult,
   Status,
   SysParamCreatePayload,
