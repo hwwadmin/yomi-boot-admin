@@ -1,0 +1,56 @@
+{
+  "searchPlaceholder": "Permission code / name",
+  "add": "Add permission",
+  "columns": {
+    "name": "Permission name",
+    "code": "Permission code",
+    "type": "Type",
+    "resource": "Resource"
+  },
+  "type": {
+    "menu": "Menu",
+    "api": "API"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "createSuccess": "Permission created",
+  "saveSuccess": "Saved",
+  "deleteSuccess": "Deleted",
+  "statusUpdated": "Status updated",
+  "deleteConfirm": {
+    "title": "Delete permission",
+    "message": "Delete permission \"{name}\"? It will also be removed from all permission groups.",
+    "confirm": "Delete"
+  },
+  "statusConfirm": {
+    "enableTitle": "Enable permission",
+    "disableTitle": "Disable permission",
+    "enableMessage": "Enable permission \"{name}\"? Permission groups containing it regain it immediately.",
+    "disableMessage": "Disable permission \"{name}\"? All permission groups containing it lose it immediately."
+  },
+  "dialog": {
+    "createTitle": "Add permission",
+    "editTitle": "Edit permission",
+    "type": "Permission type",
+    "code": "Permission code",
+    "codePlaceholder": "Cannot be changed after creation",
+    "name": "Permission name",
+    "uiPath": "Menu path",
+    "uiPathPlaceholder": "For example /system/user",
+    "httpMethod": "HTTP method",
+    "httpPath": "API path",
+    "httpPathPlaceholder": "For example /api/system/user",
+    "httpPathHint": "Use the gin route template. It only needs to start with /; the /api prefix is not required"
+  },
+  "validation": {
+    "codeRequired": "Please enter a permission code",
+    "nameRequired": "Please enter a permission name",
+    "uiPathRequired": "Please enter a menu path",
+    "uiPathPrefix": "The menu path must start with /",
+    "httpMethodRequired": "Please select an HTTP method",
+    "httpPathRequired": "Please enter an API path",
+    "httpPathPrefix": "The API path must start with /"
+  }
+}

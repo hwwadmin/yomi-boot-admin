@@ -11,8 +11,6 @@ export function setupRouterGuards(router: Router) {
   router.beforeEach(async (to) => {
     const userStore = useUserStore()
 
-    document.title = to.meta.title ? `${to.meta.title} · Yomi Admin` : 'Yomi Admin'
-
     // 未登录：仅白名单页面放行，其余跳登录并记住来源
     if (!userStore.token) {
       if (WHITE_LIST.has(to.path)) return true

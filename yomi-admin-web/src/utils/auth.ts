@@ -1,3 +1,4 @@
+import { i18n } from '@/i18n'
 import router from '@/router'
 import { useUserStore } from '@/stores/user'
 
@@ -19,7 +20,7 @@ export function expireSession() {
   if (redirecting || current.path === '/login') return
 
   redirecting = true
-  if (hadToken) ElMessage.error('登录已过期，请重新登录')
+  if (hadToken) ElMessage.error(i18n.global.t('errors.sessionExpired'))
 
   const done = () => {
     // 导航被取消等异常时释放标记，后续失败仍可再次触发

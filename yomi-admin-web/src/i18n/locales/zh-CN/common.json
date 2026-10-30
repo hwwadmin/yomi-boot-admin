@@ -1,0 +1,49 @@
+{
+  "action": {
+    "search": "查询",
+    "reset": "重置",
+    "add": "新增",
+    "edit": "编辑",
+    "delete": "删除",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确定",
+    "detail": "详情",
+    "close": "关闭"
+  },
+  "status": {
+    "enabled": "启用",
+    "disabled": "禁用"
+  },
+  "field": {
+    "username": "用户名",
+    "password": "密码",
+    "nickname": "昵称",
+    "email": "邮箱",
+    "phone": "手机号",
+    "status": "状态",
+    "remark": "备注",
+    "createdAt": "创建时间",
+    "updatedAt": "更新时间",
+    "actions": "操作",
+    "name": "名称",
+    "code": "编码",
+    "type": "类型",
+    "resource": "资源",
+    "builtin": "内置",
+    "value": "参数值",
+    "key": "参数键",
+    "role": "角色"
+  },
+  "yes": "是",
+  "no": "否",
+  "all": "全部",
+  "confirmTitle": "请确认",
+  "to": "至",
+  "loading": "加载中",
+  "empty": "暂无数据",
+  "none": "-",
+  "unit": {
+    "ms": "ms"
+  }
+}

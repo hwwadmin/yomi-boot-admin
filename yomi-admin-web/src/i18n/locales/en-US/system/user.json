@@ -1,0 +1,59 @@
+{
+  "searchPlaceholder": "Username / nickname",
+  "add": "Add user",
+  "columns": {
+    "roles": "Roles"
+  },
+  "status": {
+    "normal": "Active",
+    "disabled": "Disabled"
+  },
+  "actions": {
+    "edit": "Edit",
+    "assignRoles": "Assign roles",
+    "resetPassword": "Reset password",
+    "delete": "Delete"
+  },
+  "createSuccess": "User created",
+  "saveSuccess": "Saved",
+  "deleteSuccess": "Deleted",
+  "deleteConfirm": {
+    "title": "Delete user",
+    "message": "Delete user \"{name}\"? The user will no longer be able to sign in.",
+    "confirm": "Delete"
+  },
+  "statusConfirm": {
+    "enableTitle": "Enable user",
+    "disableTitle": "Disable user",
+    "enableMessage": "Enable user \"{name}\"?",
+    "disableMessage": "Disable user \"{name}\"? Their sessions will be revoked."
+  },
+  "dialog": {
+    "createTitle": "Add user",
+    "editTitle": "Edit user",
+    "usernamePlaceholder": "Sign-in account. Cannot be changed after creation",
+    "passwordPlaceholder": "6-72 characters",
+    "enabled": "Active",
+    "disabled": "Disabled"
+  },
+  "roleDialog": {
+    "title": "Assign roles",
+    "userLabel": "User: ",
+    "selectPlaceholder": "Select roles",
+    "disabledSuffix": " (disabled)",
+    "hint": "Disabled roles cannot be selected. If the user currently has a disabled role, remove it before saving.",
+    "saved": "Roles saved"
+  },
+  "resetPassword": {
+    "title": "Reset password",
+    "newPassword": "New password",
+    "placeholder": "6-72 characters. The user must sign in again after the reset",
+    "success": "Password reset. The user must sign in with the new password"
+  },
+  "validation": {
+    "usernameRequired": "Please enter a username",
+    "passwordRequired": "Please enter a password",
+    "nicknameRequired": "Please enter a nickname",
+    "newPasswordRequired": "Please enter a new password"
+  }
+}

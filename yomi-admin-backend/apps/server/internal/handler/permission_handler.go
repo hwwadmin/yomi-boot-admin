@@ -54,7 +54,7 @@ func (h *PermissionHandler) page(c *gin.Context) {
 		Type:      rbacenums.PermissionType(c.Query("type")),
 		Status:    rbacenums.Status(c.Query("status")),
 	}
-	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[rbacusecase.PermissionItem], error) {
+	handle(c, func(ctx context.Context) (dto.PageOutput[rbacusecase.PermissionItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }
@@ -69,7 +69,7 @@ func (h *PermissionHandler) create(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.Handle(c, func(ctx context.Context) (*rbacusecase.PermissionItem, error) {
+	handle(c, func(ctx context.Context) (*rbacusecase.PermissionItem, error) {
 		return h.createUC.Execute(ctx, &in)
 	})
 }
@@ -84,7 +84,7 @@ func (h *PermissionHandler) update(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.updateUC.Execute(ctx, &in)
 	})
 }
@@ -99,7 +99,7 @@ func (h *PermissionHandler) delete(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.deleteUC.Execute(ctx, &in)
 	})
 }
@@ -114,7 +114,7 @@ func (h *PermissionHandler) setStatus(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.setStatusUC.Execute(ctx, &in)
 	})
 }

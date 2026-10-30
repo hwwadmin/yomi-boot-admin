@@ -60,7 +60,7 @@ func (h *UserHandler) page(c *gin.Context) {
 		PageInput: dto.PageInput{Page: queryInt(c, "page", 1), PageSize: queryInt(c, "pageSize", 10)},
 		Keyword:   c.Query("keyword"),
 	}
-	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[userusecase.UserItem], error) {
+	handle(c, func(ctx context.Context) (dto.PageOutput[userusecase.UserItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }
@@ -75,7 +75,7 @@ func (h *UserHandler) create(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.createUC.Execute(ctx, &in)
 	})
 }
@@ -90,7 +90,7 @@ func (h *UserHandler) update(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.updateUC.Execute(ctx, &in)
 	})
 }
@@ -105,7 +105,7 @@ func (h *UserHandler) delete(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.deleteUC.Execute(ctx, &in)
 	})
 }
@@ -120,7 +120,7 @@ func (h *UserHandler) resetPassword(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.resetPwdUC.Execute(ctx, &in)
 	})
 }
@@ -130,7 +130,7 @@ func (h *UserHandler) getRoles(c *gin.Context) {
 	if !ok {
 		return
 	}
-	corehandler.Handle(c, func(ctx context.Context) (*rbacusecase.UserRolesOutput, error) {
+	handle(c, func(ctx context.Context) (*rbacusecase.UserRolesOutput, error) {
 		return h.getRolesUC.Execute(ctx, userID)
 	})
 }
@@ -145,7 +145,7 @@ func (h *UserHandler) bindRoles(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.bindRolesUC.Execute(ctx, &in)
 	})
 }

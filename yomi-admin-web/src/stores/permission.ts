@@ -11,7 +11,8 @@ const implicitPaths = ['/dashboard', '/403']
 /** 侧栏菜单节点：分组节点只有 children，叶子节点 path 为可跳转的路由路径 */
 export interface MenuNode {
   path: string
-  title: string
+  /** 标题语言键，渲染时翻译，切换语言后菜单同步更新 */
+  titleKey: string
   icon?: string
   children?: MenuNode[]
 }
@@ -51,18 +52,23 @@ export const usePermissionStore = defineStore('permission', () => {
   function buildMenu(routes: readonly RouteRecordRaw[], parentPath: string): MenuNode[] {
     const nodes: MenuNode[] = []
     for (const route of routes) {
-      if (!route.meta?.title || route.meta?.hidden) continue
+      if (!route.meta?.titleKey || route.meta?.hidden) continue
       const fullPath = resolvePath(parentPath, route.path)
 
       if (route.children?.length) {
         const children = buildMenu(route.children, fullPath)
         if (!children.length) continue
-        nodes.push({ path: fullPath, title: route.meta.title, icon: route.meta.icon, children })
+        nodes.push({
+          path: fullPath,
+          titleKey: route.meta.titleKey,
+          icon: route.meta.icon,
+          children,
+        })
         continue
       }
 
       if (!canAccess(fullPath)) continue
-      nodes.push({ path: fullPath, title: route.meta.title, icon: route.meta.icon })
+      nodes.push({ path: fullPath, titleKey: route.meta.titleKey, icon: route.meta.icon })
     }
     return nodes
   }

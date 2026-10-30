@@ -1,0 +1,49 @@
+{
+  "searchPlaceholder": "Path / TraceID / client IP",
+  "allMethods": "All methods",
+  "allStatus": "All statuses",
+  "statusClass": {
+    "success": "2xx Success",
+    "redirect": "3xx Redirect",
+    "clientError": "4xx Client error",
+    "serverError": "5xx Server error"
+  },
+  "startTime": "Start time",
+  "endTime": "End time",
+  "columns": {
+    "requestAt": "Request time",
+    "method": "Method",
+    "path": "Path",
+    "result": "Result",
+    "duration": "Duration",
+    "userId": "User ID",
+    "actions": "Actions"
+  },
+  "detail": "Details",
+  "drawer": {
+    "title": "Access record details",
+    "requestAt": "Request time",
+    "duration": "Duration",
+    "service": "Service",
+    "version": "Version",
+    "method": "Method",
+    "statusCode": "Status code",
+    "bizCode": "Business code",
+    "bizMsg": "Business message",
+    "clientIp": "Client IP",
+    "clientType": "Client type",
+    "userId": "User ID",
+    "anonymous": "Anonymous",
+    "createdAt": "Recorded at",
+    "traceId": "TraceID",
+    "path": "Path",
+    "route": "Route template",
+    "query": "Query",
+    "userAgent": "User-Agent",
+    "requestHeaders": "Request headers",
+    "requestBody": "Request body",
+    "responseBody": "Response body",
+    "truncated": "Exceeds the capture limit; body not recorded",
+    "empty": "(empty)"
+  }
+}

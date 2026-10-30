@@ -6,7 +6,6 @@ import type {
   SysParamItem,
   SysParamQuery,
   SysParamUpdatePayload,
-  ParamValueType,
 } from './types'
 
 export type { SysParamQuery }
@@ -39,12 +38,4 @@ export function deleteSysParam(id: string) {
 /** 设置参数启停；禁用后业务读取方回退默认值 */
 export function setSysParamStatus(id: string, status: Status) {
   return request<null>({ url: '/system/param/set-status', method: 'post', data: { id, status } })
-}
-
-/** 参数值类型展示名；按展示顺序声明（对象键序遍历，字符串放第一位） */
-export const paramValueTypeLabels: Record<ParamValueType, string> = {
-  STRING: '字符串',
-  BOOL: '布尔',
-  INT: '整数',
-  JSON: 'JSON',
 }

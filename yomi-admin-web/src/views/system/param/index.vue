@@ -1,20 +1,24 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
 import {
   createSysParam,
   deleteSysParam,
   getSysParamPage,
-  paramValueTypeLabels,
   setSysParamStatus,
   updateSysParam,
 } from '@/api/sysparam'
 import type { SysParamQuery } from '@/api/sysparam'
 import type { ParamValueType, Status, SysParamItem } from '@/api/types'
+import { useParamValueTypeLabels } from '@/composables/useParamValueTypeLabels'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemParamPage' })
+
+const { t } = useI18n()
+const paramValueTypeLabels = useParamValueTypeLabels()
 
 /** int64 取值范围，前端先挡一道，避免超范围值提交后才由后端报"参数不合法" */
 const INT64_MAX = 2n ** 63n - 1n
@@ -73,14 +77,16 @@ const form = reactive({
 function validateValue(_rule: unknown, value: string, callback: (error?: Error) => void) {
   const raw = value ?? ''
   if (form.valueType === 'BOOL') {
-    if (raw !== 'true' && raw !== 'false') return callback(new Error('布尔取值仅支持 true / false'))
+    if (raw !== 'true' && raw !== 'false') {
+      return callback(new Error(t('validation.param.bool')))
+    }
     return callback()
   }
   if (form.valueType === 'INT') {
-    if (!/^-?\d+$/.test(raw)) return callback(new Error('请输入 64 位整数'))
+    if (!/^-?\d+$/.test(raw)) return callback(new Error(t('validation.param.int')))
     const parsed = BigInt(raw)
     if (parsed < INT64_MIN || parsed > INT64_MAX) {
-      return callback(new Error('超出 64 位整数范围'))
+      return callback(new Error(t('validation.param.intRange')))
     }
     return callback()
   }
@@ -88,26 +94,26 @@ function validateValue(_rule: unknown, value: string, callback: (error?: Error) 
     try {
       JSON.parse(raw)
     } catch {
-      return callback(new Error('请输入合法的 JSON 文档'))
+      return callback(new Error(t('validation.param.json')))
     }
     return callback()
   }
-  if (raw.length > 2048) return callback(new Error('取值不超过 2048 字符'))
+  if (raw.length > 2048) return callback(new Error(t('validation.param.stringMax')))
   callback()
 }
 
-const rules: FormRules = {
+const rules = computed<FormRules>(() => ({
   key: [
-    { required: true, message: '请输入参数键', trigger: 'blur' },
+    { required: true, message: t('system.param.validation.keyRequired'), trigger: 'blur' },
     {
       pattern: /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$/,
-      message: '小写点分命名，每段字母开头，可含数字与下划线',
+      message: t('validation.paramKeyPattern'),
       trigger: 'blur',
     },
   ],
   value: [{ validator: validateValue, trigger: 'blur' }],
-  name: [{ required: true, message: '请输入参数名称', trigger: 'blur' }],
-}
+  name: [{ required: true, message: t('system.param.validation.nameRequired'), trigger: 'blur' }],
+}))
 
 function openCreate() {
   editingId.value = null
@@ -140,14 +146,14 @@ async function handleSubmit() {
         name: form.name.trim(),
         remark: form.remark.trim(),
       })
-      ElMessage.success('新增成功，已对业务生效')
+      ElMessage.success(t('system.param.createSuccess'))
     } else {
       await updateSysParam(editingId.value, {
         value: form.value,
         name: form.name.trim(),
         remark: form.remark.trim(),
       })
-      ElMessage.success('保存成功，已对业务生效')
+      ElMessage.success(t('system.param.saveSuccess'))
     }
     dialogVisible.value = false
     fetchList()
@@ -158,13 +164,13 @@ async function handleSubmit() {
 
 async function handleDelete(row: SysParamItem) {
   const confirmed = await confirmAction({
-    title: '删除参数',
-    message: `确定删除参数「${row.key}」吗？删除后业务读取方会回退到代码内默认值。`,
-    confirmButtonText: '删除',
+    title: t('system.param.deleteConfirm.title'),
+    message: t('system.param.deleteConfirm.message', { key: row.key }),
+    confirmButtonText: t('system.param.deleteConfirm.confirm'),
   })
   if (!confirmed) return
   await deleteSysParam(row.id)
-  ElMessage.success('删除成功，业务读取方将回退默认值')
+  ElMessage.success(t('system.param.deleteSuccess'))
   if (list.value.length === 1 && query.page > 1) {
     query.page -= 1
   }
@@ -175,10 +181,15 @@ async function handleDelete(row: SysParamItem) {
 function confirmStatusChange(key: string, next: Status): Promise<boolean> {
   const disabling = next === 'DISABLED'
   return confirmAction({
-    title: disabling ? '停用参数' : '启用参数',
-    message: disabling
-      ? `确定停用参数「${key}」吗？停用后业务读取方回退到代码内默认值。`
-      : `确定启用参数「${key}」吗？启用后对业务立即生效。`,
+    title: t(
+      disabling ? 'system.param.statusConfirm.disableTitle' : 'system.param.statusConfirm.enableTitle',
+    ),
+    message: t(
+      disabling
+        ? 'system.param.statusConfirm.disableMessage'
+        : 'system.param.statusConfirm.enableMessage',
+      { key },
+    ),
   })
 }
 
@@ -186,7 +197,7 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
   try {
     await setSysParamStatus(row.id, status)
     row.status = status
-    ElMessage.success('状态已更新')
+    ElMessage.success(t('system.param.statusUpdated'))
   } catch {
     fetchList()
   }
@@ -200,20 +211,35 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
         <el-input
           v-model="query.keyword"
           class="toolbar-input"
-          placeholder="参数键 / 名称 / 备注"
+          :placeholder="t('system.param.searchPlaceholder')"
           clearable
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
-        <el-select v-model="query.valueType" class="toolbar-select" placeholder="全部类型" clearable>
-          <el-option v-for="(label, type) in paramValueTypeLabels" :key="type" :label="label" :value="type" />
+        <el-select
+          v-model="query.valueType"
+          class="toolbar-select"
+          :placeholder="t('system.param.allTypes')"
+          clearable
+        >
+          <el-option
+            v-for="(label, type) in paramValueTypeLabels"
+            :key="type"
+            :label="label"
+            :value="type"
+          />
         </el-select>
-        <el-select v-model="query.status" class="toolbar-select" placeholder="全部状态" clearable>
-          <el-option label="启用" value="ENABLED" />
-          <el-option label="禁用" value="DISABLED" />
+        <el-select
+          v-model="query.status"
+          class="toolbar-select"
+          :placeholder="t('system.param.allStatus')"
+          clearable
+        >
+          <el-option :label="t('common.status.enabled')" value="ENABLED" />
+          <el-option :label="t('common.status.disabled')" value="DISABLED" />
         </el-select>
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
+        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
+        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
         <el-button
           v-permission="'system:param:create'"
           type="primary"
@@ -221,20 +247,35 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
           class="toolbar-add"
           @click="openCreate"
         >
-          新增参数
+          {{ t('system.param.add') }}
         </el-button>
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="name" label="参数名称" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="key" label="参数键" min-width="220" show-overflow-tooltip />
-        <el-table-column prop="value" label="参数值" min-width="160" show-overflow-tooltip />
-        <el-table-column label="类型" width="90" align="center">
+        <el-table-column
+          prop="name"
+          :label="t('system.param.columns.name')"
+          min-width="130"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="key"
+          :label="t('system.param.columns.key')"
+          min-width="220"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="value"
+          :label="t('system.param.columns.value')"
+          min-width="160"
+          show-overflow-tooltip
+        />
+        <el-table-column :label="t('common.field.type')" width="100" align="center">
           <template #default="{ row }">
             <el-tag>{{ paramValueTypeLabels[(row as SysParamItem).valueType] }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column :label="t('common.field.status')" width="100" align="center">
           <template #default="{ row }">
             <el-switch
               v-permission="'system:param:status'"
@@ -255,13 +296,18 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
             />
           </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
-        <el-table-column label="更新时间" width="180">
+        <el-table-column
+          prop="remark"
+          :label="t('common.field.remark')"
+          min-width="140"
+          show-overflow-tooltip
+        />
+        <el-table-column :label="t('common.field.updatedAt')" width="180">
           <template #default="{ row }">
             {{ formatDateTime((row as SysParamItem).updateTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="130" fixed="right" align="center">
+        <el-table-column :label="t('common.field.actions')" width="150" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               v-permission="'system:param:update'"
@@ -269,7 +315,7 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
               type="primary"
               @click="openEdit(row as SysParamItem)"
             >
-              编辑
+              {{ t('common.action.edit') }}
             </el-button>
             <el-button
               v-permission="'system:param:delete'"
@@ -277,7 +323,7 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
               type="danger"
               @click="handleDelete(row as SysParamItem)"
             >
-              删除
+              {{ t('common.action.delete') }}
             </el-button>
           </template>
         </el-table-column>
@@ -298,30 +344,34 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
 
     <el-dialog
       v-model="dialogVisible"
-      :title="editingId === null ? '新增参数' : '编辑参数'"
-      width="560px"
+      :title="
+        editingId === null
+          ? t('system.param.dialog.createTitle')
+          : t('system.param.dialog.editTitle')
+      "
+      width="600px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="参数名称" prop="name">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="130px">
+        <el-form-item :label="t('system.param.dialog.name')" prop="name">
           <el-input v-model="form.name" maxlength="64" />
         </el-form-item>
-        <el-form-item label="参数键" prop="key">
+        <el-form-item :label="t('system.param.dialog.key')" prop="key">
           <el-input
             v-model="form.key"
             :disabled="editingId !== null"
-            placeholder="例如 order.auto_cancel_days，创建后不可修改"
+            :placeholder="t('system.param.dialog.keyPlaceholder')"
             maxlength="128"
           />
         </el-form-item>
-        <el-form-item label="值类型" prop="valueType">
+        <el-form-item :label="t('system.param.dialog.valueType')" prop="valueType">
           <el-radio-group v-model="form.valueType" :disabled="editingId !== null">
             <el-radio v-for="(label, type) in paramValueTypeLabels" :key="type" :value="type">
               {{ label }}
             </el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="参数值" prop="value">
+        <el-form-item :label="t('system.param.dialog.value')" prop="value">
           <el-switch
             v-if="form.valueType === 'BOOL'"
             :model-value="form.value === 'true'"
@@ -334,22 +384,28 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
             v-model="form.value"
             type="textarea"
             :rows="4"
-            placeholder='例如 {"max":10}'
+            :placeholder="t('system.param.dialog.jsonPlaceholder')"
           />
           <el-input
             v-else
             v-model="form.value"
             :maxlength="form.valueType === 'STRING' ? 2048 : undefined"
-            :placeholder="form.valueType === 'INT' ? '64 位整数' : '参数取值'"
+            :placeholder="
+              form.valueType === 'INT'
+                ? t('system.param.dialog.intPlaceholder')
+                : t('system.param.dialog.valuePlaceholder')
+            "
           />
         </el-form-item>
-        <el-form-item label="备注">
+        <el-form-item :label="t('common.field.remark')">
           <el-input v-model="form.remark" type="textarea" maxlength="255" :rows="3" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+        <el-button @click="dialogVisible = false">{{ t('common.action.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          {{ t('common.action.confirm') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>

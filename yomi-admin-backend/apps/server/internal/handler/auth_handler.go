@@ -52,14 +52,14 @@ func (h *AuthHandler) Routes(router *gin.RouterGroup) {
 
 // loginConfig 下发登录页公开配置（验证码开关等），免认证
 func (h *AuthHandler) loginConfig(c *gin.Context) {
-	corehandler.Handle(c, func(ctx context.Context) (*authusecase.LoginConfigOutput, error) {
+	handle(c, func(ctx context.Context) (*authusecase.LoginConfigOutput, error) {
 		return h.configUC.Execute(), nil
 	})
 }
 
 func (h *AuthHandler) captcha(c *gin.Context) {
 	c.Header("Cache-Control", "no-store")
-	corehandler.Handle(c, func(ctx context.Context) (*authusecase.CaptchaOutput, error) {
+	handle(c, func(ctx context.Context) (*authusecase.CaptchaOutput, error) {
 		return h.captchaUC.Generate(ctx, ginutil.ClientIP(c))
 	})
 }
@@ -70,7 +70,7 @@ func (h *AuthHandler) login(c *gin.Context) {
 		return
 	}
 	clientIP := ginutil.ClientIP(c)
-	corehandler.Handle(c, func(ctx context.Context) (*authusecase.LoginOutput, error) {
+	handle(c, func(ctx context.Context) (*authusecase.LoginOutput, error) {
 		return h.loginUC.Execute(ctx, in, clientIP)
 	})
 }
@@ -80,13 +80,13 @@ func (h *AuthHandler) profile(c *gin.Context) {
 	if !ok {
 		return
 	}
-	corehandler.Handle(c, func(ctx context.Context) (*authusecase.IdentityView, error) {
+	handle(c, func(ctx context.Context) (*authusecase.IdentityView, error) {
 		return h.profileUC.Execute(ctx, userID)
 	})
 }
 
 func (h *AuthHandler) logout(c *gin.Context) {
-	corehandler.HandleVoid(c, h.logoutUC.Execute)
+	handleVoid(c, h.logoutUC.Execute)
 }
 
 func (h *AuthHandler) changePassword(c *gin.Context) {
@@ -98,7 +98,7 @@ func (h *AuthHandler) changePassword(c *gin.Context) {
 	if !ok {
 		return
 	}
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.passwordUC.Execute(ctx, in, operatorID)
 	})
 }

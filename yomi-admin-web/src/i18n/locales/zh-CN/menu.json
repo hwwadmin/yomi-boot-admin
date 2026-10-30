@@ -1,0 +1,14 @@
+{
+  "login": "登录",
+  "dashboard": "首页",
+  "system": "系统管理",
+  "systemUser": "系统用户",
+  "systemRbac": "权限管理",
+  "systemRole": "角色",
+  "systemPermissionGroup": "权限组",
+  "systemPermission": "权限",
+  "systemHttpRecord": "访问记录",
+  "systemParam": "系统参数",
+  "forbidden": "无权访问",
+  "notFound": "404"
+}

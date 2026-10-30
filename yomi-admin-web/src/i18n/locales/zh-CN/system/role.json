@@ -1,0 +1,58 @@
+{
+  "searchPlaceholder": "角色编码 / 名称",
+  "add": "新增角色",
+  "refreshCache": "刷新缓存",
+  "columns": {
+    "name": "角色名称",
+    "code": "角色编码"
+  },
+  "actions": {
+    "edit": "编辑",
+    "delete": "删除",
+    "assignGroups": "分配权限组"
+  },
+  "statusUpdated": "状态已更新",
+  "statusConfirm": {
+    "enableTitle": "启用角色",
+    "disableTitle": "停用角色",
+    "enableMessage": "确定启用角色「{name}」吗？",
+    "disableMessage": "确定停用角色「{name}」吗？停用后该角色对应用户的权限会立即失效。"
+  },
+  "cacheRefresh": {
+    "title": "刷新权限缓存",
+    "message": "将按数据库重建权限缓存，所有实例随后立即生效。确定刷新吗？",
+    "confirm": "刷新",
+    "success": "刷新成功"
+  },
+  "dialog": {
+    "createTitle": "新增角色",
+    "editTitle": "编辑角色",
+    "code": "角色编码",
+    "codePlaceholder": "创建后不可修改",
+    "name": "角色名称"
+  },
+  "createSuccess": "新增成功",
+  "saveSuccess": "保存成功",
+  "deleteSuccess": "删除成功",
+  "deleteConfirm": {
+    "title": "删除角色",
+    "message": "确定删除角色「{name}」吗？已绑定用户的角色无法删除。",
+    "confirm": "删除"
+  },
+  "groupDrawer": {
+    "title": "分配权限组",
+    "roleLabel": "角色：",
+    "disabledTag": "已停用",
+    "hint": "停用的权限组可以绑定，但不会授予任何权限。",
+    "empty": "暂无权限组，请先在「权限组」中创建",
+    "aggregated": "聚合权限（{count} 项，自动去重）",
+    "noGroups": "该角色尚未绑定任何权限组",
+    "ineffectiveTag": "（未生效）",
+    "ineffective": "标注“未生效”的 {count} 项来自已停用的权限组，或该权限本身已停用，不会授予访问能力。",
+    "saved": "权限组已保存"
+  },
+  "validation": {
+    "codeRequired": "请输入角色编码",
+    "nameRequired": "请输入角色名称"
+  }
+}

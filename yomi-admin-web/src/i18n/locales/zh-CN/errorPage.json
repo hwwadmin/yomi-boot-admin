@@ -1,0 +1,10 @@
+{
+  "forbidden": {
+    "message": "抱歉，您没有访问该页面的权限",
+    "backHome": "返回首页"
+  },
+  "notFound": {
+    "message": "抱歉，您访问的页面不存在",
+    "backHome": "返回首页"
+  }
+}

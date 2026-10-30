@@ -1,0 +1,16 @@
+{
+  "required": "This field is required",
+  "email": "Invalid email address",
+  "phone": "Invalid phone number",
+  "passwordLength": "Password must be 6-72 characters",
+  "roleCodePattern": "Start with a lowercase letter; use 3-32 lowercase letters, digits, or underscores",
+  "permissionCodePattern": "Start with a lowercase letter; separate segments with colons; digits and underscores allowed",
+  "paramKeyPattern": "Lowercase dot-separated segments; each segment starts with a letter; digits and underscores allowed",
+  "param": {
+    "bool": "Boolean values must be true or false",
+    "int": "Enter a 64-bit integer",
+    "intRange": "Value is outside the 64-bit integer range",
+    "json": "Enter valid JSON",
+    "stringMax": "Value must not exceed 2048 characters"
+  }
+}

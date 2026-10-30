@@ -1,0 +1,14 @@
+{
+  "login": "Sign in",
+  "dashboard": "Dashboard",
+  "system": "System",
+  "systemUser": "Users",
+  "systemRbac": "Access control",
+  "systemRole": "Roles",
+  "systemPermissionGroup": "Permission groups",
+  "systemPermission": "Permissions",
+  "systemHttpRecord": "Access log",
+  "systemParam": "System parameters",
+  "forbidden": "Forbidden",
+  "notFound": "404"
+}

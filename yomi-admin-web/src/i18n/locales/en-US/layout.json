@@ -1,0 +1,46 @@
+{
+  "subtitle": "Admin Console",
+  "theme": {
+    "toLight": "Switch to light mode",
+    "toDark": "Switch to dark mode"
+  },
+  "fullscreen": {
+    "enter": "Fullscreen",
+    "exit": "Exit fullscreen"
+  },
+  "language": {
+    "switch": "Switch language",
+    "shortZh": "中",
+    "shortEn": "EN"
+  },
+  "user": {
+    "fallbackName": "Not signed in"
+  },
+  "menu": {
+    "changePassword": "Change password",
+    "logout": "Sign out"
+  },
+  "logout": {
+    "confirmTitle": "Notice",
+    "confirmMessage": "Sign out of the current session?",
+    "confirmButton": "Sign out",
+    "success": "Signed out"
+  },
+  "changePassword": {
+    "title": "Change password",
+    "oldPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "oldPlaceholder": "Enter your current password",
+    "newPlaceholder": "6-72 characters. You will be signed out after changing it",
+    "confirmPlaceholder": "Enter the new password again",
+    "success": "Password changed. Sign in again with the new password",
+    "validation": {
+      "oldRequired": "Please enter your current password",
+      "newRequired": "Please enter a new password",
+      "length": "Password must be 6-72 characters",
+      "confirmRequired": "Please enter the new password again",
+      "mismatch": "The two passwords do not match"
+    }
+  }
+}

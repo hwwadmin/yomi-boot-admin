@@ -1,0 +1,13 @@
+{
+  "greeting": {
+    "dawn": "Good night",
+    "morning": "Good morning",
+    "noon": "Good afternoon",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "adminFallback": "Administrator",
+  "greetingLine": "{greeting}, {name}!",
+  "subtitle": "Welcome to the Yomi Admin console.",
+  "imageAlt": "Welcome to Yomi Admin"
+}

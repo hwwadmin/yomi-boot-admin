@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
 import {
   createPermission,
@@ -14,6 +15,8 @@ import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemPermissionPage' })
+
+const { t } = useI18n()
 
 // ———————— 列表查询 ————————
 const loading = ref(false)
@@ -71,15 +74,17 @@ const form = reactive({
 function validateUIPath(_rule: unknown, value: string, callback: (error?: Error) => void) {
   if (form.type !== 'MENU') return callback()
   const uiPath = value?.trim() ?? ''
-  if (!uiPath) return callback(new Error('请输入菜单路径'))
-  if (!uiPath.startsWith('/')) return callback(new Error('菜单路径需以 / 开头'))
+  if (!uiPath) return callback(new Error(t('system.permission.validation.uiPathRequired')))
+  if (!uiPath.startsWith('/')) {
+    return callback(new Error(t('system.permission.validation.uiPathPrefix')))
+  }
   callback()
 }
 
 /** 只有接口类型才校验 HTTP 方法 */
 function validateHTTPMethod(_rule: unknown, value: string, callback: (error?: Error) => void) {
   if (form.type !== 'API') return callback()
-  if (!value) return callback(new Error('请选择 HTTP 方法'))
+  if (!value) return callback(new Error(t('system.permission.validation.httpMethodRequired')))
   callback()
 }
 
@@ -87,25 +92,33 @@ function validateHTTPMethod(_rule: unknown, value: string, callback: (error?: Er
 function validateHTTPPath(_rule: unknown, value: string, callback: (error?: Error) => void) {
   if (form.type !== 'API') return callback()
   const httpPath = value?.trim() ?? ''
-  if (!httpPath) return callback(new Error('请输入接口路径'))
-  if (!httpPath.startsWith('/')) return callback(new Error('接口路径需以 / 开头'))
+  if (!httpPath) return callback(new Error(t('system.permission.validation.httpPathRequired')))
+  if (!httpPath.startsWith('/')) {
+    return callback(new Error(t('system.permission.validation.httpPathPrefix')))
+  }
   callback()
 }
 
-const rules: FormRules = {
+const rules = computed<FormRules>(() => ({
   code: [
-    { required: true, message: '请输入权限编码', trigger: 'blur' },
+    {
+      required: true,
+      message: t('system.permission.validation.codeRequired'),
+      trigger: 'blur',
+    },
     {
       pattern: /^[a-z][a-z0-9_]*(?::[a-z][a-z0-9_]*)*$/,
-      message: '小写字母开头，用冒号分段，可含数字与下划线',
+      message: t('validation.permissionCodePattern'),
       trigger: 'blur',
     },
   ],
-  name: [{ required: true, message: '请输入权限名称', trigger: 'blur' }],
+  name: [
+    { required: true, message: t('system.permission.validation.nameRequired'), trigger: 'blur' },
+  ],
   uiPath: [{ validator: validateUIPath, trigger: 'blur' }],
   httpMethod: [{ validator: validateHTTPMethod, trigger: 'change' }],
   httpPath: [{ validator: validateHTTPPath, trigger: 'blur' }],
-}
+}))
 
 function openCreate() {
   editingId.value = null
@@ -147,10 +160,10 @@ async function handleSubmit() {
     const payload = { name: form.name.trim(), ...resource, remark: form.remark.trim() }
     if (editingId.value === null) {
       await createPermission({ code: form.code.trim(), type: form.type, ...payload })
-      ElMessage.success('新增成功')
+      ElMessage.success(t('system.permission.createSuccess'))
     } else {
       await updatePermission(editingId.value, payload)
-      ElMessage.success('保存成功')
+      ElMessage.success(t('system.permission.saveSuccess'))
     }
     dialogVisible.value = false
     fetchList()
@@ -161,13 +174,13 @@ async function handleSubmit() {
 
 async function handleDelete(row: PermissionItem) {
   const confirmed = await confirmAction({
-    title: '删除权限',
-    message: `确定删除权限「${row.name}」吗？删除后会同步从所有权限组中移除。`,
-    confirmButtonText: '删除',
+    title: t('system.permission.deleteConfirm.title'),
+    message: t('system.permission.deleteConfirm.message', { name: row.name }),
+    confirmButtonText: t('system.permission.deleteConfirm.confirm'),
   })
   if (!confirmed) return
   await deletePermission(row.id)
-  ElMessage.success('删除成功')
+  ElMessage.success(t('system.permission.deleteSuccess'))
   if (list.value.length === 1 && query.page > 1) {
     query.page -= 1
   }
@@ -179,10 +192,17 @@ async function handleDelete(row: PermissionItem) {
 function confirmStatusChange(name: string, next: Status): Promise<boolean> {
   const disabling = next === 'DISABLED'
   return confirmAction({
-    title: disabling ? '停用权限' : '启用权限',
-    message: disabling
-      ? `确定停用权限「${name}」吗？所有包含该权限的权限组会立即失去它。`
-      : `确定启用权限「${name}」吗？包含该权限的权限组会立即恢复它。`,
+    title: t(
+      disabling
+        ? 'system.permission.statusConfirm.disableTitle'
+        : 'system.permission.statusConfirm.enableTitle',
+    ),
+    message: t(
+      disabling
+        ? 'system.permission.statusConfirm.disableMessage'
+        : 'system.permission.statusConfirm.enableMessage',
+      { name },
+    ),
   })
 }
 
@@ -190,7 +210,7 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
   try {
     await setPermissionStatus(row.id, status)
     row.status = status
-    ElMessage.success('状态已更新')
+    ElMessage.success(t('system.permission.statusUpdated'))
   } catch {
     fetchList()
   }
@@ -204,21 +224,31 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
         <el-input
           v-model="query.keyword"
           class="toolbar-input"
-          placeholder="权限编码 / 名称"
+          :placeholder="t('system.permission.searchPlaceholder')"
           clearable
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
-        <el-select v-model="query.type" class="toolbar-select" placeholder="全部类型" clearable>
-          <el-option label="菜单" value="MENU" />
-          <el-option label="接口" value="API" />
+        <el-select
+          v-model="query.type"
+          class="toolbar-select"
+          :placeholder="t('common.all')"
+          clearable
+        >
+          <el-option :label="t('system.permission.type.menu')" value="MENU" />
+          <el-option :label="t('system.permission.type.api')" value="API" />
         </el-select>
-        <el-select v-model="query.status" class="toolbar-select" placeholder="全部状态" clearable>
-          <el-option label="启用" value="ENABLED" />
-          <el-option label="禁用" value="DISABLED" />
+        <el-select
+          v-model="query.status"
+          class="toolbar-select"
+          :placeholder="t('common.all')"
+          clearable
+        >
+          <el-option :label="t('common.status.enabled')" value="ENABLED" />
+          <el-option :label="t('common.status.disabled')" value="DISABLED" />
         </el-select>
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
+        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
+        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
         <el-button
           v-permission="'system:permission:create'"
           type="primary"
@@ -226,21 +256,37 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
           class="toolbar-add"
           @click="openCreate"
         >
-          新增权限
+          {{ t('system.permission.add') }}
         </el-button>
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="name" label="权限名称" min-width="140" />
-        <el-table-column prop="code" label="权限编码" min-width="200" />
-        <el-table-column label="类型" width="90" align="center">
+        <el-table-column
+          prop="name"
+          :label="t('system.permission.columns.name')"
+          min-width="140"
+        />
+        <el-table-column
+          prop="code"
+          :label="t('system.permission.columns.code')"
+          min-width="200"
+        />
+        <el-table-column :label="t('system.permission.columns.type')" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.type === 'MENU' ? 'primary' : 'success'">
-              {{ row.type === 'MENU' ? '菜单' : '接口' }}
+              {{
+                row.type === 'MENU'
+                  ? t('system.permission.type.menu')
+                  : t('system.permission.type.api')
+              }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="资源" min-width="260" show-overflow-tooltip>
+        <el-table-column
+          :label="t('system.permission.columns.resource')"
+          min-width="260"
+          show-overflow-tooltip
+        >
           <template #default="{ row }">
             <template v-if="row.type === 'MENU'">{{ row.uiPath }}</template>
             <template v-else>
@@ -249,7 +295,7 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
             </template>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column :label="t('common.field.status')" width="100" align="center">
           <template #default="{ row }">
             <el-switch
               v-permission="'system:permission:status'"
@@ -270,13 +316,18 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
             />
           </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
-        <el-table-column label="创建时间" width="180">
+        <el-table-column
+          prop="remark"
+          :label="t('common.field.remark')"
+          min-width="140"
+          show-overflow-tooltip
+        />
+        <el-table-column :label="t('common.field.createdAt')" width="180">
           <template #default="{ row }">
             {{ formatDateTime((row as PermissionItem).createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="130" fixed="right" align="center">
+        <el-table-column :label="t('common.field.actions')" width="150" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               v-permission="'system:permission:update'"
@@ -284,7 +335,7 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
               type="primary"
               @click="openEdit(row as PermissionItem)"
             >
-              编辑
+              {{ t('system.permission.actions.edit') }}
             </el-button>
             <el-button
               v-permission="'system:permission:delete'"
@@ -292,7 +343,7 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
               type="danger"
               @click="handleDelete(row as PermissionItem)"
             >
-              删除
+              {{ t('system.permission.actions.delete') }}
             </el-button>
           </template>
         </el-table-column>
@@ -313,33 +364,45 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
 
     <el-dialog
       v-model="dialogVisible"
-      :title="editingId === null ? '新增权限' : '编辑权限'"
-      width="520px"
+      :title="
+        editingId === null
+          ? t('system.permission.dialog.createTitle')
+          : t('system.permission.dialog.editTitle')
+      "
+      width="560px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
-        <el-form-item label="权限类型" prop="type">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="130px">
+        <el-form-item :label="t('system.permission.dialog.type')" prop="type">
           <el-radio-group v-model="form.type" :disabled="editingId !== null">
-            <el-radio value="MENU">菜单</el-radio>
-            <el-radio value="API">接口</el-radio>
+            <el-radio value="MENU">{{ t('system.permission.type.menu') }}</el-radio>
+            <el-radio value="API">{{ t('system.permission.type.api') }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="权限编码" prop="code">
+        <el-form-item :label="t('system.permission.dialog.code')" prop="code">
           <el-input
             v-model="form.code"
             :disabled="editingId !== null"
-            placeholder="创建后不可修改"
+            :placeholder="t('system.permission.dialog.codePlaceholder')"
             maxlength="96"
           />
         </el-form-item>
-        <el-form-item label="权限名称" prop="name">
+        <el-form-item :label="t('system.permission.dialog.name')" prop="name">
           <el-input v-model="form.name" maxlength="32" />
         </el-form-item>
-        <el-form-item v-if="form.type === 'MENU'" label="菜单路径" prop="uiPath">
-          <el-input v-model="form.uiPath" placeholder="例如 /system/user" maxlength="191" />
+        <el-form-item
+          v-if="form.type === 'MENU'"
+          :label="t('system.permission.dialog.uiPath')"
+          prop="uiPath"
+        >
+          <el-input
+            v-model="form.uiPath"
+            :placeholder="t('system.permission.dialog.uiPathPlaceholder')"
+            maxlength="191"
+          />
         </el-form-item>
         <template v-else>
-          <el-form-item label="HTTP 方法" prop="httpMethod">
+          <el-form-item :label="t('system.permission.dialog.httpMethod')" prop="httpMethod">
             <el-select v-model="form.httpMethod" class="method-select">
               <el-option
                 v-for="method in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']"
@@ -349,18 +412,24 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="接口路径" prop="httpPath">
-            <el-input v-model="form.httpPath" placeholder="例如 /api/system/user" maxlength="191" />
-            <span class="form-hint">填 gin 路由模板，以 / 开头即可，不强制 /api 前缀</span>
+          <el-form-item :label="t('system.permission.dialog.httpPath')" prop="httpPath">
+            <el-input
+              v-model="form.httpPath"
+              :placeholder="t('system.permission.dialog.httpPathPlaceholder')"
+              maxlength="191"
+            />
+            <span class="form-hint">{{ t('system.permission.dialog.httpPathHint') }}</span>
           </el-form-item>
         </template>
-        <el-form-item label="备注">
+        <el-form-item :label="t('common.field.remark')">
           <el-input v-model="form.remark" type="textarea" maxlength="255" :rows="3" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+        <el-button @click="dialogVisible = false">{{ t('common.action.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          {{ t('common.action.confirm') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>

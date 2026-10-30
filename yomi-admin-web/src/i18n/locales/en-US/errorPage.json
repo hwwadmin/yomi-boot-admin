@@ -1,0 +1,10 @@
+{
+  "forbidden": {
+    "message": "Sorry, you do not have permission to access this page.",
+    "backHome": "Back to home"
+  },
+  "notFound": {
+    "message": "Sorry, the page you are looking for does not exist.",
+    "backHome": "Back to home"
+  }
+}

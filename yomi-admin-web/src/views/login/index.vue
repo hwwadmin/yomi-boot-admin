@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { Key, Lock, User } from '@element-plus/icons-vue'
 
 import { getCaptcha, getLoginConfig } from '@/api/auth'
@@ -11,6 +12,7 @@ defineOptions({ name: 'LoginPage' })
 const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
@@ -23,10 +25,10 @@ const form = reactive({ username: '', password: '', captchaCode: '' })
 const captchaRequired = ref(true)
 
 const rules = computed<FormRules>(() => ({
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  username: [{ required: true, message: t('auth.validation.usernameRequired'), trigger: 'blur' }],
+  password: [{ required: true, message: t('auth.validation.passwordRequired'), trigger: 'blur' }],
   captchaCode: captchaRequired.value
-    ? [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+    ? [{ required: true, message: t('auth.validation.captchaRequired'), trigger: 'blur' }]
     : [],
 }))
 
@@ -39,14 +41,14 @@ async function loadLoginConfig() {
 }
 
 /** 拉取新验证码；刷新失败（如触发限流）时保留当前图片 */
-async function refreshCaptcha() {
+async function refreshCaptcha(silent = false) {
   if (captchaLoading.value) return
   captchaLoading.value = true
   try {
-    captcha.value = await getCaptcha()
+    captcha.value = await getCaptcha({ silent })
     captchaStale.value = false
   } catch {
-    // 失败提示由 request 拦截器统一处理
+    // 失败提示由 request 拦截器统一处理；静默换图时只保留失效蒙层
   } finally {
     captchaLoading.value = false
   }
@@ -65,14 +67,14 @@ async function handleLogin() {
       captchaRequired.value ? (captcha.value?.id ?? '') : '',
       captchaRequired.value ? form.captchaCode.trim() : '',
     )
-    ElMessage.success('登录成功')
+    ElMessage.success(t('auth.success'))
     const redirect = (route.query.redirect as string) || '/'
     router.replace(redirect)
   } catch {
-    // 登录失败时验证码已在服务端消费：清空输入并尝试换一张
+    // 登录失败时验证码已在服务端消费：清空输入并静默换一张，避免限流提示盖住真正的登录错误
     form.captchaCode = ''
     captchaStale.value = true
-    if (captchaRequired.value) await refreshCaptcha()
+    if (captchaRequired.value) await refreshCaptcha(true)
   } finally {
     loading.value = false
   }
@@ -92,12 +94,12 @@ onMounted(async () => {
   <div class="login-page">
     <el-card class="login-card" shadow="always">
       <div class="login-title">Yomi Admin</div>
-      <div class="login-subtitle">后台管理系统</div>
+      <div class="login-subtitle">{{ t('auth.subtitle') }}</div>
       <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="handleLogin">
         <el-form-item prop="username">
           <el-input
             v-model="form.username"
-            placeholder="用户名"
+            :placeholder="t('auth.usernamePlaceholder')"
             :prefix-icon="User"
             autocomplete="username"
             maxlength="64"
@@ -107,7 +109,7 @@ onMounted(async () => {
           <el-input
             v-model="form.password"
             type="password"
-            placeholder="密码"
+            :placeholder="t('auth.passwordPlaceholder')"
             :prefix-icon="Lock"
             show-password
             autocomplete="current-password"
@@ -118,7 +120,7 @@ onMounted(async () => {
           <div class="captcha-row">
             <el-input
               v-model="form.captchaCode"
-              placeholder="验证码"
+              :placeholder="t('auth.captchaPlaceholder')"
               :prefix-icon="Key"
               maxlength="8"
               autocomplete="off"
@@ -126,14 +128,16 @@ onMounted(async () => {
             <button
               type="button"
               class="captcha-image"
-              title="点击刷新验证码"
+              :title="t('auth.captchaRefreshTitle')"
               :disabled="captchaLoading"
-              @click="refreshCaptcha"
+              @click="refreshCaptcha()"
             >
-              <img v-if="captcha" :src="captcha.image" alt="验证码" />
-              <span v-else>{{ captchaLoading ? '加载中' : '点击加载' }}</span>
+              <img v-if="captcha" :src="captcha.image" :alt="t('auth.captchaAlt')" />
+              <span v-else>
+                {{ captchaLoading ? t('auth.captchaLoading') : t('auth.captchaLoad') }}
+              </span>
               <span v-if="captcha && captchaStale" class="captcha-stale-tip">
-                已失效<br />点击刷新
+                {{ t('auth.captchaStale.line1') }}<br />{{ t('auth.captchaStale.line2') }}
               </span>
             </button>
           </div>
@@ -145,9 +149,9 @@ onMounted(async () => {
           :loading="loading"
           @click="handleLogin"
         >
-          登 录
+          {{ t('auth.submit') }}
         </el-button>
-        <div v-if="showMockTip" class="mock-tip">mock 模式，演示账号：admin / admin123</div>
+        <div v-if="showMockTip" class="mock-tip">{{ t('auth.mockTip') }}</div>
       </el-form>
     </el-card>
   </div>

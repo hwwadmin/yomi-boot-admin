@@ -1,0 +1,49 @@
+{
+  "action": {
+    "search": "Search",
+    "reset": "Reset",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "OK",
+    "detail": "Details",
+    "close": "Close"
+  },
+  "status": {
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+  "field": {
+    "username": "Username",
+    "password": "Password",
+    "nickname": "Nickname",
+    "email": "Email",
+    "phone": "Phone",
+    "status": "Status",
+    "remark": "Remark",
+    "createdAt": "Created at",
+    "updatedAt": "Updated at",
+    "actions": "Actions",
+    "name": "Name",
+    "code": "Code",
+    "type": "Type",
+    "resource": "Resource",
+    "builtin": "Built-in",
+    "value": "Value",
+    "key": "Key",
+    "role": "Role"
+  },
+  "yes": "Yes",
+  "no": "No",
+  "all": "All",
+  "confirmTitle": "Please confirm",
+  "to": "to",
+  "loading": "Loading",
+  "empty": "No data",
+  "none": "-",
+  "unit": {
+    "ms": "ms"
+  }
+}

@@ -1,8 +1,19 @@
 <script setup lang="ts">
-const route = useRoute()
+import { useI18n } from 'vue-i18n'
 
-// 由 matched 路由生成面包屑，标题来自 meta.title；无组件的分组路由不可跳转
-const items = computed(() => route.matched.filter((item) => item.meta?.title))
+const route = useRoute()
+const { t } = useI18n()
+
+// 由 matched 路由生成面包屑，标题来自 meta.titleKey；无组件的分组路由不可跳转
+const items = computed(() =>
+  route.matched
+    .filter((item) => item.meta?.titleKey)
+    .map((item) => ({
+      path: item.path,
+      titleKey: item.meta.titleKey as string,
+      linkable: Boolean(item.components),
+    })),
+)
 </script>
 
 <template>
@@ -10,9 +21,9 @@ const items = computed(() => route.matched.filter((item) => item.meta?.title))
     <el-breadcrumb-item
       v-for="item in items"
       :key="item.path"
-      :to="item.components ? item.path : undefined"
+      :to="item.linkable ? item.path : undefined"
     >
-      {{ item.meta?.title }}
+      {{ t(item.titleKey) }}
     </el-breadcrumb-item>
   </el-breadcrumb>
 </template>

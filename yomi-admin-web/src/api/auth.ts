@@ -13,9 +13,9 @@ export function getLoginConfig() {
   return request<LoginConfig>({ url: '/auth/config', method: 'get' })
 }
 
-/** 登录图形验证码 */
-export function getCaptcha() {
-  return request<CaptchaChallenge>({ url: '/auth/captcha', method: 'get' })
+/** 登录图形验证码；silent 用于登录失败后的静默换图 */
+export function getCaptcha(options: { silent?: boolean } = {}) {
+  return request<CaptchaChallenge>({ url: '/auth/captcha', method: 'get', ...options })
 }
 
 /** 登录 */

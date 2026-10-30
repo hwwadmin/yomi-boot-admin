@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 import welcomeImage from '@/assets/welcome.svg'
 
 import { useUserStore } from '@/stores/user'
@@ -6,15 +8,19 @@ import { useUserStore } from '@/stores/user'
 defineOptions({ name: 'DashboardPage' })
 
 const userStore = useUserStore()
+const { t } = useI18n()
 
-const greeting = computed(() => {
+const greetingKey = computed(() => {
   const hour = new Date().getHours()
-  if (hour < 6) return '凌晨好'
-  if (hour < 12) return '上午好'
-  if (hour < 14) return '中午好'
-  if (hour < 18) return '下午好'
-  return '晚上好'
+  if (hour < 6) return 'dashboard.greeting.dawn'
+  if (hour < 12) return 'dashboard.greeting.morning'
+  if (hour < 14) return 'dashboard.greeting.noon'
+  if (hour < 18) return 'dashboard.greeting.afternoon'
+  return 'dashboard.greeting.evening'
 })
+
+const greeting = computed(() => t(greetingKey.value))
+const displayName = computed(() => userStore.userInfo?.nickname || t('dashboard.adminFallback'))
 </script>
 
 <template>
@@ -24,12 +30,12 @@ const greeting = computed(() => {
         <span class="welcome-eyebrow" aria-hidden="true"></span>
         <h1 class="welcome-title">
           <span class="welcome-greeting">
-            {{ greeting }}，{{ userStore.userInfo?.nickname || '管理员' }}！
+            {{ t('dashboard.greetingLine', { greeting, name: displayName }) }}
           </span>
-          <span class="welcome-subtitle">欢迎使用 Yomi Admin 管理后台脚手架。</span>
+          <span class="welcome-subtitle">{{ t('dashboard.subtitle') }}</span>
         </h1>
       </div>
-      <img class="welcome-image" :src="welcomeImage" alt="欢迎使用 Yomi Admin" />
+      <img class="welcome-image" :src="welcomeImage" :alt="t('dashboard.imageAlt')" />
     </section>
   </div>
 </template>

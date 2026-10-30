@@ -1,6 +1,8 @@
 /** 后端统一响应体（yomi-boot 默认协议） */
 export interface ApiResponse<T = unknown> {
+  /** 业务码，前端判断成败与本地化错误文案的唯一依据 */
   code: string
+  /** 开发调试信息，只允许进 console，禁止用于界面展示 */
   msg: string
   timestamp: number
   data: T

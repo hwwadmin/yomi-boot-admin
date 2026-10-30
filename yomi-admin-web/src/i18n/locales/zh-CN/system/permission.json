@@ -1,0 +1,56 @@
+{
+  "searchPlaceholder": "权限编码 / 名称",
+  "add": "新增权限",
+  "columns": {
+    "name": "权限名称",
+    "code": "权限编码",
+    "type": "类型",
+    "resource": "资源"
+  },
+  "type": {
+    "menu": "菜单",
+    "api": "接口"
+  },
+  "actions": {
+    "edit": "编辑",
+    "delete": "删除"
+  },
+  "createSuccess": "新增成功",
+  "saveSuccess": "保存成功",
+  "deleteSuccess": "删除成功",
+  "statusUpdated": "状态已更新",
+  "deleteConfirm": {
+    "title": "删除权限",
+    "message": "确定删除权限「{name}」吗？删除后会同步从所有权限组中移除。",
+    "confirm": "删除"
+  },
+  "statusConfirm": {
+    "enableTitle": "启用权限",
+    "disableTitle": "停用权限",
+    "enableMessage": "确定启用权限「{name}」吗？包含该权限的权限组会立即恢复它。",
+    "disableMessage": "确定停用权限「{name}」吗？所有包含该权限的权限组会立即失去它。"
+  },
+  "dialog": {
+    "createTitle": "新增权限",
+    "editTitle": "编辑权限",
+    "type": "权限类型",
+    "code": "权限编码",
+    "codePlaceholder": "创建后不可修改",
+    "name": "权限名称",
+    "uiPath": "菜单路径",
+    "uiPathPlaceholder": "例如 /system/user",
+    "httpMethod": "HTTP 方法",
+    "httpPath": "接口路径",
+    "httpPathPlaceholder": "例如 /api/system/user",
+    "httpPathHint": "填 gin 路由模板，以 / 开头即可，不强制 /api 前缀"
+  },
+  "validation": {
+    "codeRequired": "请输入权限编码",
+    "nameRequired": "请输入权限名称",
+    "uiPathRequired": "请输入菜单路径",
+    "uiPathPrefix": "菜单路径需以 / 开头",
+    "httpMethodRequired": "请选择 HTTP 方法",
+    "httpPathRequired": "请输入接口路径",
+    "httpPathPrefix": "接口路径需以 / 开头"
+  }
+}

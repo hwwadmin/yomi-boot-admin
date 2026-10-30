@@ -5,7 +5,6 @@ import (
 	"context"
 	httprecoreusecase "yomi-admin-backend/apps/server/internal/usecase/httprecord"
 
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
 	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +40,7 @@ func (h *HttpRecordHandler) page(c *gin.Context) {
 		StartTime:   queryInt64(c, "startTime", 0),
 		EndTime:     queryInt64(c, "endTime", 0),
 	}
-	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[httprecoreusecase.RecordItem], error) {
+	handle(c, func(ctx context.Context) (dto.PageOutput[httprecoreusecase.RecordItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }
@@ -51,7 +50,7 @@ func (h *HttpRecordHandler) get(c *gin.Context) {
 	if !ok {
 		return
 	}
-	corehandler.Handle(c, func(ctx context.Context) (*httprecoreusecase.RecordDetail, error) {
+	handle(c, func(ctx context.Context) (*httprecoreusecase.RecordDetail, error) {
 		return h.getUC.Execute(ctx, id)
 	})
 }

@@ -61,7 +61,7 @@ func (h *PermissionGroupHandler) page(c *gin.Context) {
 		Keyword:   c.Query("keyword"),
 		Status:    rbacenums.Status(c.Query("status")),
 	}
-	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[rbacusecase.PermissionGroupItem], error) {
+	handle(c, func(ctx context.Context) (dto.PageOutput[rbacusecase.PermissionGroupItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }
@@ -71,7 +71,7 @@ func (h *PermissionGroupHandler) get(c *gin.Context) {
 	if !ok {
 		return
 	}
-	corehandler.Handle(c, func(ctx context.Context) (*rbacusecase.PermissionGroupDetailOutput, error) {
+	handle(c, func(ctx context.Context) (*rbacusecase.PermissionGroupDetailOutput, error) {
 		return h.getUC.Execute(ctx, id)
 	})
 }
@@ -86,7 +86,7 @@ func (h *PermissionGroupHandler) create(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.Handle(c, func(ctx context.Context) (*rbacusecase.PermissionGroupItem, error) {
+	handle(c, func(ctx context.Context) (*rbacusecase.PermissionGroupItem, error) {
 		return h.createUC.Execute(ctx, &in)
 	})
 }
@@ -101,7 +101,7 @@ func (h *PermissionGroupHandler) update(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.updateUC.Execute(ctx, &in)
 	})
 }
@@ -116,7 +116,7 @@ func (h *PermissionGroupHandler) delete(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.deleteUC.Execute(ctx, &in)
 	})
 }
@@ -131,7 +131,7 @@ func (h *PermissionGroupHandler) setStatus(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.setStatusUC.Execute(ctx, &in)
 	})
 }
@@ -146,7 +146,7 @@ func (h *PermissionGroupHandler) bindPermissions(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.bindPermissionsUC.Execute(ctx, &in)
 	})
 }

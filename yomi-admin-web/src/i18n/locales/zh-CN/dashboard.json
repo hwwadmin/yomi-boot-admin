@@ -1,0 +1,13 @@
+{
+  "greeting": {
+    "dawn": "凌晨好",
+    "morning": "上午好",
+    "noon": "中午好",
+    "afternoon": "下午好",
+    "evening": "晚上好"
+  },
+  "adminFallback": "管理员",
+  "greetingLine": "{greeting}，{name}！",
+  "subtitle": "欢迎使用 Yomi Admin 管理后台脚手架。",
+  "imageAlt": "欢迎使用 Yomi Admin"
+}

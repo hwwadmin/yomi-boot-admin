@@ -1,0 +1,49 @@
+{
+  "searchPlaceholder": "路径 / TraceID / 客户端 IP",
+  "allMethods": "全部方法",
+  "allStatus": "全部状态",
+  "statusClass": {
+    "success": "2xx 成功",
+    "redirect": "3xx 重定向",
+    "clientError": "4xx 客户端错误",
+    "serverError": "5xx 服务端错误"
+  },
+  "startTime": "开始时间",
+  "endTime": "结束时间",
+  "columns": {
+    "requestAt": "请求时间",
+    "method": "方法",
+    "path": "路径",
+    "result": "结果",
+    "duration": "耗时",
+    "userId": "用户 ID",
+    "actions": "操作"
+  },
+  "detail": "详情",
+  "drawer": {
+    "title": "访问记录详情",
+    "requestAt": "请求时间",
+    "duration": "耗时",
+    "service": "服务",
+    "version": "版本",
+    "method": "方法",
+    "statusCode": "状态码",
+    "bizCode": "业务码",
+    "bizMsg": "业务消息",
+    "clientIp": "客户端 IP",
+    "clientType": "端类型",
+    "userId": "用户 ID",
+    "anonymous": "未登录",
+    "createdAt": "落库时间",
+    "traceId": "TraceID",
+    "path": "路径",
+    "route": "路由模板",
+    "query": "查询参数",
+    "userAgent": "User-Agent",
+    "requestHeaders": "请求头",
+    "requestBody": "请求体",
+    "responseBody": "响应体",
+    "truncated": "超出采集上限，正文未记录",
+    "empty": "（空）"
+  }
+}

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
 import {
   bindGroupPermissions,
@@ -17,6 +18,8 @@ import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemPermissionGroupPage' })
+
+const { t } = useI18n()
 
 // ———————— 列表查询 ————————
 const loading = ref(false)
@@ -64,17 +67,27 @@ const form = reactive({
   remark: '',
 })
 
-const rules: FormRules = {
+const rules = computed<FormRules>(() => ({
   code: [
-    { required: true, message: '请输入权限组编码', trigger: 'blur' },
+    {
+      required: true,
+      message: t('system.permissionGroup.validation.codeRequired'),
+      trigger: 'blur',
+    },
     {
       pattern: /^[a-z][a-z0-9_]{2,31}$/,
-      message: '小写字母开头，3-32 位小写字母/数字/下划线',
+      message: t('validation.roleCodePattern'),
       trigger: 'blur',
     },
   ],
-  name: [{ required: true, message: '请输入权限组名称', trigger: 'blur' }],
-}
+  name: [
+    {
+      required: true,
+      message: t('system.permissionGroup.validation.nameRequired'),
+      trigger: 'blur',
+    },
+  ],
+}))
 
 function openCreate() {
   editingId.value = null
@@ -92,10 +105,17 @@ function openEdit(row: PermissionGroupItem) {
 function confirmStatusChange(name: string, next: Status): Promise<boolean> {
   const disabling = next === 'DISABLED'
   return confirmAction({
-    title: disabling ? '停用权限组' : '启用权限组',
-    message: disabling
-      ? `确定停用权限组「${name}」吗？使用该组的所有角色会立即失去组内权限。`
-      : `确定启用权限组「${name}」吗？组内权限会立即对已绑角色生效。`,
+    title: t(
+      disabling
+        ? 'system.permissionGroup.statusConfirm.disableTitle'
+        : 'system.permissionGroup.statusConfirm.enableTitle',
+    ),
+    message: t(
+      disabling
+        ? 'system.permissionGroup.statusConfirm.disableMessage'
+        : 'system.permissionGroup.statusConfirm.enableMessage',
+      { name },
+    ),
   })
 }
 
@@ -110,13 +130,13 @@ async function handleSubmit() {
         name: form.name.trim(),
         remark: form.remark.trim(),
       })
-      ElMessage.success('新增成功')
+      ElMessage.success(t('system.permissionGroup.createSuccess'))
     } else {
       await updatePermissionGroup(editingId.value, {
         name: form.name.trim(),
         remark: form.remark.trim(),
       })
-      ElMessage.success('保存成功')
+      ElMessage.success(t('system.permissionGroup.saveSuccess'))
     }
     dialogVisible.value = false
     fetchList()
@@ -129,7 +149,7 @@ async function handleStatusChange(row: PermissionGroupItem, status: Status) {
   try {
     await setPermissionGroupStatus(row.id, status)
     row.status = status
-    ElMessage.success('状态已更新')
+    ElMessage.success(t('system.permissionGroup.statusUpdated'))
   } catch {
     fetchList()
   }
@@ -137,13 +157,13 @@ async function handleStatusChange(row: PermissionGroupItem, status: Status) {
 
 async function handleDelete(row: PermissionGroupItem) {
   const confirmed = await confirmAction({
-    title: '删除权限组',
-    message: `确定删除权限组「${row.name}」吗？已绑定角色的权限组无法删除。`,
-    confirmButtonText: '删除',
+    title: t('system.permissionGroup.deleteConfirm.title'),
+    message: t('system.permissionGroup.deleteConfirm.message', { name: row.name }),
+    confirmButtonText: t('system.permissionGroup.deleteConfirm.confirm'),
   })
   if (!confirmed) return
   await deletePermissionGroup(row.id)
-  ElMessage.success('删除成功')
+  ElMessage.success(t('system.permissionGroup.deleteSuccess'))
   if (list.value.length === 1 && query.page > 1) {
     query.page -= 1
   }
@@ -203,7 +223,7 @@ async function savePermissions() {
   permissionSaving.value = true
   try {
     await bindGroupPermissions(permissionTarget.value.id, selectedPermissionIds.value)
-    ElMessage.success('权限已保存')
+    ElMessage.success(t('system.permissionGroup.permissionDrawer.saved'))
     permissionDrawerVisible.value = false
   } finally {
     permissionSaving.value = false
@@ -218,17 +238,22 @@ async function savePermissions() {
         <el-input
           v-model="query.keyword"
           class="toolbar-input"
-          placeholder="权限组编码 / 名称"
+          :placeholder="t('system.permissionGroup.searchPlaceholder')"
           clearable
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
-        <el-select v-model="query.status" class="toolbar-select" placeholder="全部状态" clearable>
-          <el-option label="启用" value="ENABLED" />
-          <el-option label="禁用" value="DISABLED" />
+        <el-select
+          v-model="query.status"
+          class="toolbar-select"
+          :placeholder="t('common.all')"
+          clearable
+        >
+          <el-option :label="t('common.status.enabled')" value="ENABLED" />
+          <el-option :label="t('common.status.disabled')" value="DISABLED" />
         </el-select>
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
+        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
+        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
         <el-button
           v-permission="'system:permission-group:create'"
           type="primary"
@@ -236,14 +261,22 @@ async function savePermissions() {
           class="toolbar-add"
           @click="openCreate"
         >
-          新增权限组
+          {{ t('system.permissionGroup.add') }}
         </el-button>
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="name" label="权限组名称" min-width="140" />
-        <el-table-column prop="code" label="权限组编码" min-width="160" />
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column
+          prop="name"
+          :label="t('system.permissionGroup.columns.name')"
+          min-width="140"
+        />
+        <el-table-column
+          prop="code"
+          :label="t('system.permissionGroup.columns.code')"
+          min-width="160"
+        />
+        <el-table-column :label="t('common.field.status')" width="100" align="center">
           <template #default="{ row }">
             <el-switch
               v-permission="'system:permission-group:status'"
@@ -264,13 +297,18 @@ async function savePermissions() {
             />
           </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
-        <el-table-column label="创建时间" width="180">
+        <el-table-column
+          prop="remark"
+          :label="t('common.field.remark')"
+          min-width="200"
+          show-overflow-tooltip
+        />
+        <el-table-column :label="t('common.field.createdAt')" width="180">
           <template #default="{ row }">
             {{ formatDateTime((row as PermissionGroupItem).createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right" align="center">
+        <el-table-column :label="t('common.field.actions')" width="270" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               v-permission="'system:permission-group:update'"
@@ -278,7 +316,7 @@ async function savePermissions() {
               type="primary"
               @click="openEdit(row as PermissionGroupItem)"
             >
-              编辑
+              {{ t('system.permissionGroup.actions.edit') }}
             </el-button>
             <el-button
               v-permission="'system:permission-group:delete'"
@@ -286,7 +324,7 @@ async function savePermissions() {
               type="danger"
               @click="handleDelete(row as PermissionGroupItem)"
             >
-              删除
+              {{ t('system.permissionGroup.actions.delete') }}
             </el-button>
             <el-button
               v-permission="'system:permission-group:bind-permission'"
@@ -294,7 +332,7 @@ async function savePermissions() {
               type="primary"
               @click="openPermissionDrawer(row as PermissionGroupItem)"
             >
-              分配权限
+              {{ t('system.permissionGroup.actions.assignPermissions') }}
             </el-button>
           </template>
         </el-table-column>
@@ -315,47 +353,67 @@ async function savePermissions() {
 
     <el-dialog
       v-model="dialogVisible"
-      :title="editingId === null ? '新增权限组' : '编辑权限组'"
+      :title="
+        editingId === null
+          ? t('system.permissionGroup.dialog.createTitle')
+          : t('system.permissionGroup.dialog.editTitle')
+      "
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
-        <el-form-item label="权限组编码" prop="code">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="130px">
+        <el-form-item :label="t('system.permissionGroup.dialog.code')" prop="code">
           <el-input
             v-model="form.code"
             :disabled="editingId !== null"
-            placeholder="创建后不可修改"
+            :placeholder="t('system.permissionGroup.dialog.codePlaceholder')"
             maxlength="32"
           />
         </el-form-item>
-        <el-form-item label="权限组名称" prop="name">
+        <el-form-item :label="t('system.permissionGroup.dialog.name')" prop="name">
           <el-input v-model="form.name" maxlength="32" />
         </el-form-item>
-        <el-form-item label="备注">
+        <el-form-item :label="t('common.field.remark')">
           <el-input v-model="form.remark" type="textarea" maxlength="255" :rows="3" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+        <el-button @click="dialogVisible = false">{{ t('common.action.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          {{ t('common.action.confirm') }}
+        </el-button>
       </template>
     </el-dialog>
 
-    <el-drawer v-model="permissionDrawerVisible" title="分配权限" size="560px">
+    <el-drawer
+      v-model="permissionDrawerVisible"
+      :title="t('system.permissionGroup.permissionDrawer.title')"
+      size="560px"
+    >
       <div v-loading="permissionLoading" class="permission-body">
         <div class="permission-meta">
-          权限组：<strong>{{ permissionTarget?.name }}</strong>
+          {{ t('system.permissionGroup.permissionDrawer.groupLabel') }}
+          <strong>{{ permissionTarget?.name }}</strong>
           <span class="muted">{{ permissionTarget?.code }}</span>
-          <span class="muted">已选 {{ selectedPermissionIds.length }} 项</span>
+          <span class="muted">
+            {{
+              t('system.permissionGroup.permissionDrawer.selected', {
+                count: selectedPermissionIds.length,
+              })
+            }}
+          </span>
         </div>
         <el-input
           v-model="permissionKeyword"
           class="permission-search"
-          placeholder="按名称 / 编码 / 路径搜索"
+          :placeholder="t('system.permissionGroup.permissionDrawer.searchPlaceholder')"
           clearable
         />
         <el-tabs v-model="permissionTab">
-          <el-tab-pane label="菜单权限" name="MENU">
+          <el-tab-pane
+            :label="t('system.permissionGroup.permissionDrawer.menuTab')"
+            name="MENU"
+          >
             <el-checkbox-group v-model="selectedPermissionIds" class="permission-list">
               <el-checkbox
                 v-for="item in menuPermissions"
@@ -365,16 +423,25 @@ async function savePermissions() {
               >
                 {{ item.name }}
                 <span class="muted">{{ item.uiPath }}</span>
-                <el-tag v-if="item.status === 'DISABLED'" type="info" size="small">已停用</el-tag>
+                <el-tag v-if="item.status === 'DISABLED'" type="info" size="small">
+                  {{ t('system.permissionGroup.permissionDrawer.disabledTag') }}
+                </el-tag>
               </el-checkbox>
             </el-checkbox-group>
             <el-empty
               v-if="!permissionLoading && menuPermissions.length === 0"
-              :description="permissionKeyword ? '没有匹配的菜单权限' : '暂无菜单权限'"
+              :description="
+                permissionKeyword
+                  ? t('system.permissionGroup.permissionDrawer.menuEmptySearch')
+                  : t('system.permissionGroup.permissionDrawer.menuEmpty')
+              "
               :image-size="60"
             />
           </el-tab-pane>
-          <el-tab-pane label="接口权限" name="API">
+          <el-tab-pane
+            :label="t('system.permissionGroup.permissionDrawer.apiTab')"
+            name="API"
+          >
             <el-checkbox-group v-model="selectedPermissionIds" class="permission-list">
               <el-checkbox
                 v-for="item in apiPermissions"
@@ -384,23 +451,31 @@ async function savePermissions() {
               >
                 {{ item.name }}
                 <span class="muted">{{ item.httpMethod }} {{ item.httpPath }}</span>
-                <el-tag v-if="item.status === 'DISABLED'" type="info" size="small">已停用</el-tag>
+                <el-tag v-if="item.status === 'DISABLED'" type="info" size="small">
+                  {{ t('system.permissionGroup.permissionDrawer.disabledTag') }}
+                </el-tag>
               </el-checkbox>
             </el-checkbox-group>
             <el-empty
               v-if="!permissionLoading && apiPermissions.length === 0"
-              :description="permissionKeyword ? '没有匹配的接口权限' : '暂无接口权限'"
+              :description="
+                permissionKeyword
+                  ? t('system.permissionGroup.permissionDrawer.apiEmptySearch')
+                  : t('system.permissionGroup.permissionDrawer.apiEmpty')
+              "
               :image-size="60"
             />
           </el-tab-pane>
         </el-tabs>
-        <span class="hint">停用的权限可以绑定，但不会授予访问能力。</span>
+        <span class="hint">{{ t('system.permissionGroup.permissionDrawer.hint') }}</span>
       </div>
       <template #footer>
-        <el-button @click="permissionDrawerVisible = false">取消</el-button>
-        <el-button type="primary" :loading="permissionSaving" @click="savePermissions"
-          >保存</el-button
-        >
+        <el-button @click="permissionDrawerVisible = false">
+          {{ t('common.action.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="permissionSaving" @click="savePermissions">
+          {{ t('common.action.save') }}
+        </el-button>
       </template>
     </el-drawer>
   </div>

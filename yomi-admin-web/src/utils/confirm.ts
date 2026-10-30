@@ -1,3 +1,5 @@
+import { i18n } from '@/i18n'
+
 interface ConfirmActionOptions {
   message: string
   title?: string
@@ -10,11 +12,15 @@ interface ConfirmActionOptions {
  */
 export async function confirmAction(options: ConfirmActionOptions): Promise<boolean> {
   try {
-    await ElMessageBox.confirm(options.message, options.title ?? '请确认', {
-      type: options.type ?? 'warning',
-      confirmButtonText: options.confirmButtonText ?? '确定',
-      cancelButtonText: '取消',
-    })
+    await ElMessageBox.confirm(
+      options.message,
+      options.title ?? i18n.global.t('common.confirmTitle'),
+      {
+        type: options.type ?? 'warning',
+        confirmButtonText: options.confirmButtonText ?? i18n.global.t('common.action.confirm'),
+        cancelButtonText: i18n.global.t('common.action.cancel'),
+      },
+    )
     return true
   } catch {
     return false

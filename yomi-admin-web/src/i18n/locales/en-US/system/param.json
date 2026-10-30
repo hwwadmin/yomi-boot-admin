@@ -1,0 +1,48 @@
+{
+  "searchPlaceholder": "Key / name / remark",
+  "allTypes": "All types",
+  "allStatus": "All statuses",
+  "add": "Add parameter",
+  "columns": {
+    "name": "Parameter name",
+    "key": "Parameter key",
+    "value": "Parameter value"
+  },
+  "valueType": {
+    "string": "String",
+    "bool": "Boolean",
+    "int": "Integer",
+    "json": "JSON"
+  },
+  "dialog": {
+    "createTitle": "Add parameter",
+    "editTitle": "Edit parameter",
+    "name": "Parameter name",
+    "key": "Parameter key",
+    "keyPlaceholder": "For example order.auto_cancel_days. Cannot be changed after creation",
+    "valueType": "Value type",
+    "value": "Parameter value",
+    "valuePlaceholder": "Parameter value",
+    "intPlaceholder": "64-bit integer",
+    "jsonPlaceholder": "For example {\"max\":10}"
+  },
+  "createSuccess": "Created and effective immediately",
+  "saveSuccess": "Saved and effective immediately",
+  "deleteSuccess": "Deleted. Readers fall back to the default value",
+  "statusUpdated": "Status updated",
+  "deleteConfirm": {
+    "title": "Delete parameter",
+    "message": "Delete parameter \"{key}\"? Readers will fall back to the default value in code.",
+    "confirm": "Delete"
+  },
+  "statusConfirm": {
+    "enableTitle": "Enable parameter",
+    "disableTitle": "Disable parameter",
+    "enableMessage": "Enable parameter \"{key}\"? It takes effect immediately.",
+    "disableMessage": "Disable parameter \"{key}\"? Readers fall back to the default value in code."
+  },
+  "validation": {
+    "keyRequired": "Please enter a parameter key",
+    "nameRequired": "Please enter a parameter name"
+  }
+}

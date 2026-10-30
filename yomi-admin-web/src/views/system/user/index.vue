@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
 import { bindUserRoles, getUserRoles } from '@/api/rbac'
 import { createUser, deleteUser, getUserPage, resetUserPassword, updateUser } from '@/api/user'
@@ -8,6 +9,8 @@ import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemUserPage' })
+
+const { t } = useI18n()
 
 // ———————— 列表查询 ————————
 const loading = ref(false)
@@ -53,16 +56,20 @@ const form = reactive({
   status: 'ENABLED' as UserStatus,
 })
 
-const rules: FormRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 72, message: '密码长度 6-72 位', trigger: 'blur' },
+const rules = computed<FormRules>(() => ({
+  username: [
+    { required: true, message: t('system.user.validation.usernameRequired'), trigger: 'blur' },
   ],
-  nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
-  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
-  phone: [{ pattern: /^1\d{10}$/, message: '手机号格式不正确', trigger: 'blur' }],
-}
+  password: [
+    { required: true, message: t('system.user.validation.passwordRequired'), trigger: 'blur' },
+    { min: 6, max: 72, message: t('validation.passwordLength'), trigger: 'blur' },
+  ],
+  nickname: [
+    { required: true, message: t('system.user.validation.nicknameRequired'), trigger: 'blur' },
+  ],
+  email: [{ type: 'email', message: t('validation.email'), trigger: 'blur' }],
+  phone: [{ pattern: /^1\d{10}$/, message: t('validation.phone'), trigger: 'blur' }],
+}))
 
 function openCreate() {
   editingId.value = null
@@ -98,10 +105,13 @@ async function handleSubmit() {
   if (editingOriginalStatus.value && form.status !== editingOriginalStatus.value) {
     const disabling = form.status === 'DISABLED'
     const confirmed = await confirmAction({
-      title: disabling ? '停用用户' : '启用用户',
-      message: disabling
-        ? `确定停用用户「${form.nickname.trim()}」吗？停用后该用户的登录状态会被撤销。`
-        : `确定启用用户「${form.nickname.trim()}」吗？`,
+      title: t(disabling ? 'system.user.statusConfirm.disableTitle' : 'system.user.statusConfirm.enableTitle'),
+      message: t(
+        disabling
+          ? 'system.user.statusConfirm.disableMessage'
+          : 'system.user.statusConfirm.enableMessage',
+        { name: form.nickname.trim() },
+      ),
     })
     if (!confirmed) return
   }
@@ -116,10 +126,10 @@ async function handleSubmit() {
     }
     if (editingId.value === null) {
       await createUser({ ...payload, password: form.password })
-      ElMessage.success('新增成功')
+      ElMessage.success(t('system.user.createSuccess'))
     } else {
       await updateUser(editingId.value, payload)
-      ElMessage.success('保存成功')
+      ElMessage.success(t('system.user.saveSuccess'))
     }
     dialogVisible.value = false
     fetchList()
@@ -154,7 +164,7 @@ async function saveRoles() {
   roleDialogSaving.value = true
   try {
     await bindUserRoles(roleTarget.value.id, selectedRoleIds.value)
-    ElMessage.success('角色已保存')
+    ElMessage.success(t('system.user.roleDialog.saved'))
     roleDialogVisible.value = false
     fetchList()
   } finally {
@@ -165,13 +175,13 @@ async function saveRoles() {
 // ———————— 删除 ————————
 async function handleDelete(row: UserItem) {
   const confirmed = await confirmAction({
-    title: '删除用户',
-    message: `确定删除用户「${row.nickname}」吗？删除后该用户将无法登录。`,
-    confirmButtonText: '删除',
+    title: t('system.user.deleteConfirm.title'),
+    message: t('system.user.deleteConfirm.message', { name: row.nickname }),
+    confirmButtonText: t('system.user.deleteConfirm.confirm'),
   })
   if (!confirmed) return
   await deleteUser(row.id)
-  ElMessage.success('删除成功')
+  ElMessage.success(t('system.user.deleteSuccess'))
   // 当前页只剩一条时回退一页，避免删除后停留在空页
   if (list.value.length === 1 && query.page > 1) {
     query.page -= 1
@@ -186,12 +196,16 @@ const resetPwdTarget = ref<UserItem | null>(null)
 const resetPwdRef = ref<FormInstance>()
 const resetPwdForm = reactive({ newPassword: '' })
 
-const resetPwdRules: FormRules = {
+const resetPwdRules = computed<FormRules>(() => ({
   newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, max: 72, message: '密码长度 6-72 位', trigger: 'blur' },
+    {
+      required: true,
+      message: t('system.user.validation.newPasswordRequired'),
+      trigger: 'blur',
+    },
+    { min: 6, max: 72, message: t('validation.passwordLength'), trigger: 'blur' },
   ],
-}
+}))
 
 function openResetPassword(row: UserItem) {
   resetPwdTarget.value = row
@@ -205,7 +219,7 @@ async function handleResetPassword() {
   resetPwdSubmitting.value = true
   try {
     await resetUserPassword(resetPwdTarget.value.id, resetPwdForm.newPassword)
-    ElMessage.success('密码已重置，该用户需使用新密码重新登录')
+    ElMessage.success(t('system.user.resetPassword.success'))
     resetPwdVisible.value = false
   } finally {
     resetPwdSubmitting.value = false
@@ -220,13 +234,13 @@ async function handleResetPassword() {
         <el-input
           v-model="query.keyword"
           class="toolbar-input"
-          placeholder="用户名 / 昵称"
+          :placeholder="t('system.user.searchPlaceholder')"
           clearable
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
+        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
+        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
         <el-button
           v-permission="'system:user:create'"
           type="primary"
@@ -234,14 +248,14 @@ async function handleResetPassword() {
           class="toolbar-add"
           @click="openCreate"
         >
-          新增用户
+          {{ t('system.user.add') }}
         </el-button>
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="username" label="用户名" min-width="100" />
-        <el-table-column prop="nickname" label="昵称" min-width="100" />
-        <el-table-column label="角色" min-width="120">
+        <el-table-column prop="username" :label="t('common.field.username')" min-width="100" />
+        <el-table-column prop="nickname" :label="t('common.field.nickname')" min-width="100" />
+        <el-table-column :label="t('system.user.columns.roles')" min-width="120">
           <template #default="{ row }">
             <el-tag
               v-for="role in (row as UserItem).roles"
@@ -254,21 +268,30 @@ async function handleResetPassword() {
             <span v-if="!(row as UserItem).roles?.length">-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="email" label="邮箱" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="phone" label="手机号" min-width="110" />
-        <el-table-column label="状态" width="72" align="center">
+        <el-table-column
+          prop="email"
+          :label="t('common.field.email')"
+          min-width="150"
+          show-overflow-tooltip
+        />
+        <el-table-column prop="phone" :label="t('common.field.phone')" min-width="110" />
+        <el-table-column :label="t('common.field.status')" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
-              {{ row.status === 'ENABLED' ? '正常' : '禁用' }}
+              {{
+                row.status === 'ENABLED'
+                  ? t('system.user.status.normal')
+                  : t('system.user.status.disabled')
+              }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="160">
+        <el-table-column :label="t('common.field.createdAt')" width="160">
           <template #default="{ row }">
             {{ formatDateTime((row as UserItem).createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right" align="center">
+        <el-table-column :label="t('common.field.actions')" width="270" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               v-permission="'system:user:update'"
@@ -276,7 +299,7 @@ async function handleResetPassword() {
               type="primary"
               @click="openEdit(row as UserItem)"
             >
-              编辑
+              {{ t('system.user.actions.edit') }}
             </el-button>
             <el-button
               v-permission="'system:user:role:bind'"
@@ -284,7 +307,7 @@ async function handleResetPassword() {
               type="primary"
               @click="openRoleDialog(row as UserItem)"
             >
-              分配角色
+              {{ t('system.user.actions.assignRoles') }}
             </el-button>
             <el-button
               v-permission="'system:user:reset-password'"
@@ -292,7 +315,7 @@ async function handleResetPassword() {
               type="warning"
               @click="openResetPassword(row as UserItem)"
             >
-              重置密码
+              {{ t('system.user.actions.resetPassword') }}
             </el-button>
             <el-button
               v-permission="'system:user:delete'"
@@ -300,7 +323,7 @@ async function handleResetPassword() {
               type="danger"
               @click="handleDelete(row as UserItem)"
             >
-              删除
+              {{ t('system.user.actions.delete') }}
             </el-button>
           </template>
         </el-table-column>
@@ -321,53 +344,60 @@ async function handleResetPassword() {
 
     <el-dialog
       v-model="dialogVisible"
-      :title="editingId === null ? '新增用户' : '编辑用户'"
+      :title="
+        editingId === null
+          ? t('system.user.dialog.createTitle')
+          : t('system.user.dialog.editTitle')
+      "
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="用户名" prop="username">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
+        <el-form-item :label="t('common.field.username')" prop="username">
           <el-input
             v-model="form.username"
             :disabled="editingId !== null"
-            placeholder="登录账号，创建后不可修改"
+            :placeholder="t('system.user.dialog.usernamePlaceholder')"
             maxlength="32"
           />
         </el-form-item>
-        <el-form-item v-if="editingId === null" label="密码" prop="password">
+        <el-form-item v-if="editingId === null" :label="t('common.field.password')" prop="password">
           <el-input
             v-model="form.password"
             type="password"
             show-password
-            placeholder="6-72 位"
+            :placeholder="t('system.user.dialog.passwordPlaceholder')"
             maxlength="72"
           />
         </el-form-item>
-        <el-form-item label="昵称" prop="nickname">
+        <el-form-item :label="t('common.field.nickname')" prop="nickname">
           <el-input v-model="form.nickname" maxlength="32" />
         </el-form-item>
-        <el-form-item label="邮箱" prop="email">
+        <el-form-item :label="t('common.field.email')" prop="email">
           <el-input v-model="form.email" maxlength="64" />
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
+        <el-form-item :label="t('common.field.phone')" prop="phone">
           <el-input v-model="form.phone" maxlength="11" />
         </el-form-item>
-        <el-form-item label="状态" prop="status">
+        <el-form-item :label="t('common.field.status')" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio value="ENABLED">正常</el-radio>
-            <el-radio value="DISABLED">禁用</el-radio>
+            <el-radio value="ENABLED">{{ t('system.user.dialog.enabled') }}</el-radio>
+            <el-radio value="DISABLED">{{ t('system.user.dialog.disabled') }}</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+        <el-button @click="dialogVisible = false">{{ t('common.action.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          {{ t('common.action.confirm') }}
+        </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="roleDialogVisible" title="分配角色" width="460px">      <div v-loading="roleDialogLoading">
+    <el-dialog v-model="roleDialogVisible" :title="t('system.user.roleDialog.title')" width="460px">
+      <div v-loading="roleDialogLoading">
         <div class="role-target">
-          用户：<strong>{{ roleTarget?.nickname }}</strong>
+          {{ t('system.user.roleDialog.userLabel') }}<strong>{{ roleTarget?.nickname }}</strong>
           <span class="role-username">{{ roleTarget?.username }}</span>
         </div>
         <el-select
@@ -375,7 +405,7 @@ async function handleResetPassword() {
           class="role-select"
           multiple
           filterable
-          placeholder="请选择角色"
+          :placeholder="t('system.user.roleDialog.selectPlaceholder')"
         >
           <el-option
             v-for="role in roleOptions"
@@ -385,43 +415,52 @@ async function handleResetPassword() {
             :disabled="role.status === 'DISABLED'"
           >
             {{ role.name }} ({{ role.code }})
-            <span v-if="role.status === 'DISABLED'">（已停用）</span>
+            <span v-if="role.status === 'DISABLED'">
+              {{ t('system.user.roleDialog.disabledSuffix') }}
+            </span>
           </el-option>
         </el-select>
-        <p class="role-hint">已停用的角色不可选择；若用户当前绑定了已停用角色，请移除后再保存。</p>
+        <p class="role-hint">{{ t('system.user.roleDialog.hint') }}</p>
       </div>
       <template #footer>
-        <el-button @click="roleDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="roleDialogSaving" @click="saveRoles">保存</el-button>
+        <el-button @click="roleDialogVisible = false">{{ t('common.action.cancel') }}</el-button>
+        <el-button type="primary" :loading="roleDialogSaving" @click="saveRoles">
+          {{ t('common.action.save') }}
+        </el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="resetPwdVisible"
-      title="重置密码"
-      width="420px"
+      :title="t('system.user.resetPassword.title')"
+      width="460px"
       :close-on-click-modal="false"
       @closed="resetPwdRef?.clearValidate()"
     >
-      <el-form ref="resetPwdRef" :model="resetPwdForm" :rules="resetPwdRules" label-width="80px">
+      <el-form
+        ref="resetPwdRef"
+        :model="resetPwdForm"
+        :rules="resetPwdRules"
+        label-width="110px"
+      >
         <div class="role-target">
-          用户：<strong>{{ resetPwdTarget?.nickname }}</strong>
+          {{ t('system.user.roleDialog.userLabel') }}<strong>{{ resetPwdTarget?.nickname }}</strong>
           <span class="role-username">{{ resetPwdTarget?.username }}</span>
         </div>
-        <el-form-item label="新密码" prop="newPassword">
+        <el-form-item :label="t('system.user.resetPassword.newPassword')" prop="newPassword">
           <el-input
             v-model="resetPwdForm.newPassword"
             type="password"
             show-password
-            placeholder="6-72 位，重置后该用户需重新登录"
+            :placeholder="t('system.user.resetPassword.placeholder')"
             maxlength="72"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="resetPwdVisible = false">取消</el-button>
+        <el-button @click="resetPwdVisible = false">{{ t('common.action.cancel') }}</el-button>
         <el-button type="primary" :loading="resetPwdSubmitting" @click="handleResetPassword">
-          确定
+          {{ t('common.action.confirm') }}
         </el-button>
       </template>
     </el-dialog>

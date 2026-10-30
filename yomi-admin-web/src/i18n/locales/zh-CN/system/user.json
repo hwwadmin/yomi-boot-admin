@@ -1,0 +1,59 @@
+{
+  "searchPlaceholder": "用户名 / 昵称",
+  "add": "新增用户",
+  "columns": {
+    "roles": "角色"
+  },
+  "status": {
+    "normal": "正常",
+    "disabled": "禁用"
+  },
+  "actions": {
+    "edit": "编辑",
+    "assignRoles": "分配角色",
+    "resetPassword": "重置密码",
+    "delete": "删除"
+  },
+  "createSuccess": "新增成功",
+  "saveSuccess": "保存成功",
+  "deleteSuccess": "删除成功",
+  "deleteConfirm": {
+    "title": "删除用户",
+    "message": "确定删除用户「{name}」吗？删除后该用户将无法登录。",
+    "confirm": "删除"
+  },
+  "statusConfirm": {
+    "enableTitle": "启用用户",
+    "disableTitle": "停用用户",
+    "enableMessage": "确定启用用户「{name}」吗？",
+    "disableMessage": "确定停用用户「{name}」吗？停用后该用户的登录状态会被撤销。"
+  },
+  "dialog": {
+    "createTitle": "新增用户",
+    "editTitle": "编辑用户",
+    "usernamePlaceholder": "登录账号，创建后不可修改",
+    "passwordPlaceholder": "6-72 位",
+    "enabled": "正常",
+    "disabled": "禁用"
+  },
+  "roleDialog": {
+    "title": "分配角色",
+    "userLabel": "用户：",
+    "selectPlaceholder": "请选择角色",
+    "disabledSuffix": "（已停用）",
+    "hint": "已停用的角色不可选择；若用户当前绑定了已停用角色，请移除后再保存。",
+    "saved": "角色已保存"
+  },
+  "resetPassword": {
+    "title": "重置密码",
+    "newPassword": "新密码",
+    "placeholder": "6-72 位，重置后该用户需重新登录",
+    "success": "密码已重置，该用户需使用新密码重新登录"
+  },
+  "validation": {
+    "usernameRequired": "请输入用户名",
+    "passwordRequired": "请输入密码",
+    "nicknameRequired": "请输入昵称",
+    "newPasswordRequired": "请输入新密码"
+  }
+}

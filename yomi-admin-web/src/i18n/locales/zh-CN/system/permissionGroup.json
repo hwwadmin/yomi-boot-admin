@@ -1,0 +1,54 @@
+{
+  "searchPlaceholder": "权限组编码 / 名称",
+  "add": "新增权限组",
+  "columns": {
+    "name": "权限组名称",
+    "code": "权限组编码"
+  },
+  "actions": {
+    "edit": "编辑",
+    "delete": "删除",
+    "assignPermissions": "分配权限"
+  },
+  "createSuccess": "新增成功",
+  "saveSuccess": "保存成功",
+  "deleteSuccess": "删除成功",
+  "statusUpdated": "状态已更新",
+  "deleteConfirm": {
+    "title": "删除权限组",
+    "message": "确定删除权限组「{name}」吗？已绑定角色的权限组无法删除。",
+    "confirm": "删除"
+  },
+  "statusConfirm": {
+    "enableTitle": "启用权限组",
+    "disableTitle": "停用权限组",
+    "enableMessage": "确定启用权限组「{name}」吗？组内权限会立即对已绑角色生效。",
+    "disableMessage": "确定停用权限组「{name}」吗？使用该组的所有角色会立即失去组内权限。"
+  },
+  "dialog": {
+    "createTitle": "新增权限组",
+    "editTitle": "编辑权限组",
+    "code": "权限组编码",
+    "codePlaceholder": "创建后不可修改",
+    "name": "权限组名称"
+  },
+  "permissionDrawer": {
+    "title": "分配权限",
+    "groupLabel": "权限组：",
+    "selected": "已选 {count} 项",
+    "searchPlaceholder": "按名称 / 编码 / 路径搜索",
+    "menuTab": "菜单权限",
+    "apiTab": "接口权限",
+    "disabledTag": "已停用",
+    "menuEmpty": "暂无菜单权限",
+    "menuEmptySearch": "没有匹配的菜单权限",
+    "apiEmpty": "暂无接口权限",
+    "apiEmptySearch": "没有匹配的接口权限",
+    "hint": "停用的权限可以绑定，但不会授予访问能力。",
+    "saved": "权限已保存"
+  },
+  "validation": {
+    "codeRequired": "请输入权限组编码",
+    "nameRequired": "请输入权限组名称"
+  }
+}

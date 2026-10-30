@@ -1,0 +1,16 @@
+{
+  "required": "此项为必填项",
+  "email": "邮箱格式不正确",
+  "phone": "手机号格式不正确",
+  "passwordLength": "密码长度 6-72 位",
+  "roleCodePattern": "小写字母开头，3-32 位小写字母/数字/下划线",
+  "permissionCodePattern": "小写字母开头，用冒号分段，可含数字与下划线",
+  "paramKeyPattern": "小写点分命名，每段字母开头，可含数字与下划线",
+  "param": {
+    "bool": "布尔取值仅支持 true / false",
+    "int": "请输入 64 位整数",
+    "intRange": "超出 64 位整数范围",
+    "json": "请输入合法的 JSON 文档",
+    "stringMax": "取值不超过 2048 字符"
+  }
+}

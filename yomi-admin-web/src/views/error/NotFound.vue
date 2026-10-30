@@ -1,14 +1,19 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 defineOptions({ name: 'NotFoundPage' })
 
 const router = useRouter()
+const { t } = useI18n()
 </script>
 
 <template>
   <div class="not-found">
     <div class="code">404</div>
-    <div class="text">抱歉，您访问的页面不存在</div>
-    <el-button type="primary" @click="router.replace('/')">返回首页</el-button>
+    <div class="text">{{ t('errorPage.notFound.message') }}</div>
+    <el-button type="primary" @click="router.replace('/')">
+      {{ t('errorPage.notFound.backHome') }}
+    </el-button>
   </div>
 </template>
 

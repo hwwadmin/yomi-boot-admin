@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
 import { Refresh } from '@element-plus/icons-vue'
 
@@ -21,6 +22,8 @@ import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemRolePage' })
+
+const { t } = useI18n()
 
 // ———————— 列表查询 ————————
 const loading = ref(false)
@@ -58,16 +61,16 @@ const refreshingCache = ref(false)
 
 async function handleRefreshCache() {
   const confirmed = await confirmAction({
-    title: '刷新权限缓存',
-    message: '将按数据库重建权限缓存，所有实例随后立即生效。确定刷新吗？',
-    confirmButtonText: '刷新',
+    title: t('system.role.cacheRefresh.title'),
+    message: t('system.role.cacheRefresh.message'),
+    confirmButtonText: t('system.role.cacheRefresh.confirm'),
   })
   if (!confirmed) return
 
   refreshingCache.value = true
   try {
     await refreshRbacCache()
-    ElMessage.success('刷新成功')
+    ElMessage.success(t('system.role.cacheRefresh.success'))
   } finally {
     refreshingCache.value = false
   }
@@ -84,17 +87,17 @@ const form = reactive({
   remark: '',
 })
 
-const rules: FormRules = {
+const rules = computed<FormRules>(() => ({
   code: [
-    { required: true, message: '请输入角色编码', trigger: 'blur' },
+    { required: true, message: t('system.role.validation.codeRequired'), trigger: 'blur' },
     {
       pattern: /^[a-z][a-z0-9_]{2,31}$/,
-      message: '小写字母开头，3-32 位小写字母/数字/下划线',
+      message: t('validation.roleCodePattern'),
       trigger: 'blur',
     },
   ],
-  name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
-}
+  name: [{ required: true, message: t('system.role.validation.nameRequired'), trigger: 'blur' }],
+}))
 
 function openCreate() {
   editingId.value = null
@@ -112,10 +115,13 @@ function openEdit(row: RoleItem) {
 function confirmStatusChange(name: string, next: Status): Promise<boolean> {
   const disabling = next === 'DISABLED'
   return confirmAction({
-    title: disabling ? '停用角色' : '启用角色',
-    message: disabling
-      ? `确定停用角色「${name}」吗？停用后该角色对应用户的权限会立即失效。`
-      : `确定启用角色「${name}」吗？`,
+    title: t(disabling ? 'system.role.statusConfirm.disableTitle' : 'system.role.statusConfirm.enableTitle'),
+    message: t(
+      disabling
+        ? 'system.role.statusConfirm.disableMessage'
+        : 'system.role.statusConfirm.enableMessage',
+      { name },
+    ),
   })
 }
 
@@ -130,10 +136,10 @@ async function handleSubmit() {
         name: form.name.trim(),
         remark: form.remark.trim(),
       })
-      ElMessage.success('新增成功')
+      ElMessage.success(t('system.role.createSuccess'))
     } else {
       await updateRole(editingId.value, { name: form.name.trim(), remark: form.remark.trim() })
-      ElMessage.success('保存成功')
+      ElMessage.success(t('system.role.saveSuccess'))
     }
     dialogVisible.value = false
     fetchList()
@@ -146,7 +152,7 @@ async function handleStatusChange(row: RoleItem, status: Status) {
   try {
     await setRoleStatus(row.id, status)
     row.status = status
-    ElMessage.success('状态已更新')
+    ElMessage.success(t('system.role.statusUpdated'))
   } catch {
     fetchList()
   }
@@ -154,13 +160,13 @@ async function handleStatusChange(row: RoleItem, status: Status) {
 
 async function handleDelete(row: RoleItem) {
   const confirmed = await confirmAction({
-    title: '删除角色',
-    message: `确定删除角色「${row.name}」吗？已绑定用户的角色无法删除。`,
-    confirmButtonText: '删除',
+    title: t('system.role.deleteConfirm.title'),
+    message: t('system.role.deleteConfirm.message', { name: row.name }),
+    confirmButtonText: t('system.role.deleteConfirm.confirm'),
   })
   if (!confirmed) return
   await deleteRole(row.id)
-  ElMessage.success('删除成功')
+  ElMessage.success(t('system.role.deleteSuccess'))
   if (list.value.length === 1 && query.page > 1) {
     query.page -= 1
   }
@@ -218,7 +224,7 @@ async function saveGroups() {
   groupSaving.value = true
   try {
     await bindRoleGroups(groupTarget.value.id, selectedGroupIds.value)
-    ElMessage.success('权限组已保存')
+    ElMessage.success(t('system.role.groupDrawer.saved'))
     groupDrawerVisible.value = false
   } finally {
     groupSaving.value = false
@@ -233,20 +239,25 @@ async function saveGroups() {
         <el-input
           v-model="query.keyword"
           class="toolbar-input"
-          placeholder="角色编码 / 名称"
+          :placeholder="t('system.role.searchPlaceholder')"
           clearable
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
-        <el-select v-model="query.status" class="toolbar-select" placeholder="全部状态" clearable>
-          <el-option label="启用" value="ENABLED" />
-          <el-option label="禁用" value="DISABLED" />
+        <el-select
+          v-model="query.status"
+          class="toolbar-select"
+          :placeholder="t('common.all')"
+          clearable
+        >
+          <el-option :label="t('common.status.enabled')" value="ENABLED" />
+          <el-option :label="t('common.status.disabled')" value="DISABLED" />
         </el-select>
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
+        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
+        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
         <div class="toolbar-actions">
           <el-button v-permission="'system:role:create'" type="primary" plain @click="openCreate">
-            新增角色
+            {{ t('system.role.add') }}
           </el-button>
           <el-button
             v-permission="'system:rbac_cache:refresh'"
@@ -258,19 +269,21 @@ async function saveGroups() {
               <span class="refresh-chip" :class="{ 'is-spinning': refreshingCache }">
                 <el-icon><Refresh /></el-icon>
               </span>
-              刷新缓存
+              {{ t('system.role.refreshCache') }}
             </span>
           </el-button>
         </div>
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="name" label="角色名称" min-width="140" />
-        <el-table-column prop="code" label="角色编码" min-width="140" />
-        <el-table-column label="内置" width="80" align="center">
-          <template #default="{ row }">{{ row.builtin ? '是' : '否' }}</template>
+        <el-table-column prop="name" :label="t('system.role.columns.name')" min-width="140" />
+        <el-table-column prop="code" :label="t('system.role.columns.code')" min-width="140" />
+        <el-table-column :label="t('common.field.builtin')" width="90" align="center">
+          <template #default="{ row }">
+            {{ row.builtin ? t('common.yes') : t('common.no') }}
+          </template>
         </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column :label="t('common.field.status')" width="100" align="center">
           <template #default="{ row }">
             <el-switch
               v-permission="'system:role:status'"
@@ -292,13 +305,18 @@ async function saveGroups() {
             />
           </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
-        <el-table-column label="创建时间" width="180">
+        <el-table-column
+          prop="remark"
+          :label="t('common.field.remark')"
+          min-width="160"
+          show-overflow-tooltip
+        />
+        <el-table-column :label="t('common.field.createdAt')" width="180">
           <template #default="{ row }">
             {{ formatDateTime((row as RoleItem).createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right" align="center">
+        <el-table-column :label="t('common.field.actions')" width="260" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               v-permission="'system:role:update'"
@@ -306,7 +324,7 @@ async function saveGroups() {
               type="primary"
               @click="openEdit(row as RoleItem)"
             >
-              编辑
+              {{ t('system.role.actions.edit') }}
             </el-button>
             <el-button
               v-if="!row.builtin"
@@ -315,7 +333,7 @@ async function saveGroups() {
               type="danger"
               @click="handleDelete(row as RoleItem)"
             >
-              删除
+              {{ t('system.role.actions.delete') }}
             </el-button>
             <el-button
               v-if="!row.builtin"
@@ -324,7 +342,7 @@ async function saveGroups() {
               type="primary"
               @click="openGroupDrawer(row as RoleItem)"
             >
-              分配权限组
+              {{ t('system.role.actions.assignGroups') }}
             </el-button>
           </template>
         </el-table-column>
@@ -345,36 +363,46 @@ async function saveGroups() {
 
     <el-dialog
       v-model="dialogVisible"
-      :title="editingId === null ? '新增角色' : '编辑角色'"
+      :title="
+        editingId === null
+          ? t('system.role.dialog.createTitle')
+          : t('system.role.dialog.editTitle')
+      "
       width="480px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="角色编码" prop="code">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+        <el-form-item :label="t('system.role.dialog.code')" prop="code">
           <el-input
             v-model="form.code"
             :disabled="editingId !== null"
-            placeholder="创建后不可修改"
+            :placeholder="t('system.role.dialog.codePlaceholder')"
             maxlength="32"
           />
         </el-form-item>
-        <el-form-item label="角色名称" prop="name">
+        <el-form-item :label="t('system.role.dialog.name')" prop="name">
           <el-input v-model="form.name" maxlength="32" />
         </el-form-item>
-        <el-form-item label="备注">
+        <el-form-item :label="t('common.field.remark')">
           <el-input v-model="form.remark" type="textarea" maxlength="255" :rows="3" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+        <el-button @click="dialogVisible = false">{{ t('common.action.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          {{ t('common.action.confirm') }}
+        </el-button>
       </template>
     </el-dialog>
 
-    <el-drawer v-model="groupDrawerVisible" title="分配权限组" size="560px">
+    <el-drawer
+      v-model="groupDrawerVisible"
+      :title="t('system.role.groupDrawer.title')"
+      size="560px"
+    >
       <div v-loading="groupLoading" class="group-body">
         <div class="group-meta">
-          角色：<strong>{{ groupTarget?.name }}</strong>
+          {{ t('system.role.groupDrawer.roleLabel') }}<strong>{{ groupTarget?.name }}</strong>
           <span class="muted">{{ groupTarget?.code }}</span>
         </div>
         <el-checkbox-group v-model="selectedGroupIds" class="group-list">
@@ -386,19 +414,19 @@ async function saveGroups() {
           >
             {{ group.name }}
             <span class="muted">{{ group.code }}</span>
-            <el-tag v-if="group.status === 'DISABLED'" type="info" size="small">已停用</el-tag>
+            <el-tag v-if="group.status === 'DISABLED'" type="info" size="small">
+              {{ t('system.role.groupDrawer.disabledTag') }}
+            </el-tag>
           </el-checkbox>
         </el-checkbox-group>
-        <span class="muted hint">
-          停用的权限组可以绑定，但不会授予任何权限。
-        </span>
+        <span class="muted hint">{{ t('system.role.groupDrawer.hint') }}</span>
         <el-empty
           v-if="!groupLoading && groups.length === 0"
-          description="暂无权限组，请先在「权限组」中创建"
+          :description="t('system.role.groupDrawer.empty')"
           :image-size="80"
         />
         <el-divider content-position="left">
-          聚合权限（{{ aggregatedPermissions.length }} 项，自动去重）
+          {{ t('system.role.groupDrawer.aggregated', { count: aggregatedPermissions.length }) }}
         </el-divider>
         <div class="permission-tags">
           <el-tag
@@ -408,19 +436,23 @@ async function saveGroups() {
             :type="isPermissionEffective(item.id) ? 'info' : 'warning'"
           >
             {{ item.name }}
-            <span v-if="!isPermissionEffective(item.id)">（未生效）</span>
+            <span v-if="!isPermissionEffective(item.id)">
+              {{ t('system.role.groupDrawer.ineffectiveTag') }}
+            </span>
           </el-tag>
           <span v-if="aggregatedPermissions.length === 0" class="muted">
-            该角色尚未绑定任何权限组
+            {{ t('system.role.groupDrawer.noGroups') }}
           </span>
         </div>
         <span v-if="ineffectiveCount > 0" class="muted hint">
-          标注“未生效”的 {{ ineffectiveCount }} 项来自已停用的权限组，或该权限本身已停用，不会授予访问能力。
+          {{ t('system.role.groupDrawer.ineffective', { count: ineffectiveCount }) }}
         </span>
       </div>
       <template #footer>
-        <el-button @click="groupDrawerVisible = false">取消</el-button>
-        <el-button type="primary" :loading="groupSaving" @click="saveGroups">保存</el-button>
+        <el-button @click="groupDrawerVisible = false">{{ t('common.action.cancel') }}</el-button>
+        <el-button type="primary" :loading="groupSaving" @click="saveGroups">
+          {{ t('common.action.save') }}
+        </el-button>
       </template>
     </el-drawer>
   </div>

@@ -1,0 +1,48 @@
+{
+  "searchPlaceholder": "参数键 / 名称 / 备注",
+  "allTypes": "全部类型",
+  "allStatus": "全部状态",
+  "add": "新增参数",
+  "columns": {
+    "name": "参数名称",
+    "key": "参数键",
+    "value": "参数值"
+  },
+  "valueType": {
+    "string": "字符串",
+    "bool": "布尔",
+    "int": "整数",
+    "json": "JSON"
+  },
+  "dialog": {
+    "createTitle": "新增参数",
+    "editTitle": "编辑参数",
+    "name": "参数名称",
+    "key": "参数键",
+    "keyPlaceholder": "例如 order.auto_cancel_days，创建后不可修改",
+    "valueType": "值类型",
+    "value": "参数值",
+    "valuePlaceholder": "参数取值",
+    "intPlaceholder": "64 位整数",
+    "jsonPlaceholder": "例如 {\"max\":10}"
+  },
+  "createSuccess": "新增成功，已对业务生效",
+  "saveSuccess": "保存成功，已对业务生效",
+  "deleteSuccess": "删除成功，业务读取方将回退默认值",
+  "statusUpdated": "状态已更新",
+  "deleteConfirm": {
+    "title": "删除参数",
+    "message": "确定删除参数「{key}」吗？删除后业务读取方会回退到代码内默认值。",
+    "confirm": "删除"
+  },
+  "statusConfirm": {
+    "enableTitle": "启用参数",
+    "disableTitle": "停用参数",
+    "enableMessage": "确定启用参数「{key}」吗？启用后对业务立即生效。",
+    "disableMessage": "确定停用参数「{key}」吗？停用后业务读取方回退到代码内默认值。"
+  },
+  "validation": {
+    "keyRequired": "请输入参数键",
+    "nameRequired": "请输入参数名称"
+  }
+}

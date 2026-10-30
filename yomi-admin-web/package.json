@@ -10,9 +10,12 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "lint": "run-s \"lint:*\"",
+    "lint": "run-s check:error-codes check:i18n \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
+    "check:error-codes": "node scripts/check-error-codes.mjs --check",
+    "sync:error-codes": "node scripts/check-error-codes.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
@@ -22,6 +25,7 @@
     "element-plus": "^2.14.7",
     "pinia": "^4.0.3",
     "vue": "^3.5.42",
+    "vue-i18n": "^11.4.16",
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
@@ -51,6 +55,8 @@
     "node": "^22.18.0 || >=24.12.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@parcel/watcher"]
+    "onlyBuiltDependencies": [
+      "@parcel/watcher"
+    ]
   }
 }

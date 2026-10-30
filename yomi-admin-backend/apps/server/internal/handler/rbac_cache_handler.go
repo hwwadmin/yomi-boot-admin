@@ -5,8 +5,6 @@ import (
 	"context"
 	rbacusecase "yomi-admin-backend/apps/server/internal/usecase/rbac"
 
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,7 +24,7 @@ func (h *RbacCacheHandler) Routes(router *gin.RouterGroup) {
 }
 
 func (h *RbacCacheHandler) refresh(c *gin.Context) {
-	corehandler.Handle(c, func(ctx context.Context) (*rbacusecase.CacheRefreshOutput, error) {
+	handle(c, func(ctx context.Context) (*rbacusecase.CacheRefreshOutput, error) {
 		return h.refreshUC.Execute(ctx)
 	})
 }

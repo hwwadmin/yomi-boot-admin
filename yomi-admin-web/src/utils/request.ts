@@ -1,14 +1,19 @@
 import axios from 'axios'
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 
-import { useUserStore } from '@/stores/user'
-import { expireSession } from '@/utils/auth'
 import type { ApiResponse, PageData } from '@/api/types'
+import { useUserStore } from '@/stores/user'
+import {
+  bizApiError,
+  invalidResponseError,
+  reportApiError,
+  SESSION_EXPIRED_CODES,
+  transportApiError,
+} from '@/utils/apiError'
+import { expireSession } from '@/utils/auth'
 
 /** yomi-boot 默认协议的成功码 */
 const SUCCESS_CODE = 'OK'
-/** Token 缺失 / 失效时后端返回的业务码 */
-const UNAUTHORIZED_CODES = new Set(['TOKEN_REQUIRED', 'TOKEN_VALIDATE_FAILED', 'TOKEN_INVALID'])
 
 const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -72,6 +77,18 @@ function send<T>(config: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<
   return promise as Promise<AxiosResponse<ApiResponse<T>>>
 }
 
+function isBinaryResponse(config: AxiosRequestConfig): boolean {
+  return config.responseType === 'blob' || config.responseType === 'arraybuffer'
+}
+
+function isApiResponse(value: unknown): value is ApiResponse {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { code?: unknown }).code === 'string'
+  )
+}
+
 service.interceptors.request.use((config) => {
   const userStore = useUserStore()
   if (userStore.token) {
@@ -82,28 +99,43 @@ service.interceptors.request.use((config) => {
 
 service.interceptors.response.use(
   (response) => {
-    const body = response.data as ApiResponse | undefined
-    // 非统一响应体（如文件流、第三方接口）直接放行，由调用方自行处理
-    if (typeof body !== 'object' || body === null || !('code' in body)) {
+    // 文件流等非包络响应由调用方自行处理
+    if (isBinaryResponse(response.config)) {
       return response
     }
+
+    const body: unknown = response.data
+    if (!isApiResponse(body)) {
+      const error = invalidResponseError(response.config, response.status)
+      reportApiError(error, { silent: response.config.silent })
+      return Promise.reject(error)
+    }
+
     if (body.code === SUCCESS_CODE) {
       return response
     }
-    if (UNAUTHORIZED_CODES.has(body.code)) {
-      expireSession()
-      return Promise.reject(new Error(body.code))
-    }
-    ElMessage.error(body.msg || '请求失败')
-    return Promise.reject(new Error(body.msg || '请求失败'))
-  },
-  (error) => {
-    // 后端默认用业务码表达鉴权失败，这里兼容通过 HTTP 401 表达的情况
-    if (error?.response?.status === 401) {
+
+    const error = bizApiError(body.code, body.msg ?? '', response.config, response.status)
+    if (SESSION_EXPIRED_CODES.has(body.code)) {
+      reportApiError(error, { silent: true })
       expireSession()
       return Promise.reject(error)
     }
-    ElMessage.error(error?.message || '网络异常，请稍后重试')
+
+    reportApiError(error, { silent: response.config.silent })
+    return Promise.reject(error)
+  },
+  (reason: unknown) => {
+    const error = transportApiError(reason)
+    const silent = (reason as { config?: AxiosRequestConfig } | undefined)?.config?.silent
+
+    if (error.httpStatus === 401) {
+      reportApiError(error, { silent: true })
+      expireSession()
+      return Promise.reject(error)
+    }
+
+    reportApiError(error, { silent })
     return Promise.reject(error)
   },
 )

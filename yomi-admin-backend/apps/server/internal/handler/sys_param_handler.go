@@ -58,7 +58,7 @@ func (h *SysParamHandler) page(c *gin.Context) {
 		Status:    sysparamenums.NormalizeStatus(c.Query("status")),
 		ValueType: sysparamenums.NormalizeParamValueType(c.Query("valueType")),
 	}
-	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[sysparamusecase.ParamItem], error) {
+	handle(c, func(ctx context.Context) (dto.PageOutput[sysparamusecase.ParamItem], error) {
 		return h.pageUC.Execute(ctx, in)
 	})
 }
@@ -68,7 +68,7 @@ func (h *SysParamHandler) get(c *gin.Context) {
 	if !ok {
 		return
 	}
-	corehandler.Handle(c, func(ctx context.Context) (*sysparamusecase.ParamItem, error) {
+	handle(c, func(ctx context.Context) (*sysparamusecase.ParamItem, error) {
 		return h.getUC.Execute(ctx, id)
 	})
 }
@@ -83,7 +83,7 @@ func (h *SysParamHandler) create(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.Handle(c, func(ctx context.Context) (*sysparamusecase.ParamItem, error) {
+	handle(c, func(ctx context.Context) (*sysparamusecase.ParamItem, error) {
 		return h.createUC.Execute(ctx, &in)
 	})
 }
@@ -98,7 +98,7 @@ func (h *SysParamHandler) update(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.updateUC.Execute(ctx, &in)
 	})
 }
@@ -113,7 +113,7 @@ func (h *SysParamHandler) delete(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.deleteUC.Execute(ctx, &in)
 	})
 }
@@ -128,7 +128,7 @@ func (h *SysParamHandler) setStatus(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
-	corehandler.HandleVoid(c, func(ctx context.Context) error {
+	handleVoid(c, func(ctx context.Context) error {
 		return h.setStatusUC.Execute(ctx, &in)
 	})
 }

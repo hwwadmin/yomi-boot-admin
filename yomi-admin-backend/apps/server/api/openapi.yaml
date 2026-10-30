@@ -11,7 +11,9 @@ info:
     yomi-admin-backend 管理端接口文档。
 
     ## 协议约定
-    - 所有接口 HTTP 状态码恒为 200，业务成败由响应体 `code` 判定：`OK` 表示成功，其余为业务错误码（`msg` 为人读信息）。
+    - 所有接口 HTTP 状态码恒为 200，业务成败由响应体 `code` 判定：`OK` 表示成功，其余为业务错误码。
+    - **错误码是客户端唯一契约**：客户端按 `code` 本地化错误文案；`msg` 仅供开发调试（F12 / 日志），禁止用于界面展示。
+    - 无法识别的内部错误统一返回 `INTERNAL_ERROR`，不把内部错误文本当作业务码返回。
     - 响应包络统一为 `{"code","msg","timestamp","data"}`；分页接口的 `data` 为 `{"items":[...],"total":N}` 载荷（items 当前页数组、total 总条数）。
     - 雪花 ID 一律以字符串传输（避免 JS int64 精度丢失），如 `"1930000000000000001"`；请求中同名字段也接受数字。
     - 时间戳均为 Unix 毫秒（UTC），由前端按客户端时区展示。
@@ -863,7 +865,7 @@ components:
           examples: [OK]
         msg:
           type: string
-          description: 人读信息
+          description: 开发调试信息；客户端禁止用于展示，错误文案由客户端按 code 本地化
           examples: [success]
         timestamp:
           type: integer
@@ -871,7 +873,7 @@ components:
           description: 响应时间戳（Unix 毫秒）
     EnvelopeError:
       type: object
-      description: 失败包络（无 data 字段），code 为业务错误码，如 INVALID_INPUT、TOKEN_REQUIRED、ADMIN_PERMISSION_DENIED、ADMIN_USER_NOT_FOUND 等
+      description: 失败包络（无 data 字段），code 为业务错误码，如 INVALID_INPUT、TOKEN_REQUIRED、ADMIN_PERMISSION_DENIED、ADMIN_USER_NOT_FOUND 等；无法识别的内部错误统一为 INTERNAL_ERROR
       allOf:
         - $ref: '#/components/schemas/EnvelopeBase'
     UserItemPage:

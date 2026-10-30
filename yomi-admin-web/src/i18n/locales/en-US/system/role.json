@@ -1,0 +1,58 @@
+{
+  "searchPlaceholder": "Role code / name",
+  "add": "Add role",
+  "refreshCache": "Refresh cache",
+  "columns": {
+    "name": "Role name",
+    "code": "Role code"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "assignGroups": "Assign permission groups"
+  },
+  "statusUpdated": "Status updated",
+  "statusConfirm": {
+    "enableTitle": "Enable role",
+    "disableTitle": "Disable role",
+    "enableMessage": "Enable role \"{name}\"?",
+    "disableMessage": "Disable role \"{name}\"? Users with this role lose its permissions immediately."
+  },
+  "cacheRefresh": {
+    "title": "Refresh permission cache",
+    "message": "Rebuild the permission cache from the database. The change takes effect on all instances immediately. Continue?",
+    "confirm": "Refresh",
+    "success": "Cache refreshed"
+  },
+  "dialog": {
+    "createTitle": "Add role",
+    "editTitle": "Edit role",
+    "code": "Role code",
+    "codePlaceholder": "Cannot be changed after creation",
+    "name": "Role name"
+  },
+  "createSuccess": "Role created",
+  "saveSuccess": "Saved",
+  "deleteSuccess": "Deleted",
+  "deleteConfirm": {
+    "title": "Delete role",
+    "message": "Delete role \"{name}\"? Roles bound to users cannot be deleted.",
+    "confirm": "Delete"
+  },
+  "groupDrawer": {
+    "title": "Assign permission groups",
+    "roleLabel": "Role: ",
+    "disabledTag": "Disabled",
+    "hint": "Disabled permission groups can be bound, but grant no permissions.",
+    "empty": "No permission groups yet. Create one under \"Permission groups\" first",
+    "aggregated": "Aggregated permissions ({count} items, deduplicated)",
+    "noGroups": "This role has no permission groups",
+    "ineffectiveTag": " (inactive)",
+    "ineffective": "{count} item(s) marked \"inactive\" come from disabled permission groups or disabled permissions and grant no access.",
+    "saved": "Permission groups saved"
+  },
+  "validation": {
+    "codeRequired": "Please enter a role code",
+    "nameRequired": "Please enter a role name"
+  }
+}

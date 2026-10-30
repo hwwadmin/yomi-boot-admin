@@ -1,0 +1,54 @@
+{
+  "searchPlaceholder": "Permission group code / name",
+  "add": "Add permission group",
+  "columns": {
+    "name": "Permission group name",
+    "code": "Permission group code"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "assignPermissions": "Assign permissions"
+  },
+  "createSuccess": "Permission group created",
+  "saveSuccess": "Saved",
+  "deleteSuccess": "Deleted",
+  "statusUpdated": "Status updated",
+  "deleteConfirm": {
+    "title": "Delete permission group",
+    "message": "Delete permission group \"{name}\"? Groups bound to roles cannot be deleted.",
+    "confirm": "Delete"
+  },
+  "statusConfirm": {
+    "enableTitle": "Enable permission group",
+    "disableTitle": "Disable permission group",
+    "enableMessage": "Enable permission group \"{name}\"? Its permissions take effect for bound roles immediately.",
+    "disableMessage": "Disable permission group \"{name}\"? All roles using it lose its permissions immediately."
+  },
+  "dialog": {
+    "createTitle": "Add permission group",
+    "editTitle": "Edit permission group",
+    "code": "Permission group code",
+    "codePlaceholder": "Cannot be changed after creation",
+    "name": "Permission group name"
+  },
+  "permissionDrawer": {
+    "title": "Assign permissions",
+    "groupLabel": "Permission group: ",
+    "selected": "{count} selected",
+    "searchPlaceholder": "Search by name / code / path",
+    "menuTab": "Menu permissions",
+    "apiTab": "API permissions",
+    "disabledTag": "Disabled",
+    "menuEmpty": "No menu permissions",
+    "menuEmptySearch": "No matching menu permissions",
+    "apiEmpty": "No API permissions",
+    "apiEmptySearch": "No matching API permissions",
+    "hint": "Disabled permissions can be bound, but grant no access.",
+    "saved": "Permissions saved"
+  },
+  "validation": {
+    "codeRequired": "Please enter a permission group code",
+    "nameRequired": "Please enter a permission group name"
+  }
+}
