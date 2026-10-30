@@ -3,11 +3,13 @@ package handler
 
 import (
 	"context"
+	"yomi-admin-backend/apps/server/internal/support/audit"
 	rbacusecase "yomi-admin-backend/apps/server/internal/usecase/rbac"
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 
 	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
 	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"gitee.com/hq_project/yomi-boot/component/core/utils/ginutil"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,6 +23,7 @@ type UserHandler struct {
 	resetPwdUC  *userusecase.ResetUserPasswordUsecase
 	getRolesUC  *rbacusecase.GetUserRolesUsecase
 	bindRolesUC *rbacusecase.BindUserRolesUsecase
+	audit       audit.Recorder
 }
 
 // UserHandlerDeps 系统用户 Handler 依赖
@@ -32,6 +35,7 @@ type UserHandlerDeps struct {
 	ResetPassword *userusecase.ResetUserPasswordUsecase
 	GetRoles      *rbacusecase.GetUserRolesUsecase
 	BindRoles     *rbacusecase.BindUserRolesUsecase
+	Audit         audit.Recorder
 }
 
 // NewUserHandler 创建系统用户 Handler
@@ -44,6 +48,7 @@ func NewUserHandler(deps UserHandlerDeps) *UserHandler {
 		resetPwdUC:  deps.ResetPassword,
 		getRolesUC:  deps.GetRoles,
 		bindRolesUC: deps.BindRoles,
+		audit:       deps.Audit,
 	}
 }
 
@@ -123,8 +128,18 @@ func (h *UserHandler) resetPassword(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
+	start := audit.Spec{
+		Event:    audit.EventResetPassword,
+		Operator: auditOperator(c.Request.Context()),
+		ClientIP: ginutil.ClientIP(c),
+		Target:   audit.Target{Type: audit.TargetTypeUser, ID: in.ID.Int64()},
+	}
 	handleVoid(c, func(ctx context.Context) error {
-		return h.resetPwdUC.Execute(ctx, &in)
+		return auditVoid(c, h.audit, start, func(error) audit.Spec {
+			return start
+		}, func(ctx context.Context) error {
+			return h.resetPwdUC.Execute(ctx, &in)
+		})
 	})
 }
 

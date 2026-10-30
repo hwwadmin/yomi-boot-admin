@@ -7,6 +7,7 @@ require (
 	github.com/getkin/kin-openapi v0.152.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/spf13/viper v1.20.1
+	yomi-admin-backend/domains/auditlog v0.0.0
 	yomi-admin-backend/domains/httprecord v0.0.0
 	yomi-admin-backend/domains/rbac v0.0.0
 	yomi-admin-backend/domains/sysparam v0.0.0
@@ -136,6 +137,8 @@ require (
 	gorm.io/driver/postgres v1.6.0 // indirect
 	gorm.io/gorm v1.31.1 // indirect
 )
+
+replace yomi-admin-backend/domains/auditlog => ../../domains/auditlog
 
 replace yomi-admin-backend/domains/httprecord => ../../domains/httprecord
 

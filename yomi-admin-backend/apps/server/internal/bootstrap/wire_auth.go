@@ -17,5 +17,6 @@ func newAuthRegistrar(c container) router.Registrar {
 		Logout:         authusecase.NewLogoutUsecase(c.token),
 		ChangePassword: authusecase.NewChangePasswordUsecase(c.users.Users, c.token),
 		LoginConfig:    c.loginConfig,
+		Audit:          c.auditRecorder,
 	})
 }

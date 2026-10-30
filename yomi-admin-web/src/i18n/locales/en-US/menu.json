@@ -9,6 +9,7 @@
   "systemPermission": "Permissions",
   "systemHttpRecord": "Access log",
   "systemParam": "System parameters",
+  "systemAuditLog": "Audit log",
   "forbidden": "Forbidden",
   "notFound": "404"
 }

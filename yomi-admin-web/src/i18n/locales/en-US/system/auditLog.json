@@ -1,0 +1,35 @@
+{
+  "searchPlaceholder": "Operator / target / source IP / audit event ID",
+  "allEvents": "All events",
+  "allPhases": "All phases",
+  "allResults": "All results",
+  "auditIdPlaceholder": "Audit event ID",
+  "startTime": "Start time",
+  "endTime": "End time",
+  "events": {
+    "login": "Sign in",
+    "changePassword": "Change password",
+    "resetPassword": "Reset password"
+  },
+  "phases": {
+    "started": "Started",
+    "finished": "Finished"
+  },
+  "results": {
+    "pending": "Pending",
+    "success": "Success",
+    "failure": "Failure"
+  },
+  "columns": {
+    "createTime": "Time",
+    "auditId": "Audit event ID",
+    "phase": "Phase",
+    "event": "Event",
+    "operator": "Operator",
+    "target": "Target",
+    "result": "Result",
+    "clientIp": "Source IP"
+  },
+  "unknownOperator": "Unknown user",
+  "noTarget": "-"
+}

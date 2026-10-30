@@ -4,6 +4,7 @@
 
 WORKSPACE_MODULES=(
   "apps/server"
+  "domains/auditlog"
   "domains/httprecord"
   "domains/rbac"
   "domains/sysparam"

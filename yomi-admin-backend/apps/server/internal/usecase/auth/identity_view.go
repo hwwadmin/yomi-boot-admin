@@ -6,6 +6,8 @@ import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/enums"
 	"yomi-admin-backend/domains/rbac/service_contract"
 	"yomi-admin-backend/domains/user/pkg/shared/entity"
+
+	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
 // MenuView 是登录态返回的菜单视图
@@ -24,13 +26,14 @@ type RoleView struct {
 
 // IdentityView 是登录与当前用户接口共用的身份视图
 type IdentityView struct {
-	Username    string     `json:"username"`
-	Nickname    string     `json:"nickname"`
-	Email       string     `json:"email"`
-	Phone       string     `json:"phone"`
-	Roles       []RoleView `json:"roles"`
-	Permissions []string   `json:"permissions"`
-	Menus       []MenuView `json:"menus"`
+	ID          dto.JSONInt64 `json:"id"`
+	Username    string        `json:"username"`
+	Nickname    string        `json:"nickname"`
+	Email       string        `json:"email"`
+	Phone       string        `json:"phone"`
+	Roles       []RoleView    `json:"roles"`
+	Permissions []string      `json:"permissions"`
+	Menus       []MenuView    `json:"menus"`
 }
 
 // buildIdentityView 聚合用户资料、角色、权限编码与菜单
@@ -70,6 +73,7 @@ func buildIdentityView(ctx context.Context, user *entity.User, auth service_cont
 	}
 
 	return &IdentityView{
+		ID:          dto.JSONInt64(user.ID),
 		Username:    user.Username,
 		Nickname:    user.Nickname,
 		Email:       user.Email,

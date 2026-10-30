@@ -25,7 +25,7 @@ func (f *fakeResetPasswordUser) ResetPassword(_ context.Context, in *userinput.R
 	return f.err
 }
 
-// TestResetUserPasswordSuccess 校验超管重置他人密码会透传入参并撤销目标全部令牌
+// TestResetUserPasswordSuccess 校验重置成功、透传入参并撤销令牌
 func TestResetUserPasswordSuccess(t *testing.T) {
 	users := &fakeResetPasswordUser{}
 	guard := &fakeGuard{}

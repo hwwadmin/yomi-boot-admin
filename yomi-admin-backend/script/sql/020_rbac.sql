@@ -230,6 +230,12 @@ VALUES (100000000000001085, 'system:param:delete', '删除参数', 'API', NULL, 
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001086, 'system:param:status', '参数启停', 'API', NULL, 'POST', '/api/system/param/set-status', 'ENABLED');
 
+-- 审计日志菜单与接口权限
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001007, 'system:audit-log', '审计日志', 'MENU', '/system/audit-log', NULL, NULL, 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001091, 'system:audit-log:list', '审计日志列表', 'API', NULL, 'GET', '/api/system/audit-log', 'ENABLED');
+
 -- 种子权限组：按现有菜单域给出可直接使用的权限包
 INSERT IGNORE INTO `t_rbac_permission_group` (`id`, `code`, `name`, `status`, `remark`)
 VALUES (100000000000003001, 'system_user', '用户管理', 'ENABLED', '用户菜单、用户 CRUD 与用户角色绑定');
@@ -241,6 +247,8 @@ INSERT IGNORE INTO `t_rbac_permission_group` (`id`, `code`, `name`, `status`, `r
 VALUES (100000000000003004, 'system_http_record', '访问记录', 'ENABLED', '访问记录菜单、列表与详情');
 INSERT IGNORE INTO `t_rbac_permission_group` (`id`, `code`, `name`, `status`, `remark`)
 VALUES (100000000000003005, 'system_param', '参数管理', 'ENABLED', '系统参数菜单、CRUD 与启停');
+INSERT IGNORE INTO `t_rbac_permission_group` (`id`, `code`, `name`, `status`, `remark`)
+VALUES (100000000000003006, 'system_audit_log', '审计日志', 'ENABLED', '审计日志菜单与列表');
 
 -- 用户管理组
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
@@ -341,6 +349,12 @@ INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_
 VALUES (100000000000005066, 100000000000003005, 100000000000001085);
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
 VALUES (100000000000005067, 100000000000003005, 100000000000001086);
+
+-- 审计日志组
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005071, 100000000000003006, 100000000000001007);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005072, 100000000000003006, 100000000000001091);
 
 -- 内置管理员绑定超管角色
 INSERT IGNORE INTO `t_rbac_user_role_rel` (`id`, `user_id`, `role_id`, `create_by`, `update_by`)

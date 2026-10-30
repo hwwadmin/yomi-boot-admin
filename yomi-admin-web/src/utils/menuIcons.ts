@@ -4,6 +4,7 @@ import {
   Grid,
   Key,
   Lock,
+  Notebook,
   Odometer,
   Setting,
   Tickets,
@@ -22,6 +23,7 @@ export const menuIcons: Record<string, Component> = {
   Lock,
   Setting,
   Tools,
+  Notebook,
 }
 
 export function resolveMenuIcon(name?: string): Component | undefined {

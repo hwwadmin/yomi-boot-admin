@@ -1,0 +1,35 @@
+{
+  "searchPlaceholder": "操作者 / 目标 / 来源 IP / 审计事件 ID",
+  "allEvents": "全部事件",
+  "allPhases": "全部阶段",
+  "allResults": "全部结果",
+  "auditIdPlaceholder": "审计事件 ID",
+  "startTime": "开始时间",
+  "endTime": "结束时间",
+  "events": {
+    "login": "登录",
+    "changePassword": "修改密码",
+    "resetPassword": "重置密码"
+  },
+  "phases": {
+    "started": "开始",
+    "finished": "结束"
+  },
+  "results": {
+    "pending": "进行中",
+    "success": "成功",
+    "failure": "失败"
+  },
+  "columns": {
+    "createTime": "操作时间",
+    "auditId": "审计事件 ID",
+    "phase": "阶段",
+    "event": "事件",
+    "operator": "操作者",
+    "target": "目标",
+    "result": "结果",
+    "clientIp": "来源 IP"
+  },
+  "unknownOperator": "未知用户",
+  "noTarget": "-"
+}

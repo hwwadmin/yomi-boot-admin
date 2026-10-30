@@ -125,6 +125,10 @@ biz:
   docs:
     enabled: ${YOMI_ADMIN_BIZ_DOCS_ENABLED:false}
 
+  # 操作审计日志
+  audit:
+    enabled: ${YOMI_ADMIN_BIZ_AUDIT_ENABLED:true}
+
   # 公开路由：免令牌 / 免接口权限的路由只在这里声明，代码里不再硬编码。
   # path 是对外完整 URI；将来若配置 router_prefix（系统标识前缀），声明需同步加上该前缀。
   # token=false 表示连令牌都不校验。

@@ -90,6 +90,8 @@ export interface IdentityRole {
 
 /** 当前登录用户信息 */
 export interface UserInfo {
+  /** 用户雪花 ID */
+  id: string
   username: string
   nickname: string
   email: string
@@ -349,4 +351,53 @@ export interface SysParamUpdatePayload {
   value: string
   name: string
   remark: string
+}
+
+/** 操作审计事件编码 */
+export type AuditEventCode = 'auth.login' | 'auth.change_password' | 'auth.reset_password'
+
+/** 操作审计结果 */
+export type AuditResult = 'PENDING' | 'SUCCESS' | 'FAILURE'
+
+/** 操作审计阶段 */
+export type AuditLogPhase = 'STARTED' | 'FINISHED'
+
+/** 操作审计查询参数 */
+export interface AuditLogQuery extends PageQuery {
+  keyword?: string
+  eventCode?: AuditEventCode | ''
+  phase?: AuditLogPhase | ''
+  result?: AuditResult | ''
+  /** 审计事件实例 ID */
+  auditId?: string
+  /** Unix 毫秒时间戳 */
+  startTime?: number
+  /** Unix 毫秒时间戳 */
+  endTime?: number
+}
+
+/** 操作审计日志列表项 */
+export interface AuditLogItem {
+  /** 雪花 ID，后端以字符串返回 */
+  id: string
+  /** 审计事件实例 ID，开始/结束共用 */
+  auditId: string
+  phase: AuditLogPhase
+  /** 事件编码，如 auth.login */
+  eventCode: string
+  /** 操作者雪花 ID；登录失败为 '0' */
+  operatorId: string
+  /** 操作者用户名快照；登录事件为尝试的用户名 */
+  operatorName: string
+  clientIp: string
+  /** 目标类型，如 user；无目标为空 */
+  targetType: string
+  /** 目标雪花 ID，无目标为 '0' */
+  targetId: string
+  targetName: string
+  result: AuditResult
+  /** 业务码，成功为 OK */
+  bizCode: string
+  /** Unix 毫秒时间戳 */
+  createTime: number
 }

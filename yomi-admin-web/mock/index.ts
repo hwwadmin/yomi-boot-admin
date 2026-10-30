@@ -114,6 +114,8 @@ const permissions: MockPermission[] = [
   { id: 'p3', code: 'system:permission', name: '权限', type: 'MENU', uiPath: '/system/permission', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p4', code: 'system:http-record', name: '访问记录', type: 'MENU', uiPath: '/system/http-record', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p5', code: 'system:permission-group', name: '权限组', type: 'MENU', uiPath: '/system/permission-group', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p7', code: 'system:audit-log', name: '审计日志', type: 'MENU', uiPath: '/system/audit-log', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p91', code: 'system:audit-log:list', name: '审计日志列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/audit-log', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p11', code: 'system:user:list', name: '用户列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/users', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p12', code: 'system:user:create', name: '创建用户', type: 'API', httpMethod: 'POST', httpPath: '/api/system/users', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p13', code: 'system:user:update', name: '更新用户', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/users/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
@@ -394,6 +396,7 @@ function grantedCodes(user: MockUser): string[] {
 
 function identity(user: MockUser) {
   return {
+    id: user.id,
     username: user.username,
     nickname: user.nickname,
     email: user.email,
@@ -450,6 +453,37 @@ interface MockRoute {
   pattern: RegExp
   handler: MockHandler
 }
+
+interface MockAuditLog {
+  id: string
+  auditId: string
+  phase: 'STARTED' | 'FINISHED'
+  eventCode: string
+  operatorId: string
+  operatorName: string
+  clientIp: string
+  targetType: string
+  targetId: string
+  targetName: string
+  result: 'PENDING' | 'SUCCESS' | 'FAILURE'
+  bizCode: string
+  createTime: number
+}
+
+const auditLogs: MockAuditLog[] = [
+  { id: 'a12', auditId: '9006', phase: 'STARTED', eventCode: 'auth.reset_password', operatorId: '100000000000000001', operatorName: 'admin', clientIp: '127.0.0.1', targetType: 'user', targetId: 'u2', targetName: '', result: 'PENDING', bizCode: '', createTime: now() - 8 * 60 * 1000 - 1000 },
+  { id: 'a6', auditId: '9006', phase: 'FINISHED', eventCode: 'auth.reset_password', operatorId: '100000000000000001', operatorName: 'admin', clientIp: '127.0.0.1', targetType: 'user', targetId: 'u2', targetName: 'test', result: 'SUCCESS', bizCode: 'OK', createTime: now() - 8 * 60 * 1000 },
+  { id: 'a11', auditId: '9005', phase: 'STARTED', eventCode: 'auth.change_password', operatorId: 'u2', operatorName: 'test', clientIp: '127.0.0.1', targetType: '', targetId: '0', targetName: '', result: 'PENDING', bizCode: '', createTime: now() - 20 * 60 * 1000 - 1000 },
+  { id: 'a5', auditId: '9005', phase: 'FINISHED', eventCode: 'auth.change_password', operatorId: 'u2', operatorName: 'test', clientIp: '127.0.0.1', targetType: '', targetId: '0', targetName: '', result: 'SUCCESS', bizCode: 'OK', createTime: now() - 20 * 60 * 1000 },
+  { id: 'a10', auditId: '9004', phase: 'STARTED', eventCode: 'auth.change_password', operatorId: 'u2', operatorName: 'test', clientIp: '127.0.0.1', targetType: '', targetId: '0', targetName: '', result: 'PENDING', bizCode: '', createTime: now() - 21 * 60 * 1000 - 1000 },
+  { id: 'a4', auditId: '9004', phase: 'FINISHED', eventCode: 'auth.change_password', operatorId: 'u2', operatorName: 'test', clientIp: '127.0.0.1', targetType: '', targetId: '0', targetName: '', result: 'FAILURE', bizCode: 'ADMIN_OLD_PASSWORD_MISMATCH', createTime: now() - 21 * 60 * 1000 },
+  { id: 'a9', auditId: '9003', phase: 'STARTED', eventCode: 'auth.login', operatorId: '0', operatorName: 'test', clientIp: '127.0.0.1', targetType: '', targetId: '0', targetName: '', result: 'PENDING', bizCode: '', createTime: now() - 22 * 60 * 1000 - 1000 },
+  { id: 'a3', auditId: '9003', phase: 'FINISHED', eventCode: 'auth.login', operatorId: 'u2', operatorName: 'test', clientIp: '127.0.0.1', targetType: '', targetId: '0', targetName: '', result: 'SUCCESS', bizCode: 'OK', createTime: now() - 22 * 60 * 1000 },
+  { id: 'a8', auditId: '9002', phase: 'STARTED', eventCode: 'auth.login', operatorId: '0', operatorName: 'ghost', clientIp: '10.0.0.8', targetType: '', targetId: '0', targetName: '', result: 'PENDING', bizCode: '', createTime: now() - 30 * 60 * 1000 - 1000 },
+  { id: 'a2', auditId: '9002', phase: 'FINISHED', eventCode: 'auth.login', operatorId: '0', operatorName: 'ghost', clientIp: '10.0.0.8', targetType: '', targetId: '0', targetName: '', result: 'FAILURE', bizCode: 'ADMIN_INVALID_CREDENTIAL', createTime: now() - 30 * 60 * 1000 },
+  { id: 'a7', auditId: '9001', phase: 'STARTED', eventCode: 'auth.login', operatorId: '0', operatorName: 'admin', clientIp: '127.0.0.1', targetType: '', targetId: '0', targetName: '', result: 'PENDING', bizCode: '', createTime: now() - 60 * 60 * 1000 - 1000 },
+  { id: 'a1', auditId: '9001', phase: 'FINISHED', eventCode: 'auth.login', operatorId: '100000000000000001', operatorName: 'admin', clientIp: '127.0.0.1', targetType: '', targetId: '0', targetName: '', result: 'SUCCESS', bizCode: 'OK', createTime: now() - 60 * 60 * 1000 },
+]
 
 const routes: MockRoute[] = [
   {
@@ -990,6 +1024,40 @@ const routes: MockRoute[] = [
       const roleIds = Array.isArray(body.roleIds) ? (body.roleIds as string[]) : []
       user.roles = roles.filter((role) => roleIds.includes(role.id))
       sendJson(res, ok(null))
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/system\/audit-log$/,
+    handler: async ({ req, res, query }) => {
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const keyword = (query.get('keyword') ?? '').trim().toLowerCase()
+      const eventCode = query.get('eventCode') ?? ''
+      const phase = query.get('phase') ?? ''
+      const result = query.get('result') ?? ''
+      const auditId = (query.get('auditId') ?? '').trim()
+      const startTime = Number(query.get('startTime')) || 0
+      const endTime = Number(query.get('endTime')) || 0
+
+      const filtered = auditLogs.filter((item) => {
+        const matchKeyword =
+          !keyword ||
+          item.operatorName.toLowerCase().includes(keyword) ||
+          item.targetName.toLowerCase().includes(keyword) ||
+          item.clientIp.includes(keyword) ||
+          item.auditId.includes(keyword)
+        const matchTime =
+          (!startTime || item.createTime >= startTime) && (!endTime || item.createTime <= endTime)
+        return (
+          matchKeyword &&
+          (!eventCode || item.eventCode === eventCode) &&
+          (!phase || item.phase === phase) &&
+          (!result || item.result === result) &&
+          (!auditId || item.auditId === auditId) &&
+          matchTime
+        )
+      })
+      sendJson(res, paginate(filtered, query))
     },
   },
 ]

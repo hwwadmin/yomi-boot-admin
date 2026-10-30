@@ -66,6 +66,12 @@ export const staticRoutes: RouteRecordRaw[] = [
             meta: { titleKey: 'menu.systemHttpRecord', icon: 'Tickets' },
           },
           {
+            path: '/system/audit-log',
+            name: 'system-audit-log',
+            component: () => import('@/views/system/audit-log/index.vue'),
+            meta: { titleKey: 'menu.systemAuditLog', icon: 'Notebook' },
+          },
+          {
             path: '/system/param',
             name: 'system-param',
             component: () => import('@/views/system/param/index.vue'),

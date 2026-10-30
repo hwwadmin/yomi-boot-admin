@@ -38,6 +38,8 @@ tags:
     description: RBAC 鉴权投影缓存维护
   - name: 系统参数
     description: 系统参数管理
+  - name: 审计日志
+    description: 按需记录需要关注的业务操作
 security:
   - bearerAuth: []
 paths:
@@ -889,6 +891,60 @@ paths:
             schema: { $ref: '#/components/schemas/SetStatusRequest' }
       responses:
         '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/audit-log:
+    get:
+      tags: [审计日志]
+      operationId: pageAuditLogs
+      summary: 分页查询操作审计日志
+      description: 审计日志按需记录需要关注的业务操作，与 HTTP 访问记录无关。
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - { $ref: '#/components/parameters/Keyword' }
+        - name: eventCode
+          in: query
+          required: false
+          description: 事件编码精确匹配，如 auth.login / auth.change_password / auth.reset_password
+          schema: { type: string }
+        - name: phase
+          in: query
+          required: false
+          description: 阶段：STARTED-开始，FINISHED-结束
+          schema: { type: string, enum: [STARTED, FINISHED] }
+        - name: result
+          in: query
+          required: false
+          description: 结果
+          schema: { type: string, enum: [PENDING, SUCCESS, FAILURE] }
+        - name: auditId
+          in: query
+          required: false
+          description: 审计事件实例 ID，雪花 ID
+          schema: { type: string }
+        - name: startTime
+          in: query
+          required: false
+          description: 起始时间（Unix 毫秒，含）
+          schema: { type: integer, format: int64 }
+        - name: endTime
+          in: query
+          required: false
+          description: 结束时间（Unix 毫秒，含）
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/AuditLogItemPage' }
+                  - $ref: '#/components/schemas/EnvelopeError'
 components:
   securitySchemes:
     bearerAuth:
@@ -1042,8 +1098,9 @@ components:
     IdentityView:
       type: object
       description: 登录与当前用户接口共用的身份视图
-      required: [username, nickname, email, phone, roles, permissions, menus]
+      required: [id, username, nickname, email, phone, roles, permissions, menus]
       properties:
+        id: { type: string, description: 用户雪花 ID }
         username: { type: string }
         nickname: { type: string }
         email: { type: string }
@@ -1420,3 +1477,30 @@ components:
           type: array
           description: 覆盖后的权限 ID 全集（空数组清空绑定）
           items: { type: string, description: 雪花 ID }
+    AuditLogItem:
+      type: object
+      description: 操作审计日志列表项
+      required: [id, auditId, phase, eventCode, operatorId, operatorName, clientIp, targetType, targetId, targetName, result, bizCode, createTime]
+      properties:
+        id: { type: string, description: 雪花 ID }
+        auditId: { type: string, description: 审计事件实例 ID，开始/结束共用 }
+        phase: { type: string, enum: [STARTED, FINISHED], description: 阶段 }
+        eventCode: { type: string, description: '事件编码，按业务事件扩展，如 auth.login / auth.change_password / auth.reset_password' }
+        operatorId: { type: string, description: '操作者雪花 ID，登录失败为 "0"' }
+        operatorName: { type: string, description: 操作者用户名快照；登录事件为尝试的用户名 }
+        clientIp: { type: string, description: 来源 IP }
+        targetType: { type: string, description: 目标类型，如 user；无目标为空 }
+        targetId: { type: string, description: '目标雪花 ID，无目标为 "0"' }
+        targetName: { type: string, description: 目标名称快照 }
+        result: { type: string, enum: [PENDING, SUCCESS, FAILURE], description: 操作结果 }
+        bizCode: { type: string, description: 业务码，成功为 OK }
+        createTime: { type: integer, format: int64, description: 事件发生时间（Unix 毫秒） }
+    AuditLogItemPage:
+      type: object
+      description: 审计日志分页载荷，作为响应 data 字段输出
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AuditLogItem' }
+        total: { type: integer, format: int64, description: 满足条件的总条数 }

@@ -3,6 +3,7 @@ package handler
 
 import (
 	"context"
+	"yomi-admin-backend/apps/server/internal/support/audit"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 
 	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
@@ -20,6 +21,7 @@ type AuthHandler struct {
 	logoutUC        *authusecase.LogoutUsecase
 	passwordUC      *authusecase.ChangePasswordUsecase
 	configUC        *authusecase.LoginConfigUsecase
+	audit           audit.Recorder
 }
 
 // AuthHandlerDeps 认证 Handler 依赖
@@ -31,6 +33,7 @@ type AuthHandlerDeps struct {
 	Logout         *authusecase.LogoutUsecase
 	ChangePassword *authusecase.ChangePasswordUsecase
 	LoginConfig    *authusecase.LoginConfigUsecase
+	Audit          audit.Recorder
 }
 
 // NewAuthHandler 创建认证 Handler
@@ -43,6 +46,7 @@ func NewAuthHandler(deps AuthHandlerDeps) *AuthHandler {
 		logoutUC:        deps.Logout,
 		passwordUC:      deps.ChangePassword,
 		configUC:        deps.LoginConfig,
+		audit:           deps.Audit,
 	}
 }
 
@@ -78,8 +82,22 @@ func (h *AuthHandler) login(c *gin.Context) {
 	}
 	clientIP := ginutil.ClientIP(c)
 	userAgent := c.GetHeader("User-Agent")
+	start := audit.Spec{
+		Event:    audit.EventLogin,
+		Operator: audit.Operator{Name: in.Username},
+		ClientIP: clientIP,
+	}
+	finish := func(out *authusecase.LoginOutput, err error) audit.Spec {
+		operator := audit.Operator{Name: in.Username}
+		if out != nil && out.User != nil {
+			operator = audit.Operator{ID: out.User.ID.Int64(), Name: out.User.Username}
+		}
+		return audit.Spec{Event: audit.EventLogin, Operator: operator, ClientIP: clientIP}
+	}
 	handle(c, func(ctx context.Context) (*authusecase.LoginOutput, error) {
-		return h.loginUC.Execute(ctx, in, clientIP, userAgent)
+		return auditRun(c, h.audit, start, finish, func(ctx context.Context) (*authusecase.LoginOutput, error) {
+			return h.loginUC.Execute(ctx, in, clientIP, userAgent)
+		})
 	})
 }
 
@@ -120,7 +138,16 @@ func (h *AuthHandler) changePassword(c *gin.Context) {
 	if !ok {
 		return
 	}
+	start := audit.Spec{
+		Event:    audit.EventChangePassword,
+		Operator: auditOperator(c.Request.Context()),
+		ClientIP: ginutil.ClientIP(c),
+	}
 	handleVoid(c, func(ctx context.Context) error {
-		return h.passwordUC.Execute(ctx, in, operatorID)
+		return auditVoid(c, h.audit, start, func(error) audit.Spec {
+			return start
+		}, func(ctx context.Context) error {
+			return h.passwordUC.Execute(ctx, in, operatorID)
+		})
 	})
 }

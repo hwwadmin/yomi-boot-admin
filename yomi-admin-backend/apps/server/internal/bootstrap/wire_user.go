@@ -19,6 +19,7 @@ func newUserRegistrar(c container, guard *superadmin.Guard) router.Registrar {
 		ResetPassword: userusecase.NewResetUserPasswordUsecase(c.users.Users, guard, c.token),
 		GetRoles:      rbacusecase.NewGetUserRolesUsecase(c.users.Users, c.rbac.Admin),
 		BindRoles:     rbacusecase.NewBindUserRolesUsecase(c.rbac.Admin, guard, c.tx),
+		Audit:         c.auditRecorder,
 	})
 }
 

@@ -5,8 +5,11 @@ import (
 	"sync"
 	svcconfig "yomi-admin-backend/apps/server/internal/config"
 	"yomi-admin-backend/apps/server/internal/middleware"
+	"yomi-admin-backend/apps/server/internal/support/audit"
 	"yomi-admin-backend/apps/server/internal/support/loginguard"
+	auditlogusecase "yomi-admin-backend/apps/server/internal/usecase/auditlog"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
+	auditlogprovider "yomi-admin-backend/domains/auditlog/provider"
 	httprecordprovider "yomi-admin-backend/domains/httprecord/provider"
 	rbacprovider "yomi-admin-backend/domains/rbac/provider"
 	sysparamprovider "yomi-admin-backend/domains/sysparam/provider"
@@ -48,17 +51,19 @@ func Options() boot.Options {
 
 // container 保存 Wire 与 Middlewares 共用的装配结果
 type container struct {
-	users       userprovider.Module
-	rbac        rbacprovider.Module
-	records     httprecordprovider.Module
-	sysparam    sysparamprovider.Module
-	tx          tx.Executor
-	token       token.TokenService
-	captcha     *authusecase.CaptchaUsecase
-	loginGuard  *loginguard.Guard
-	loginConfig *authusecase.LoginConfigUsecase
-	appCtx      appctx.AppCtx
-	lock        distlock.DistLockFactory
+	users         userprovider.Module
+	rbac          rbacprovider.Module
+	records       httprecordprovider.Module
+	audit         auditlogprovider.Module
+	auditRecorder audit.Recorder
+	sysparam      sysparamprovider.Module
+	tx            tx.Executor
+	token         token.TokenService
+	captcha       *authusecase.CaptchaUsecase
+	loginGuard    *loginguard.Guard
+	loginConfig   *authusecase.LoginConfigUsecase
+	appCtx        appctx.AppCtx
+	lock          distlock.DistLockFactory
 	// rbacSkip 是免接口权限校验的路由集合，键为 "GET /api/auth/login"，由 biz.auth.public_paths 生成
 	rbacSkip map[string]struct{}
 }
@@ -119,6 +124,15 @@ func load(slot *plugin.PluginSlot) container {
 			panic(err)
 		}
 
+		auditModule := auditlogprovider.Provide(auditlogprovider.Deps{
+			DB:          db.DB(),
+			IDGenerator: snowflakePlugin.Generator(),
+		})
+		var auditRecorder audit.Recorder
+		if bizCfg.Audit.EnabledOrDefault() {
+			auditRecorder = auditlogusecase.NewRecorder(auditModule.Writer, snowflakePlugin.Generator())
+		}
+
 		appContainer = container{
 			users: userprovider.Provide(userprovider.Deps{
 				DB:          db.DB(),
@@ -130,6 +144,8 @@ func load(slot *plugin.PluginSlot) container {
 				DB:          db.DB(),
 				IDGenerator: snowflakePlugin.Generator(),
 			}),
+			audit:         auditModule,
+			auditRecorder: auditRecorder,
 			sysparam: sysparamprovider.Provide(sysparamprovider.Deps{
 				DB:          db.DB(),
 				DBType:      db.Type(),

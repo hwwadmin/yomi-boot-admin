@@ -9,6 +9,7 @@
   "systemPermission": "权限",
   "systemHttpRecord": "访问记录",
   "systemParam": "系统参数",
+  "systemAuditLog": "审计日志",
   "forbidden": "无权访问",
   "notFound": "404"
 }

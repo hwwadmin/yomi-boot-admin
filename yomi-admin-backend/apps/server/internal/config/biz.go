@@ -16,6 +16,7 @@ type BootConfig struct {
 	Rbac       RbacConfig       `mapstructure:"rbac"`
 	LoginGuard LoginGuardConfig `mapstructure:"login_guard"`
 	Docs       DocsConfig       `mapstructure:"docs"`
+	Audit      AuditConfig      `mapstructure:"audit"`
 	Auth       AuthConfig       `mapstructure:"auth"`
 }
 
@@ -32,6 +33,9 @@ func ConfigSection() config.Section {
 			return err
 		}
 		if err := c.Docs.Validate(); err != nil {
+			return err
+		}
+		if err := c.Audit.Validate(); err != nil {
 			return err
 		}
 		return c.Auth.Validate()

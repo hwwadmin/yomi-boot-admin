@@ -5,6 +5,7 @@ import errorPage from './errorPage.json'
 import errors from './errors.json'
 import layout from './layout.json'
 import menu from './menu.json'
+import auditLog from './system/auditLog.json'
 import httpRecord from './system/httpRecord.json'
 import param from './system/param.json'
 import permission from './system/permission.json'
@@ -29,5 +30,6 @@ export default {
     permission,
     httpRecord,
     param,
+    auditLog,
   },
 }

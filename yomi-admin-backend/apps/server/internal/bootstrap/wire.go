@@ -32,6 +32,7 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	registrars = append(registrars,
 		newHttpRecordRegistrar(c),
 		newSysParamRegistrar(c),
+		newAuditLogRegistrar(c),
 	)
 	registrars = append(registrars, newDocsRegistrars(slot)...)
 	return registrars
