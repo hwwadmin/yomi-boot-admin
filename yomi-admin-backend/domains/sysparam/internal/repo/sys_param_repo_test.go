@@ -125,6 +125,34 @@ func TestSysParamRepoEnabledQueries(t *testing.T) {
 	}
 }
 
+func TestSysParamRepoFindEnabledByKeys(t *testing.T) {
+	r, ctx := newTestRepo(t)
+
+	mustCreate(t, r, ctx, 1, "on.enabled", "true", enums.ParamTypeBool, enums.StatusEnabled)
+	mustCreate(t, r, ctx, 2, "off.enabled", "false", enums.ParamTypeBool, enums.StatusDisabled)
+	mustCreate(t, r, ctx, 3, "other.key", "1", enums.ParamTypeInt, enums.StatusEnabled)
+
+	// 只返回启用项；禁用项与不存在的键都不出现在结果里
+	items, err := r.FindEnabledByKeys(ctx, []string{"on.enabled", "off.enabled", "other.key", "missing.key"})
+	if err != nil {
+		t.Fatalf("FindEnabledByKeys() error = %v", err)
+	}
+	if len(items) != 2 {
+		t.Fatalf("FindEnabledByKeys() = %+v, want 2 条启用项", items)
+	}
+	for _, item := range items {
+		if item.Key == "off.enabled" {
+			t.Fatal("禁用参数不应出现在批量结果中")
+		}
+	}
+
+	// 空键列表不查库，返回空结果
+	empty, err := r.FindEnabledByKeys(ctx, nil)
+	if err != nil || len(empty) != 0 {
+		t.Fatalf("FindEnabledByKeys(nil) = %+v, err = %v", empty, err)
+	}
+}
+
 func TestSysParamRepoWriteOperations(t *testing.T) {
 	r, ctx := newTestRepo(t)
 

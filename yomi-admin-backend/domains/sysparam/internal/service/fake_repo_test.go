@@ -66,6 +66,26 @@ func (f *fakeRepo) GetEnabledByKey(_ context.Context, key string) (*entity.Param
 	return nil, false, nil
 }
 
+func (f *fakeRepo) FindEnabledByKeys(_ context.Context, keys []string) ([]*entity.Param, error) {
+	if f.getErr != nil {
+		return nil, f.getErr
+	}
+	wanted := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		wanted[key] = struct{}{}
+	}
+	items := make([]*entity.Param, 0, len(keys))
+	for _, row := range f.rows {
+		if row.Status != enums.StatusEnabled {
+			continue
+		}
+		if _, ok := wanted[row.Key]; ok {
+			items = append(items, row)
+		}
+	}
+	return items, nil
+}
+
 func (f *fakeRepo) CreateParam(_ context.Context, param *entity.Param, _ int64) error {
 	if f.dupOnNew {
 		f.dupOnNew = false

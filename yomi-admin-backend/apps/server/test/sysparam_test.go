@@ -140,6 +140,15 @@ func TestSysParamFlow(t *testing.T) {
 		}
 	}
 
+	// 小写状态同样可用：query 与请求体的枚举口径一致，不应报参数不合法
+	body, ok = testclient.Get(API("/system/param?status=enabled&valueType=int&page=1&pageSize=100&keyword="+paramKey), adminToken)
+	if !ok {
+		t.Fatalf("小写过滤参数接口不可达: %s", body)
+	}
+	if len(parsePage[paramItem](t, body).Items) != 0 {
+		t.Fatal("小写 status/valueType 过滤未生效")
+	}
+
 	// 删除（物理删除）→ 查不到
 	body, ok = testclient.Post(API("/system/param/delete"), adminToken, map[string]any{"id": param.ID})
 	if !ok {

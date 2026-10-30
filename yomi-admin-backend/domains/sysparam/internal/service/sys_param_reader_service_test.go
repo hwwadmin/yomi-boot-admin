@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"strconv"
 	"testing"
+	"time"
 	"yomi-admin-backend/domains/sysparam/pkg/shared/entity"
 	"yomi-admin-backend/domains/sysparam/pkg/shared/enums"
 
@@ -108,5 +110,97 @@ func TestReaderDegradesOnDBError(t *testing.T) {
 	}
 	if reader.Exists(ctx, keyBool) {
 		t.Fatal("Exists 应为 false")
+	}
+}
+
+func TestReaderWarningThrottledByKey(t *testing.T) {
+	reader := newTestReader(t, readerTestParams())
+	base := time.Unix(1000, 0)
+	reader.now = func() time.Time { return base }
+
+	calls := 0
+	record := func() { calls++ }
+
+	reader.warnByKey("a.key", record)
+	reader.warnByKey("a.key", record) // 同一窗口内同键应被抑制
+	if calls != 1 {
+		t.Fatalf("同键窗口内应只告警 1 次，实际 %d", calls)
+	}
+
+	reader.warnByKey("b.key", record) // 不同键互不影响
+	if calls != 2 {
+		t.Fatalf("不同键应各自告警，实际 %d", calls)
+	}
+
+	reader.now = func() time.Time { return base.Add(fallbackWarnInterval + time.Second) }
+	reader.warnByKey("a.key", record) // 窗口外同键应重新告警
+	if calls != 3 {
+		t.Fatalf("窗口外应重新告警，实际 %d", calls)
+	}
+}
+
+func TestReaderGetJSONRequiresPointer(t *testing.T) {
+	reader := newTestReader(t, readerTestParams())
+	ctx := context.Background()
+
+	var cfg struct {
+		Max int `json:"max"`
+	}
+	// 传值而不是指针：属于调用方写错，应直接返回 false，不 panic、不动目标
+	if reader.GetJSON(ctx, keyJSON, cfg) {
+		t.Fatal("GetJSON(非指针) 应返回 false")
+	}
+	if reader.GetJSON(ctx, keyJSON, nil) {
+		t.Fatal("GetJSON(nil) 应返回 false")
+	}
+	if !reader.GetJSON(ctx, keyJSON, &cfg) || cfg.Max != 10 {
+		t.Fatalf("GetJSON(指针) 应成功，max=%d", cfg.Max)
+	}
+}
+
+func TestReaderGetMany(t *testing.T) {
+	reader := newTestReader(t, readerTestParams())
+	ctx := context.Background()
+
+	// 重复键、空键、未配置键混合：只返回已配置且启用的项，且不重复
+	got := reader.GetMany(ctx, []string{keyBool, keyBool, "", keyInt, "missing.key"})
+	if len(got) != 2 || got[keyBool] != "true" || got[keyInt] != "3" {
+		t.Fatalf("GetMany = %+v", got)
+	}
+	if _, ok := got["missing.key"]; ok {
+		t.Fatal("未配置的键不应出现在结果中")
+	}
+	if _, ok := got[""]; ok {
+		t.Fatal("空键不应出现在结果中")
+	}
+
+	// 空列表：返回空映射，不查库
+	if got := reader.GetMany(ctx, nil); len(got) != 0 {
+		t.Fatalf("空键列表应返回空映射，实际 %+v", got)
+	}
+}
+
+func TestReaderGetManyDegradesOnDBError(t *testing.T) {
+	reader := NewSysParamReaderService(&fakeRepo{rows: readerTestParams(), getErr: errors.New("db down")})
+
+	if got := reader.GetMany(context.Background(), []string{keyBool, keyInt}); len(got) != 0 {
+		t.Fatalf("数据库故障应返回空映射，实际 %+v", got)
+	}
+}
+
+func TestReaderGetManyChunksLargeKeySet(t *testing.T) {
+	reader := newTestReader(t, readerTestParams())
+	ctx := context.Background()
+
+	// 超过单次上限的键集：分批后仍能取到已配置的键
+	keys := make([]string, 0, maxKeysPerQuery+2)
+	for i := 0; i < maxKeysPerQuery+1; i++ {
+		keys = append(keys, "filler.key."+strconv.Itoa(i))
+	}
+	keys = append(keys, keyString)
+
+	got := reader.GetMany(ctx, keys)
+	if len(got) != 1 || got[keyString] != "你好" {
+		t.Fatalf("分批读取结果 = %+v", got)
 	}
 }

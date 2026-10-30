@@ -82,7 +82,7 @@ func (r *SysParamRepo) FindByKey(ctx context.Context, key string) (*entity.Param
 	return toParamEntity(&row), true, nil
 }
 
-// GetEnabledByKey 按键查询单条启用参数，是业务读路径的唯一查询
+// GetEnabledByKey 按键查询单条启用参数，是业务单键读路径的唯一查询
 func (r *SysParamRepo) GetEnabledByKey(ctx context.Context, key string) (*entity.Param, bool, error) {
 	var row sysParamModel
 	err := tx.Exec(ctx, r.DB).
@@ -92,9 +92,29 @@ func (r *SysParamRepo) GetEnabledByKey(ctx context.Context, key string) (*entity
 		return nil, false, nil
 	}
 	if err != nil {
-		return nil, false, errors.Wrap(err, "降级查询系统参数失败")
+		return nil, false, errors.Wrap(err, "查询系统参数失败")
 	}
 	return toParamEntity(&row), true, nil
+}
+
+// FindEnabledByKeys 批量按键查询启用参数，供业务批量读路径使用；键列表为空时不查库直接返回
+func (r *SysParamRepo) FindEnabledByKeys(ctx context.Context, keys []string) ([]*entity.Param, error) {
+	if len(keys) == 0 {
+		return nil, nil
+	}
+
+	var rows []*sysParamModel
+	if err := tx.Exec(ctx, r.DB).
+		Where("param_key IN ? AND status = ?", keys, enums.StatusEnabled).
+		Find(&rows).Error; err != nil {
+		return nil, errors.Wrap(err, "批量查询系统参数失败")
+	}
+
+	items := make([]*entity.Param, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, toParamEntity(row))
+	}
+	return items, nil
 }
 
 // CreateParam 创建参数；param_key 唯一冲突时返回 ErrDuplicatedKey。

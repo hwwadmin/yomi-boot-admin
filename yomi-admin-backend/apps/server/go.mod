@@ -9,6 +9,7 @@ require (
 	github.com/spf13/viper v1.20.1
 	yomi-admin-backend/domains/httprecord v0.0.0
 	yomi-admin-backend/domains/rbac v0.0.0
+	yomi-admin-backend/domains/sysparam v0.0.0
 	yomi-admin-backend/domains/user v0.0.0
 )
 
@@ -139,5 +140,7 @@ require (
 replace yomi-admin-backend/domains/httprecord => ../../domains/httprecord
 
 replace yomi-admin-backend/domains/rbac => ../../domains/rbac
+
+replace yomi-admin-backend/domains/sysparam => ../../domains/sysparam
 
 replace yomi-admin-backend/domains/user => ../../domains/user

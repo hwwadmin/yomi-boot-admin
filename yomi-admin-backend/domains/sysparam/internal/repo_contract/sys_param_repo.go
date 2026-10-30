@@ -24,8 +24,10 @@ type SysParamRepo interface {
 	FindByID(ctx context.Context, id int64) (*entity.Param, bool, error)
 	// FindByKey 按键查询参数（含禁用项）
 	FindByKey(ctx context.Context, key string) (*entity.Param, bool, error)
-	// GetEnabledByKey 按键查询单条启用参数，是业务读路径的唯一查询
+	// GetEnabledByKey 按键查询单条启用参数，是业务单键读路径的唯一查询
 	GetEnabledByKey(ctx context.Context, key string) (*entity.Param, bool, error)
+	// FindEnabledByKeys 批量按键查询启用参数，供业务批量读路径使用；键列表为空时直接返回空结果
+	FindEnabledByKeys(ctx context.Context, keys []string) ([]*entity.Param, error)
 	// CreateParam 创建参数；param_key 唯一冲突时返回 ErrDuplicatedKey
 	CreateParam(ctx context.Context, param *entity.Param, operatorID int64) error
 	// UpdateParam 更新参数值、名称与备注（键与值类型不可变）

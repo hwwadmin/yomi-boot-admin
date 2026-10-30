@@ -16,6 +16,10 @@ import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemParamPage' })
 
+/** int64 取值范围，前端先挡一道，避免超范围值提交后才由后端报"参数不合法" */
+const INT64_MAX = 2n ** 63n - 1n
+const INT64_MIN = -(2n ** 63n)
+
 // ———————— 列表查询 ————————
 const loading = ref(false)
 const list = ref<SysParamItem[]>([])
@@ -74,6 +78,10 @@ function validateValue(_rule: unknown, value: string, callback: (error?: Error) 
   }
   if (form.valueType === 'INT') {
     if (!/^-?\d+$/.test(raw)) return callback(new Error('请输入 64 位整数'))
+    const parsed = BigInt(raw)
+    if (parsed < INT64_MIN || parsed > INT64_MAX) {
+      return callback(new Error('超出 64 位整数范围'))
+    }
     return callback()
   }
   if (form.valueType === 'JSON') {

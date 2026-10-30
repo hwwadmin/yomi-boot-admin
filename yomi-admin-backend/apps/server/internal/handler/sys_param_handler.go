@@ -55,8 +55,8 @@ func (h *SysParamHandler) page(c *gin.Context) {
 	in := &sysparamusecase.PageParamsInput{
 		PageInput: dto.PageInput{Page: queryInt(c, "page", 1), PageSize: queryInt(c, "pageSize", 10)},
 		Keyword:   c.Query("keyword"),
-		Status:    sysparamenums.Status(c.Query("status")),
-		ValueType: sysparamenums.ParamValueType(c.Query("valueType")),
+		Status:    sysparamenums.NormalizeStatus(c.Query("status")),
+		ValueType: sysparamenums.NormalizeParamValueType(c.Query("valueType")),
 	}
 	corehandler.Handle(c, func(ctx context.Context) (dto.PageOutput[sysparamusecase.ParamItem], error) {
 		return h.pageUC.Execute(ctx, in)

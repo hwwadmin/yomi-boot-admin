@@ -21,11 +21,6 @@ export async function getSysParamPage(params: SysParamQuery): Promise<PageResult
   return { list, total, page: params.page, pageSize: params.pageSize }
 }
 
-/** 查询参数详情 */
-export function getSysParamDetail(id: string) {
-  return request<SysParamItem>({ url: '/system/param/detail', method: 'get', params: { id } })
-}
-
 /** 创建系统参数；键创建后不可变 */
 export function createSysParam(data: SysParamCreatePayload) {
   return request<SysParamItem>({ url: '/system/param/create', method: 'post', data })

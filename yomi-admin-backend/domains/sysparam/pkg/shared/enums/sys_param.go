@@ -22,6 +22,12 @@ func IsValidStatus(status Status) bool {
 	return status == StatusEnabled || status == StatusDisabled
 }
 
+// NormalizeStatus 归一化状态字面量：去空白并转大写。
+// 请求体（JSON）与查询参数（query）共用这一个口径，空值原样返回由调用方判断。
+func NormalizeStatus(raw string) Status {
+	return Status(strings.ToUpper(strings.TrimSpace(raw)))
+}
+
 // UnmarshalJSON 实现 json.Unmarshaler，反序列化时归一化并校验
 func (s *Status) UnmarshalJSON(data []byte) error {
 	var raw string
@@ -29,7 +35,7 @@ func (s *Status) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	value := Status(strings.ToUpper(strings.TrimSpace(raw)))
+	value := NormalizeStatus(raw)
 	if value == "" {
 		*s = ""
 		return nil
@@ -66,6 +72,12 @@ func IsValidParamValueType(valueType ParamValueType) bool {
 	}
 }
 
+// NormalizeParamValueType 归一化值类型字面量：去空白并转大写。
+// 请求体（JSON）与查询参数（query）共用这一个口径，空值原样返回由调用方判断。
+func NormalizeParamValueType(raw string) ParamValueType {
+	return ParamValueType(strings.ToUpper(strings.TrimSpace(raw)))
+}
+
 // UnmarshalJSON 实现 json.Unmarshaler，反序列化时归一化并校验
 func (t *ParamValueType) UnmarshalJSON(data []byte) error {
 	var raw string
@@ -73,7 +85,7 @@ func (t *ParamValueType) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	value := ParamValueType(strings.ToUpper(strings.TrimSpace(raw)))
+	value := NormalizeParamValueType(raw)
 	if value == "" {
 		*t = ""
 		return nil

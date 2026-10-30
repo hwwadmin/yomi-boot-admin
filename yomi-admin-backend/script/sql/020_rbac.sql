@@ -232,7 +232,7 @@ VALUES (100000000000003003, 'system_permission', '权限管理', 'ENABLED', '权
 INSERT IGNORE INTO `t_rbac_permission_group` (`id`, `code`, `name`, `status`, `remark`)
 VALUES (100000000000003004, 'system_http_record', '访问记录', 'ENABLED', '访问记录菜单、列表与详情');
 INSERT IGNORE INTO `t_rbac_permission_group` (`id`, `code`, `name`, `status`, `remark`)
-VALUES (100000000000003005, 'system_param', '参数管理', 'ENABLED', '系统参数菜单、CRUD、启停与缓存刷新');
+VALUES (100000000000003005, 'system_param', '参数管理', 'ENABLED', '系统参数菜单、CRUD 与启停');
 
 -- 用户管理组
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)

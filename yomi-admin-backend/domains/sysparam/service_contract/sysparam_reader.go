@@ -23,4 +23,9 @@ type SysParamReader interface {
 	GetJSON(ctx context.Context, key string, out any) bool
 	// Exists 判断参数是否已配置且启用（不看类型与取值）
 	Exists(ctx context.Context, key string) bool
+	// GetMany 一次读取多个参数，返回"参数键 → 原始取值"的映射。
+	// 只包含已配置且启用的键；未配置、被禁用、数据库故障的键不出现在结果里，
+	// 由调用方按自己的默认值兜底。空键或重复键会被忽略。
+	// 用于一次请求要读多个参数的场景，避免逐个键各查一次库；取值仍按参数自身类型自行解释。
+	GetMany(ctx context.Context, keys []string) map[string]string
 }
