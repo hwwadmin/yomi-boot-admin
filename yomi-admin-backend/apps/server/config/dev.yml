@@ -86,7 +86,7 @@ snowflake:
 # 业务配置段
 biz:
   captcha:
-    enabled: ${YOMI_ADMIN_BIZ_CAPTCHA_ENABLED:true}
+    enabled: ${YOMI_ADMIN_BIZ_CAPTCHA_ENABLED:false}
     driver: digit
     length: 4
     width: 160
