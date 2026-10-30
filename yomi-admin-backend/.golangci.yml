@@ -48,6 +48,8 @@ linters:
               desc: bootstrap 只经 provider 装配，禁止依赖 httprecord 域内部
             - pkg: yomi-admin-backend/domains/sysparam/internal
               desc: bootstrap 只经 provider 装配，禁止依赖 sysparam 域内部
+            - pkg: yomi-admin-backend/domains/auditlog/internal
+              desc: bootstrap 只经 provider 装配，禁止依赖 auditlog 域内部
 
         # Handler 极薄：只绑定、取路径参数、调 usecase
         server-handler:
@@ -65,6 +67,8 @@ linters:
               desc: handler 禁止依赖 domain provider
             - pkg: yomi-admin-backend/domains/sysparam/provider
               desc: handler 禁止依赖 domain provider
+            - pkg: yomi-admin-backend/domains/auditlog/provider
+              desc: handler 禁止依赖 domain provider
             - pkg: yomi-admin-backend/domains/user/internal
               desc: handler 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/rbac/internal
@@ -73,6 +77,8 @@ linters:
               desc: handler 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/sysparam/internal
               desc: handler 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/auditlog/internal
+              desc: handler 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/user/service_contract
               desc: handler 禁止跳过 usecase 直接依赖契约
             - pkg: yomi-admin-backend/domains/rbac/service_contract
@@ -80,6 +86,8 @@ linters:
             - pkg: yomi-admin-backend/domains/httprecord/service_contract
               desc: handler 禁止跳过 usecase 直接依赖契约
             - pkg: yomi-admin-backend/domains/sysparam/service_contract
+              desc: handler 禁止跳过 usecase 直接依赖契约
+            - pkg: yomi-admin-backend/domains/auditlog/service_contract
               desc: handler 禁止跳过 usecase 直接依赖契约
             - pkg: gorm.io
               desc: handler 禁止依赖 ORM
@@ -102,6 +110,8 @@ linters:
               desc: usecase 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/sysparam/provider
               desc: usecase 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/auditlog/provider
+              desc: usecase 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/user/internal
               desc: usecase 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/rbac/internal
@@ -109,6 +119,8 @@ linters:
             - pkg: yomi-admin-backend/domains/httprecord/internal
               desc: usecase 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/sysparam/internal
+              desc: usecase 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/auditlog/internal
               desc: usecase 禁止依赖 domain internal
             - pkg: github.com/gin-gonic/gin
               desc: usecase 禁止依赖 gin
@@ -135,6 +147,8 @@ linters:
               desc: support 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/sysparam/provider
               desc: support 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/auditlog/provider
+              desc: support 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/user/internal
               desc: support 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/rbac/internal
@@ -142,6 +156,8 @@ linters:
             - pkg: yomi-admin-backend/domains/httprecord/internal
               desc: support 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/sysparam/internal
+              desc: support 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/auditlog/internal
               desc: support 禁止依赖 domain internal
             - pkg: github.com/gin-gonic/gin
               desc: support 禁止依赖 gin
@@ -164,6 +180,8 @@ linters:
               desc: middleware 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/sysparam/provider
               desc: middleware 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/auditlog/provider
+              desc: middleware 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/user/internal
               desc: middleware 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/rbac/internal
@@ -171,6 +189,8 @@ linters:
             - pkg: yomi-admin-backend/domains/httprecord/internal
               desc: middleware 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/sysparam/internal
+              desc: middleware 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/auditlog/internal
               desc: middleware 禁止依赖 domain internal
             - pkg: gorm.io
               desc: middleware 禁止依赖 ORM
@@ -195,6 +215,8 @@ linters:
               desc: service_contract 禁止依赖 internal
             - pkg: yomi-admin-backend/domains/sysparam/internal
               desc: service_contract 禁止依赖 internal
+            - pkg: yomi-admin-backend/domains/auditlog/internal
+              desc: service_contract 禁止依赖 internal
 
         # 领域服务：只依赖本域 repo_contract、公开类型与其他域契约
         domain-service:
@@ -207,6 +229,7 @@ linters:
             - yomi-admin-backend/domains/rbac/internal/repo_contract
             - yomi-admin-backend/domains/httprecord/internal/repo_contract
             - yomi-admin-backend/domains/sysparam/internal/repo_contract
+            - yomi-admin-backend/domains/auditlog/internal/repo_contract
           deny:
             - pkg: yomi-admin-backend/apps
               desc: domain service 禁止依赖 apps
@@ -222,6 +245,8 @@ linters:
               desc: service 只依赖 repo_contract，禁止直接依赖 repo 实现
             - pkg: yomi-admin-backend/domains/sysparam/internal/repo
               desc: service 只依赖 repo_contract，禁止直接依赖 repo 实现
+            - pkg: yomi-admin-backend/domains/auditlog/internal/repo
+              desc: service 只依赖 repo_contract，禁止直接依赖 repo 实现
             - pkg: yomi-admin-backend/domains/user/provider
               desc: service 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/rbac/provider
@@ -229,6 +254,8 @@ linters:
             - pkg: yomi-admin-backend/domains/httprecord/provider
               desc: service 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/sysparam/provider
+              desc: service 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/auditlog/provider
               desc: service 禁止依赖 provider
 
         # 仓储契约：只放端口定义
@@ -251,6 +278,8 @@ linters:
               desc: repo_contract 禁止依赖 repo 实现
             - pkg: yomi-admin-backend/domains/sysparam/internal/repo
               desc: repo_contract 禁止依赖 repo 实现
+            - pkg: yomi-admin-backend/domains/auditlog/internal/repo
+              desc: repo_contract 禁止依赖 repo 实现
             - pkg: yomi-admin-backend/domains/user/internal/service
               desc: repo_contract 禁止依赖 service
             - pkg: yomi-admin-backend/domains/rbac/internal/service
@@ -258,6 +287,8 @@ linters:
             - pkg: yomi-admin-backend/domains/httprecord/internal/service
               desc: repo_contract 禁止依赖 service
             - pkg: yomi-admin-backend/domains/sysparam/internal/service
+              desc: repo_contract 禁止依赖 service
+            - pkg: yomi-admin-backend/domains/auditlog/internal/service
               desc: repo_contract 禁止依赖 service
 
         # 仓储实现：只做持久化适配，禁止反向依赖编排或领域服务
@@ -278,6 +309,8 @@ linters:
               desc: domain repo 禁止依赖 service
             - pkg: yomi-admin-backend/domains/sysparam/internal/service
               desc: domain repo 禁止依赖 service
+            - pkg: yomi-admin-backend/domains/auditlog/internal/service
+              desc: domain repo 禁止依赖 service
             - pkg: yomi-admin-backend/domains/user/provider
               desc: domain repo 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/rbac/provider
@@ -285,6 +318,8 @@ linters:
             - pkg: yomi-admin-backend/domains/httprecord/provider
               desc: domain repo 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/sysparam/provider
+              desc: domain repo 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/auditlog/provider
               desc: domain repo 禁止依赖 provider
 
         # 本域公开类型：无传输、无 ORM、无内部实现
@@ -303,6 +338,8 @@ linters:
               desc: pkg/shared 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/sysparam/internal
               desc: pkg/shared 禁止依赖 domain internal
+            - pkg: yomi-admin-backend/domains/auditlog/internal
+              desc: pkg/shared 禁止依赖 domain internal
             - pkg: yomi-admin-backend/domains/user/provider
               desc: pkg/shared 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/rbac/provider
@@ -311,6 +348,8 @@ linters:
               desc: pkg/shared 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/sysparam/provider
               desc: pkg/shared 禁止依赖 provider
+            - pkg: yomi-admin-backend/domains/auditlog/provider
+              desc: pkg/shared 禁止依赖 provider
             - pkg: yomi-admin-backend/domains/user/service_contract
               desc: pkg/shared 禁止依赖 service_contract
             - pkg: yomi-admin-backend/domains/rbac/service_contract
@@ -318,6 +357,8 @@ linters:
             - pkg: yomi-admin-backend/domains/httprecord/service_contract
               desc: pkg/shared 禁止依赖 service_contract
             - pkg: yomi-admin-backend/domains/sysparam/service_contract
+              desc: pkg/shared 禁止依赖 service_contract
+            - pkg: yomi-admin-backend/domains/auditlog/service_contract
               desc: pkg/shared 禁止依赖 service_contract
             - pkg: github.com/gin-gonic/gin
               desc: pkg/shared 禁止依赖 gin

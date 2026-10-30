@@ -16,11 +16,16 @@ mysql -uroot -p < script/sql/010_user.sql
 mysql -uroot -p < script/sql/020_rbac.sql
 mysql -uroot -p < script/sql/030_http_record.sql
 mysql -uroot -p < script/sql/040_sys_param.sql
+mysql -uroot -p < script/sql/050_audit_log.sql
 ```
 
 `020_rbac.sql` 会建 RBAC 表、写权限目录与种子权限组，并把 `admin` 设成内置超管。
 `040_sys_param.sql` 建系统参数表（`t_sys_param`），参数管理页与业务读参数都依赖它。
+`050_audit_log.sql` 建操作审计表（`t_audit_log`），登录、改密、重置密码的审计写入与审计日志页都依赖它。
 **先执行 SQL 再启动服务**，否则受保护接口会因为缺表报错。
+
+已有环境升级时：补执行 `050_audit_log.sql`，并重跑一次 `020_rbac.sql`（新增了审计日志的菜单与接口权限）；
+审计表缺失时写入是"尽力而为"降级——业务照常跑，只在服务日志里打"审计写入失败"告警，审计日志页会报错。
 
 2. 配置：
 
@@ -48,12 +53,13 @@ domains/user/       用户
 domains/rbac/       角色、权限组与权限
 domains/httprecord/ 访问记录
 domains/sysparam/   系统参数
+domains/auditlog/   操作审计日志
 script/sql/         建库与种子 SQL
 script/dev/         开发脚本
 ```
 
 简单说：`handler` 只接参数；`usecase` 管流程、事务和鉴权；`domain` 管业务规则和存储；
-`support` 放多个模块共用的小规则，比如超管保护。四个 domain 都是独立的 Go module，可以单独复用。
+`support` 放多个模块共用的小规则，比如超管保护。五个 domain 都是独立的 Go module，可以单独复用。
 
 装配按上下文拆分：`internal/bootstrap/wire.go` 只列模块与跨模块依赖，各上下文的 Handler 构造
 放在 `wire_<context>.go`；新增接口只改对应上下文文件，不要往中心函数里堆构造代码。
@@ -133,4 +139,4 @@ make cross-build  # 交叉编译
 
 - Go 1.26。
 - yomi-boot v1.2.2-rc.1。
-- `go.work` 包含 `apps/server` 和四个 domain module。
+- `go.work` 包含 `apps/server` 和五个 domain module。
