@@ -15,7 +15,18 @@ const { t, te } = useI18n()
 const loading = ref(false)
 const list = ref<AuditLogItem[]>([])
 const total = ref(0)
-const timeRange = ref<[Date, Date] | null>(null)
+
+/** 默认时间范围是"今天"：与后端缺省口径保持一致，避免界面看着没过滤、实际只查了今天 */
+function todayRange(): [Date, Date] {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+  end.setMilliseconds(end.getMilliseconds() - 1)
+  return [start, end]
+}
+
+const timeRange = ref<[Date, Date]>(todayRange())
 const query = reactive<AuditLogQuery>({
   page: 1,
   pageSize: 10,
@@ -49,6 +60,9 @@ const resultOptions = computed(() => [
   { value: 'FAILURE', label: t('system.auditLog.results.failure') },
 ])
 
+/** 按事件 ID 查时忽略时间范围：那是精确定位单条事件，跨天也要能查到 */
+const auditIdSearching = computed(() => (query.auditId ?? '').trim() !== '')
+
 async function fetchList() {
   loading.value = true
   try {
@@ -60,8 +74,8 @@ async function fetchList() {
       phase: query.phase || undefined,
       result: query.result || undefined,
       auditId: query.auditId?.trim() || undefined,
-      startTime: timeRange.value?.[0]?.getTime(),
-      endTime: timeRange.value?.[1]?.getTime(),
+      startTime: auditIdSearching.value ? undefined : timeRange.value?.[0]?.getTime(),
+      endTime: auditIdSearching.value ? undefined : timeRange.value?.[1]?.getTime(),
     })
     list.value = result.list
     total.value = result.total
@@ -81,7 +95,7 @@ function handleReset() {
   query.phase = ''
   query.result = ''
   query.auditId = ''
-  timeRange.value = null
+  timeRange.value = todayRange()
   handleSearch()
 }
 
@@ -209,6 +223,7 @@ function targetText(row: AuditLogItem): string {
               v-model="timeRange"
               class="page-toolbar__range"
               type="datetimerange"
+              :disabled="auditIdSearching"
               :range-separator="t('common.to')"
               :start-placeholder="t('system.auditLog.startTime')"
               :end-placeholder="t('system.auditLog.endTime')"

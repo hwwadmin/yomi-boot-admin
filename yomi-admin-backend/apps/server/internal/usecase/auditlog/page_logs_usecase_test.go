@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 	"yomi-admin-backend/apps/server/internal/support/audit"
 	"yomi-admin-backend/domains/auditlog/pkg/shared/entity"
 	"yomi-admin-backend/domains/auditlog/pkg/shared/enums"
@@ -12,13 +13,15 @@ import (
 	usercontract "yomi-admin-backend/domains/user/service_contract"
 )
 
-// fakeLogReader 是返回固定结果的分页读取器
+// fakeLogReader 是返回固定结果的分页读取器，并记录收到的入参
 type fakeLogReader struct {
 	items []*entity.Log
+	got   *domaininput.PageInput
 }
 
 // Page 返回预置记录
-func (f *fakeLogReader) Page(context.Context, *domaininput.PageInput) (*domainoutput.PageLogsOutput, error) {
+func (f *fakeLogReader) Page(_ context.Context, in *domaininput.PageInput) (*domainoutput.PageLogsOutput, error) {
+	f.got = in
 	return &domainoutput.PageLogsOutput{Items: f.items, Total: int64(len(f.items))}, nil
 }
 
@@ -34,6 +37,54 @@ type fakeUserService struct {
 func (f *fakeUserService) GetNamesByIDs(_ context.Context, ids []int64) (map[int64]string, error) {
 	f.askedIDs = ids
 	return f.names, f.err
+}
+
+// TestPageLogsDefaultsToTodayRange 验证不给时间范围时默认只查今天
+func TestPageLogsDefaultsToTodayRange(t *testing.T) {
+	reader := &fakeLogReader{}
+	uc := NewPageLogsUsecase(reader, &fakeUserService{})
+
+	if _, err := uc.Execute(context.Background(), &PageLogsInput{}); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	wantStart, wantEnd := todayRange(time.Now())
+	if reader.got.StartTime != wantStart || reader.got.EndTime != wantEnd {
+		t.Fatalf("默认时间范围 = [%d,%d], want [%d,%d]",
+			reader.got.StartTime, reader.got.EndTime, wantStart, wantEnd)
+	}
+	if wantEnd-wantStart != 24*time.Hour.Milliseconds()-1 {
+		t.Fatalf("默认窗口长度 = %d 毫秒, want 一天减 1 毫秒", wantEnd-wantStart)
+	}
+}
+
+// TestPageLogsKeepsExplicitRange 验证调用方给了时间范围就原样透传，不套默认
+func TestPageLogsKeepsExplicitRange(t *testing.T) {
+	reader := &fakeLogReader{}
+	uc := NewPageLogsUsecase(reader, &fakeUserService{})
+
+	if _, err := uc.Execute(context.Background(), &PageLogsInput{StartTime: 1000, EndTime: 2000}); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if reader.got.StartTime != 1000 || reader.got.EndTime != 2000 {
+		t.Fatalf("显式时间范围被改写: [%d,%d]", reader.got.StartTime, reader.got.EndTime)
+	}
+}
+
+// TestPageLogsAuditIDSkipsTodayDefault 验证按事件 ID 精确查历史记录时不套今天窗口
+func TestPageLogsAuditIDSkipsTodayDefault(t *testing.T) {
+	reader := &fakeLogReader{}
+	uc := NewPageLogsUsecase(reader, &fakeUserService{})
+
+	if _, err := uc.Execute(context.Background(), &PageLogsInput{AuditID: 123}); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if reader.got.StartTime != 0 || reader.got.EndTime != 0 {
+		t.Fatalf("按 auditId 查询不应套默认时间窗: [%d,%d]", reader.got.StartTime, reader.got.EndTime)
+	}
+	if reader.got.AuditID != 123 {
+		t.Fatalf("auditId 未透传: %d", reader.got.AuditID)
+	}
 }
 
 // TestPageLogsFillsTargetName 验证只为用户目标回填用户名，无目标的记录保持为空
