@@ -105,7 +105,9 @@ func (s *SysParamReaderService) GetString(ctx context.Context, key, fallback str
 func (s *SysParamReaderService) GetJSON(ctx context.Context, key string, out any) bool {
 	if v := reflect.ValueOf(out); v.Kind() != reflect.Pointer || v.IsNil() {
 		// 调用方把目标写成值而不是指针属代码问题，别记成"取值损坏"，否则排障方向会被带偏
-		logger.Warn(ctx, "[SysParam] GetJSON 的目标须为非空指针，本次返回 false", "key", key)
+		s.warnByKey(key, func() {
+			logger.Warn(ctx, "[SysParam] GetJSON 的目标须为非空指针，本次返回 false", "key", key)
+		})
 		return false
 	}
 	param, ok := s.getParam(ctx, key)
