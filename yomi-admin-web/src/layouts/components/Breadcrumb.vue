@@ -17,7 +17,7 @@ const items = computed(() =>
 </script>
 
 <template>
-  <el-breadcrumb separator="/">
+  <el-breadcrumb class="breadcrumb" separator="/">
     <el-breadcrumb-item
       v-for="item in items"
       :key="item.path"
@@ -27,3 +27,30 @@ const items = computed(() =>
     </el-breadcrumb-item>
   </el-breadcrumb>
 </template>
+
+<style scoped>
+.breadcrumb {
+  font-size: 13px;
+}
+
+.breadcrumb :deep(.el-breadcrumb__inner) {
+  color: var(--app-text-3);
+  font-weight: 400;
+}
+
+.breadcrumb :deep(.el-breadcrumb__inner.is-link:hover) {
+  color: var(--el-color-primary);
+}
+
+.breadcrumb :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) {
+  color: var(--app-text-1);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.breadcrumb :deep(.el-breadcrumb__separator) {
+  margin: 0 8px;
+  color: var(--app-text-3);
+  font-weight: 400;
+}
+</style>

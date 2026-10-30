@@ -1,6 +1,18 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import {
+  Avatar,
+  Grid,
+  Lock,
+  Plus,
+  Refresh,
+  Search,
+  Setting,
+  Tickets,
+  User,
+} from '@element-plus/icons-vue'
 
 import {
   bindGroupPermissions,
@@ -14,12 +26,29 @@ import {
 } from '@/api/rbac'
 import type { PermissionGroupQuery } from '@/api/rbac'
 import type { PermissionGroupItem, PermissionItem, Status } from '@/api/types'
+import NameCell from '@/components/NameCell.vue'
+import PageCard from '@/components/PageCard.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemPermissionGroupPage' })
 
 const { t } = useI18n()
+
+type NameTone = 'blue' | 'violet' | 'green' | 'orange' | 'cyan' | 'slate'
+
+/** 权限组的图标与色板：与侧边栏菜单图标保持同一套视觉语言 */
+const groupVisuals: Record<string, { tone: NameTone; icon: Component }> = {
+  system_user: { tone: 'blue', icon: User },
+  system_role: { tone: 'violet', icon: Avatar },
+  system_permission: { tone: 'green', icon: Lock },
+  system_http_record: { tone: 'orange', icon: Tickets },
+  system_param: { tone: 'cyan', icon: Setting },
+}
+
+function groupVisual(code: string) {
+  return groupVisuals[code] ?? { tone: 'slate' as NameTone, icon: Grid }
+}
 
 // ———————— 列表查询 ————————
 const loading = ref(false)
@@ -233,50 +262,65 @@ async function savePermissions() {
 
 <template>
   <div class="system-permission-group">
-    <el-card shadow="never">
-      <div class="toolbar">
-        <el-input
-          v-model="query.keyword"
-          class="toolbar-input"
-          :placeholder="t('system.permissionGroup.searchPlaceholder')"
-          clearable
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        />
-        <el-select
-          v-model="query.status"
-          class="toolbar-select"
-          :placeholder="t('common.all')"
-          clearable
-        >
-          <el-option :label="t('common.status.enabled')" value="ENABLED" />
-          <el-option :label="t('common.status.disabled')" value="DISABLED" />
-        </el-select>
-        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
-        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
-        <el-button
-          v-permission="'system:permission-group:create'"
-          type="primary"
-          plain
-          class="toolbar-add"
-          @click="openCreate"
-        >
-          {{ t('system.permissionGroup.add') }}
-        </el-button>
-      </div>
+    <PageCard>
+      <template #toolbar>
+        <div class="page-toolbar">
+          <div class="page-toolbar__filters">
+            <el-input
+              v-model="query.keyword"
+              class="page-toolbar__input"
+              :placeholder="t('system.permissionGroup.searchPlaceholder')"
+              :suffix-icon="Search"
+              clearable
+              @keyup.enter="handleSearch"
+              @clear="handleSearch"
+            />
+            <el-select
+              v-model="query.status"
+              class="page-toolbar__select"
+              :placeholder="t('common.all')"
+              clearable
+            >
+              <el-option :label="t('common.status.enabled')" value="ENABLED" />
+              <el-option :label="t('common.status.disabled')" value="DISABLED" />
+            </el-select>
+            <el-button type="primary" :icon="Search" @click="handleSearch">
+              {{ t('common.action.search') }}
+            </el-button>
+            <el-button :icon="Refresh" @click="handleReset">
+              {{ t('common.action.reset') }}
+            </el-button>
+          </div>
+          <div class="page-toolbar__actions">
+            <el-button
+              v-permission="'system:permission-group:create'"
+              type="primary"
+              :icon="Plus"
+              @click="openCreate"
+            >
+              {{ t('system.permissionGroup.add') }}
+            </el-button>
+          </div>
+        </div>
+      </template>
 
-      <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column
-          prop="name"
-          :label="t('system.permissionGroup.columns.name')"
-          min-width="140"
-        />
+      <el-table v-loading="loading" :data="list">
+        <el-table-column :label="t('system.permissionGroup.columns.name')" min-width="200">
+          <template #default="{ row }">
+            <NameCell
+              :label="(row as PermissionGroupItem).name"
+              v-bind="groupVisual((row as PermissionGroupItem).code)"
+            />
+          </template>
+        </el-table-column>
         <el-table-column
           prop="code"
           :label="t('system.permissionGroup.columns.code')"
-          min-width="160"
+          min-width="180"
+          class-name="table-code"
+          show-overflow-tooltip
         />
-        <el-table-column :label="t('common.field.status')" width="100" align="center">
+        <el-table-column :label="t('common.field.status')" width="90" align="center">
           <template #default="{ row }">
             <el-switch
               v-permission="'system:permission-group:status'"
@@ -300,56 +344,60 @@ async function savePermissions() {
         <el-table-column
           prop="remark"
           :label="t('common.field.remark')"
-          min-width="200"
+          min-width="240"
           show-overflow-tooltip
         />
-        <el-table-column :label="t('common.field.createdAt')" width="180">
+        <el-table-column :label="t('common.field.createdAt')" width="170" class-name="table-time">
           <template #default="{ row }">
             {{ formatDateTime((row as PermissionGroupItem).createTime) }}
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.actions')" width="270" fixed="right" align="center">
+        <el-table-column :label="t('common.field.actions')" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-permission="'system:permission-group:update'"
-              link
-              type="primary"
-              @click="openEdit(row as PermissionGroupItem)"
-            >
-              {{ t('system.permissionGroup.actions.edit') }}
-            </el-button>
-            <el-button
-              v-permission="'system:permission-group:delete'"
-              link
-              type="danger"
-              @click="handleDelete(row as PermissionGroupItem)"
-            >
-              {{ t('system.permissionGroup.actions.delete') }}
-            </el-button>
-            <el-button
-              v-permission="'system:permission-group:bind-permission'"
-              link
-              type="primary"
-              @click="openPermissionDrawer(row as PermissionGroupItem)"
-            >
-              {{ t('system.permissionGroup.actions.assignPermissions') }}
-            </el-button>
+            <div class="table-actions">
+              <el-button
+                v-permission="'system:permission-group:update'"
+                link
+                type="primary"
+                @click="openEdit(row as PermissionGroupItem)"
+              >
+                {{ t('system.permissionGroup.actions.edit') }}
+              </el-button>
+              <el-button
+                v-permission="'system:permission-group:delete'"
+                link
+                type="danger"
+                @click="handleDelete(row as PermissionGroupItem)"
+              >
+                {{ t('system.permissionGroup.actions.delete') }}
+              </el-button>
+              <el-button
+                v-permission="'system:permission-group:bind-permission'"
+                link
+                type="primary"
+                @click="openPermissionDrawer(row as PermissionGroupItem)"
+              >
+                {{ t('system.permissionGroup.actions.assignPermissions') }}
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
 
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.pageSize"
-        class="page-pagination"
-        background
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        @current-change="fetchList"
-        @size-change="handleSearch"
-      />
-    </el-card>
+      <template #footer>
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.pageSize"
+          class="page-pagination"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          @current-change="fetchList"
+          @size-change="handleSearch"
+        />
+      </template>
+    </PageCard>
 
     <el-dialog
       v-model="dialogVisible"
@@ -410,10 +458,7 @@ async function savePermissions() {
           clearable
         />
         <el-tabs v-model="permissionTab">
-          <el-tab-pane
-            :label="t('system.permissionGroup.permissionDrawer.menuTab')"
-            name="MENU"
-          >
+          <el-tab-pane :label="t('system.permissionGroup.permissionDrawer.menuTab')" name="MENU">
             <el-checkbox-group v-model="selectedPermissionIds" class="permission-list">
               <el-checkbox
                 v-for="item in menuPermissions"
@@ -438,10 +483,7 @@ async function savePermissions() {
               :image-size="60"
             />
           </el-tab-pane>
-          <el-tab-pane
-            :label="t('system.permissionGroup.permissionDrawer.apiTab')"
-            name="API"
-          >
+          <el-tab-pane :label="t('system.permissionGroup.permissionDrawer.apiTab')" name="API">
             <el-checkbox-group v-model="selectedPermissionIds" class="permission-list">
               <el-checkbox
                 v-for="item in apiPermissions"
@@ -482,30 +524,6 @@ async function savePermissions() {
 </template>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.toolbar-input {
-  width: 220px;
-}
-
-.toolbar-select {
-  width: 140px;
-}
-
-.toolbar-add {
-  margin-left: auto;
-}
-
-.page-pagination {
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
 .permission-body {
   min-height: 320px;
 }

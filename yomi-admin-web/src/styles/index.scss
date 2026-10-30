@@ -1,4 +1,7 @@
 /* 全局基础样式；业务样式就近写在各组件的 <style scoped> 内 */
+@use './tokens';
+@use './element-overrides';
+@use './page';
 
 *,
 *::before,
@@ -18,6 +21,30 @@ body {
   font-family:
     'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial,
     sans-serif;
+  color: var(--app-text-1);
+  background-color: var(--app-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgb(64 158 255 / 22%);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: rgb(144 147 153 / 32%);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(144 147 153 / 52%);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }

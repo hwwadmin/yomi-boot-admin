@@ -1,0 +1,174 @@
+/**
+ * Element Plus 变量映射与组件级微调。
+ * 必须在 element-plus 的暗色变量之后加载，否则 html.dark 下会被默认值覆盖。
+ */
+:root {
+  /* 控件尺寸与圆角 */
+  --el-component-size: var(--app-control-height);
+  --el-component-size-large: 42px;
+  --el-component-size-small: 28px;
+  --el-border-radius-base: var(--app-radius-base);
+  --el-border-radius-small: var(--app-radius-sm);
+
+  /* 底色、文本与描边 */
+  --el-bg-color: var(--app-surface);
+  --el-bg-color-page: var(--app-bg);
+  --el-fill-color-blank: var(--app-surface);
+  --el-text-color-primary: var(--app-text-1);
+  --el-text-color-regular: var(--app-text-2);
+  --el-text-color-secondary: var(--app-text-3);
+  --el-border-color: var(--app-border-strong);
+  --el-border-color-light: var(--app-border);
+  --el-border-color-lighter: var(--app-border);
+
+  /* 卡片 / 弹层 */
+  --el-card-border-color: var(--app-border);
+  --el-card-border-radius: var(--app-radius-card);
+  --el-card-padding: 24px;
+  --el-dialog-padding-primary: 24px;
+  --el-dialog-border-radius: var(--app-radius-card);
+  --el-drawer-padding-primary: 24px;
+
+  /* 表格 */
+  --el-table-border-color: var(--app-border);
+  --el-table-header-bg-color: var(--app-table-header-bg);
+  --el-table-header-text-color: var(--app-text-2);
+  --el-table-row-hover-bg-color: var(--app-table-row-hover);
+  --el-table-text-color: var(--app-text-2);
+  --el-table-bg-color: var(--app-surface);
+  --el-table-tr-bg-color: var(--app-surface);
+  --el-table-expanded-cell-bg-color: var(--app-surface);
+
+  /* 分页 */
+  --el-pagination-border-radius: var(--app-radius-base);
+  --el-pagination-text-color: var(--app-text-2);
+  --el-pagination-button-color: var(--app-text-2);
+}
+
+html.dark {
+  --el-bg-color: var(--app-surface);
+  --el-bg-color-page: var(--app-bg);
+  --el-fill-color-blank: var(--app-surface);
+  --el-text-color-primary: var(--app-text-1);
+  --el-text-color-regular: var(--app-text-2);
+  --el-text-color-secondary: var(--app-text-3);
+  --el-border-color: var(--app-border-strong);
+  --el-border-color-light: var(--app-border);
+  --el-border-color-lighter: var(--app-border);
+  --el-table-bg-color: var(--app-surface);
+  --el-table-tr-bg-color: var(--app-surface);
+}
+
+/* ———————— 表格：轻表头、大行高、无网格 ———————— */
+.el-table {
+  /* 固定列阴影调淡，避免在浅色卡片上读成一条生硬的分隔线 */
+  --el-table-fixed-left-column: inset 12px 0 12px -12px rgb(15 35 95 / 8%);
+  --el-table-fixed-right-column: inset -12px 0 12px -12px rgb(15 35 95 / 8%);
+}
+
+html.dark .el-table {
+  --el-table-fixed-left-column: inset 12px 0 12px -12px rgb(0 0 0 / 45%);
+  --el-table-fixed-right-column: inset -12px 0 12px -12px rgb(0 0 0 / 45%);
+}
+
+.el-table th.el-table__cell {
+  padding: 13px 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.el-table td.el-table__cell {
+  padding: 16px 0;
+}
+
+.el-table .cell {
+  padding: 0 16px;
+  line-height: 22px;
+}
+
+.el-table .el-table__row:last-child td.el-table__cell {
+  border-bottom: none;
+}
+
+/* ———————— 分页 ———————— */
+.el-pagination.is-background .el-pager li {
+  border-radius: var(--app-radius-base);
+  font-weight: 500;
+}
+
+.el-pagination.is-background .el-pager li.is-active {
+  font-weight: 600;
+}
+
+.el-pagination .el-pagination__total {
+  color: var(--app-text-3);
+  font-size: 13px;
+}
+
+/* ———————— 按钮 ———————— */
+.el-button {
+  font-weight: 500;
+}
+
+.el-button.is-link {
+  font-weight: 400;
+}
+
+/* ———————— 弹窗 / 抽屉 ———————— */
+.el-dialog__header {
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.el-dialog__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.el-dialog__footer {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--app-border);
+}
+
+.el-drawer__header {
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.el-drawer__title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.el-drawer__footer {
+  padding-top: 16px;
+  border-top: 1px solid var(--app-border);
+}
+
+.el-drawer.ltr {
+  border-radius: 0 var(--app-radius-card) var(--app-radius-card) 0;
+}
+
+.el-drawer.rtl {
+  border-radius: var(--app-radius-card) 0 0 var(--app-radius-card);
+}
+
+/* ———————— 标签 ———————— */
+.el-tag {
+  --el-tag-border-radius: var(--app-radius-base);
+  font-weight: 500;
+}
+
+/* ———————— 键盘焦点 ———————— */
+.el-button:focus-visible,
+.el-menu-item:focus-visible,
+.el-sub-menu__title:focus-visible,
+.el-pagination button:focus-visible,
+.el-pager li:focus-visible {
+  outline: 2px solid var(--el-color-primary-light-5);
+  outline-offset: 2px;
+}

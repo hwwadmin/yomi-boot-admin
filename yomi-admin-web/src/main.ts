@@ -7,9 +7,10 @@ import router from './router'
 import { setupRouterGuards } from './router/guard'
 import { permission } from './directives/permission'
 
-import '@/styles/index.scss'
 // Element Plus 暗黑主题变量（配合 VueUse useDark 切换 html.dark）
 import 'element-plus/theme-chalk/dark/css-vars.css'
+// 项目 token 与 Element Plus 覆盖必须排在暗色变量之后，保证 html.dark 下优先生效
+import '@/styles/index.scss'
 
 const app = createApp(App)
 

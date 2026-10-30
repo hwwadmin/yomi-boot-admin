@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { Plus, Refresh, Search, User } from '@element-plus/icons-vue'
 
 import { bindUserRoles, getUserRoles } from '@/api/rbac'
 import { createUser, deleteUser, getUserPage, resetUserPassword, updateUser } from '@/api/user'
 import type { RoleItem, UserItem, UserStatus } from '@/api/types'
+import NameCell from '@/components/NameCell.vue'
+import PageCard from '@/components/PageCard.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
@@ -105,7 +108,11 @@ async function handleSubmit() {
   if (editingOriginalStatus.value && form.status !== editingOriginalStatus.value) {
     const disabling = form.status === 'DISABLED'
     const confirmed = await confirmAction({
-      title: t(disabling ? 'system.user.statusConfirm.disableTitle' : 'system.user.statusConfirm.enableTitle'),
+      title: t(
+        disabling
+          ? 'system.user.statusConfirm.disableTitle'
+          : 'system.user.statusConfirm.enableTitle',
+      ),
       message: t(
         disabling
           ? 'system.user.statusConfirm.disableMessage'
@@ -229,33 +236,47 @@ async function handleResetPassword() {
 
 <template>
   <div class="system-user">
-    <el-card shadow="never">
-      <div class="toolbar">
-        <el-input
-          v-model="query.keyword"
-          class="toolbar-input"
-          :placeholder="t('system.user.searchPlaceholder')"
-          clearable
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        />
-        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
-        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
-        <el-button
-          v-permission="'system:user:create'"
-          type="primary"
-          plain
-          class="toolbar-add"
-          @click="openCreate"
-        >
-          {{ t('system.user.add') }}
-        </el-button>
-      </div>
+    <PageCard>
+      <template #toolbar>
+        <div class="page-toolbar">
+          <div class="page-toolbar__filters">
+            <el-input
+              v-model="query.keyword"
+              class="page-toolbar__input"
+              :placeholder="t('system.user.searchPlaceholder')"
+              :suffix-icon="Search"
+              clearable
+              @keyup.enter="handleSearch"
+              @clear="handleSearch"
+            />
+            <el-button type="primary" :icon="Search" @click="handleSearch">
+              {{ t('common.action.search') }}
+            </el-button>
+            <el-button :icon="Refresh" @click="handleReset">
+              {{ t('common.action.reset') }}
+            </el-button>
+          </div>
+          <div class="page-toolbar__actions">
+            <el-button
+              v-permission="'system:user:create'"
+              type="primary"
+              :icon="Plus"
+              @click="openCreate"
+            >
+              {{ t('system.user.add') }}
+            </el-button>
+          </div>
+        </div>
+      </template>
 
-      <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="username" :label="t('common.field.username')" min-width="100" />
-        <el-table-column prop="nickname" :label="t('common.field.nickname')" min-width="100" />
-        <el-table-column :label="t('system.user.columns.roles')" min-width="120">
+      <el-table v-loading="loading" :data="list">
+        <el-table-column :label="t('common.field.username')" min-width="180">
+          <template #default="{ row }">
+            <NameCell :label="(row as UserItem).username" :icon="User" tone="blue" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="nickname" :label="t('common.field.nickname')" min-width="130" />
+        <el-table-column :label="t('system.user.columns.roles')" min-width="150">
           <template #default="{ row }">
             <el-tag
               v-for="role in (row as UserItem).roles"
@@ -271,11 +292,11 @@ async function handleResetPassword() {
         <el-table-column
           prop="email"
           :label="t('common.field.email')"
-          min-width="150"
+          min-width="160"
           show-overflow-tooltip
         />
         <el-table-column prop="phone" :label="t('common.field.phone')" min-width="110" />
-        <el-table-column :label="t('common.field.status')" width="80" align="center">
+        <el-table-column :label="t('common.field.status')" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
               {{
@@ -286,68 +307,70 @@ async function handleResetPassword() {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.createdAt')" width="160">
+        <el-table-column :label="t('common.field.createdAt')" width="170" class-name="table-time">
           <template #default="{ row }">
             {{ formatDateTime((row as UserItem).createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.actions')" width="270" fixed="right" align="center">
+        <el-table-column :label="t('common.field.actions')" width="290" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-permission="'system:user:update'"
-              link
-              type="primary"
-              @click="openEdit(row as UserItem)"
-            >
-              {{ t('system.user.actions.edit') }}
-            </el-button>
-            <el-button
-              v-permission="'system:user:role:bind'"
-              link
-              type="primary"
-              @click="openRoleDialog(row as UserItem)"
-            >
-              {{ t('system.user.actions.assignRoles') }}
-            </el-button>
-            <el-button
-              v-permission="'system:user:reset-password'"
-              link
-              type="warning"
-              @click="openResetPassword(row as UserItem)"
-            >
-              {{ t('system.user.actions.resetPassword') }}
-            </el-button>
-            <el-button
-              v-permission="'system:user:delete'"
-              link
-              type="danger"
-              @click="handleDelete(row as UserItem)"
-            >
-              {{ t('system.user.actions.delete') }}
-            </el-button>
+            <div class="table-actions">
+              <el-button
+                v-permission="'system:user:update'"
+                link
+                type="primary"
+                @click="openEdit(row as UserItem)"
+              >
+                {{ t('system.user.actions.edit') }}
+              </el-button>
+              <el-button
+                v-permission="'system:user:role:bind'"
+                link
+                type="primary"
+                @click="openRoleDialog(row as UserItem)"
+              >
+                {{ t('system.user.actions.assignRoles') }}
+              </el-button>
+              <el-button
+                v-permission="'system:user:reset-password'"
+                link
+                type="warning"
+                @click="openResetPassword(row as UserItem)"
+              >
+                {{ t('system.user.actions.resetPassword') }}
+              </el-button>
+              <el-button
+                v-permission="'system:user:delete'"
+                link
+                type="danger"
+                @click="handleDelete(row as UserItem)"
+              >
+                {{ t('system.user.actions.delete') }}
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
 
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.pageSize"
-        class="page-pagination"
-        background
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        @current-change="fetchList"
-        @size-change="handleSearch"
-      />
-    </el-card>
+      <template #footer>
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.pageSize"
+          class="page-pagination"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          @current-change="fetchList"
+          @size-change="handleSearch"
+        />
+      </template>
+    </PageCard>
 
     <el-dialog
       v-model="dialogVisible"
       :title="
-        editingId === null
-          ? t('system.user.dialog.createTitle')
-          : t('system.user.dialog.editTitle')
+        editingId === null ? t('system.user.dialog.createTitle') : t('system.user.dialog.editTitle')
       "
       width="480px"
       :close-on-click-modal="false"
@@ -437,12 +460,7 @@ async function handleResetPassword() {
       :close-on-click-modal="false"
       @closed="resetPwdRef?.clearValidate()"
     >
-      <el-form
-        ref="resetPwdRef"
-        :model="resetPwdForm"
-        :rules="resetPwdRules"
-        label-width="110px"
-      >
+      <el-form ref="resetPwdRef" :model="resetPwdForm" :rules="resetPwdRules" label-width="110px">
         <div class="role-target">
           {{ t('system.user.roleDialog.userLabel') }}<strong>{{ resetPwdTarget?.nickname }}</strong>
           <span class="role-username">{{ resetPwdTarget?.username }}</span>
@@ -468,28 +486,8 @@ async function handleResetPassword() {
 </template>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.toolbar-input {
-  width: 240px;
-}
-
-.toolbar-add {
-  margin-left: auto;
-}
-
 .role-tag {
   margin: 2px 6px 2px 0;
-}
-
-.page-pagination {
-  justify-content: flex-end;
-  margin-top: 16px;
 }
 
 .role-target {

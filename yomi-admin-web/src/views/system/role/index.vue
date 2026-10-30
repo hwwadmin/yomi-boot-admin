@@ -2,7 +2,7 @@
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 
-import { Refresh } from '@element-plus/icons-vue'
+import { Avatar, Plus, Refresh, Search } from '@element-plus/icons-vue'
 
 import {
   bindRoleGroups,
@@ -18,6 +18,8 @@ import {
 } from '@/api/rbac'
 import type { RoleQuery } from '@/api/rbac'
 import type { PermissionGroupItem, PermissionItem, RoleItem, Status } from '@/api/types'
+import NameCell from '@/components/NameCell.vue'
+import PageCard from '@/components/PageCard.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
@@ -115,7 +117,11 @@ function openEdit(row: RoleItem) {
 function confirmStatusChange(name: string, next: Status): Promise<boolean> {
   const disabling = next === 'DISABLED'
   return confirmAction({
-    title: t(disabling ? 'system.role.statusConfirm.disableTitle' : 'system.role.statusConfirm.enableTitle'),
+    title: t(
+      disabling
+        ? 'system.role.statusConfirm.disableTitle'
+        : 'system.role.statusConfirm.enableTitle',
+    ),
     message: t(
       disabling
         ? 'system.role.statusConfirm.disableMessage'
@@ -234,56 +240,75 @@ async function saveGroups() {
 
 <template>
   <div class="system-role">
-    <el-card shadow="never">
-      <div class="toolbar">
-        <el-input
-          v-model="query.keyword"
-          class="toolbar-input"
-          :placeholder="t('system.role.searchPlaceholder')"
-          clearable
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        />
-        <el-select
-          v-model="query.status"
-          class="toolbar-select"
-          :placeholder="t('common.all')"
-          clearable
-        >
-          <el-option :label="t('common.status.enabled')" value="ENABLED" />
-          <el-option :label="t('common.status.disabled')" value="DISABLED" />
-        </el-select>
-        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
-        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
-        <div class="toolbar-actions">
-          <el-button v-permission="'system:role:create'" type="primary" plain @click="openCreate">
-            {{ t('system.role.add') }}
-          </el-button>
-          <el-button
-            v-permission="'system:rbac_cache:refresh'"
-            class="toolbar-refresh"
-            :disabled="refreshingCache"
-            @click="handleRefreshCache"
-          >
-            <span class="refresh-content">
-              <span class="refresh-chip" :class="{ 'is-spinning': refreshingCache }">
-                <el-icon><Refresh /></el-icon>
-              </span>
+    <PageCard>
+      <template #toolbar>
+        <div class="page-toolbar">
+          <div class="page-toolbar__filters">
+            <el-input
+              v-model="query.keyword"
+              class="page-toolbar__input"
+              :placeholder="t('system.role.searchPlaceholder')"
+              :suffix-icon="Search"
+              clearable
+              @keyup.enter="handleSearch"
+              @clear="handleSearch"
+            />
+            <el-select
+              v-model="query.status"
+              class="page-toolbar__select"
+              :placeholder="t('common.all')"
+              clearable
+            >
+              <el-option :label="t('common.status.enabled')" value="ENABLED" />
+              <el-option :label="t('common.status.disabled')" value="DISABLED" />
+            </el-select>
+            <el-button type="primary" :icon="Search" @click="handleSearch">
+              {{ t('common.action.search') }}
+            </el-button>
+            <el-button :icon="Refresh" @click="handleReset">
+              {{ t('common.action.reset') }}
+            </el-button>
+          </div>
+          <div class="page-toolbar__actions">
+            <el-button
+              v-permission="'system:role:create'"
+              type="primary"
+              :icon="Plus"
+              @click="openCreate"
+            >
+              {{ t('system.role.add') }}
+            </el-button>
+            <el-button
+              v-permission="'system:rbac_cache:refresh'"
+              :icon="Refresh"
+              :loading="refreshingCache"
+              @click="handleRefreshCache"
+            >
               {{ t('system.role.refreshCache') }}
-            </span>
-          </el-button>
+            </el-button>
+          </div>
         </div>
-      </div>
+      </template>
 
-      <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="name" :label="t('system.role.columns.name')" min-width="140" />
-        <el-table-column prop="code" :label="t('system.role.columns.code')" min-width="140" />
+      <el-table v-loading="loading" :data="list">
+        <el-table-column :label="t('system.role.columns.name')" min-width="180">
+          <template #default="{ row }">
+            <NameCell :label="(row as RoleItem).name" :icon="Avatar" tone="violet" />
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="code"
+          :label="t('system.role.columns.code')"
+          min-width="170"
+          class-name="table-code"
+          show-overflow-tooltip
+        />
         <el-table-column :label="t('common.field.builtin')" width="90" align="center">
           <template #default="{ row }">
             {{ row.builtin ? t('common.yes') : t('common.no') }}
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.status')" width="100" align="center">
+        <el-table-column :label="t('common.field.status')" width="90" align="center">
           <template #default="{ row }">
             <el-switch
               v-permission="'system:role:status'"
@@ -308,65 +333,67 @@ async function saveGroups() {
         <el-table-column
           prop="remark"
           :label="t('common.field.remark')"
-          min-width="160"
+          min-width="190"
           show-overflow-tooltip
         />
-        <el-table-column :label="t('common.field.createdAt')" width="180">
+        <el-table-column :label="t('common.field.createdAt')" width="170" class-name="table-time">
           <template #default="{ row }">
             {{ formatDateTime((row as RoleItem).createTime) }}
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.actions')" width="260" fixed="right" align="center">
+        <el-table-column :label="t('common.field.actions')" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-permission="'system:role:update'"
-              link
-              type="primary"
-              @click="openEdit(row as RoleItem)"
-            >
-              {{ t('system.role.actions.edit') }}
-            </el-button>
-            <el-button
-              v-if="!row.builtin"
-              v-permission="'system:role:delete'"
-              link
-              type="danger"
-              @click="handleDelete(row as RoleItem)"
-            >
-              {{ t('system.role.actions.delete') }}
-            </el-button>
-            <el-button
-              v-if="!row.builtin"
-              v-permission="'system:role:bind-group'"
-              link
-              type="primary"
-              @click="openGroupDrawer(row as RoleItem)"
-            >
-              {{ t('system.role.actions.assignGroups') }}
-            </el-button>
+            <div class="table-actions">
+              <el-button
+                v-permission="'system:role:update'"
+                link
+                type="primary"
+                @click="openEdit(row as RoleItem)"
+              >
+                {{ t('system.role.actions.edit') }}
+              </el-button>
+              <el-button
+                v-if="!row.builtin"
+                v-permission="'system:role:delete'"
+                link
+                type="danger"
+                @click="handleDelete(row as RoleItem)"
+              >
+                {{ t('system.role.actions.delete') }}
+              </el-button>
+              <el-button
+                v-if="!row.builtin"
+                v-permission="'system:role:bind-group'"
+                link
+                type="primary"
+                @click="openGroupDrawer(row as RoleItem)"
+              >
+                {{ t('system.role.actions.assignGroups') }}
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
 
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.pageSize"
-        class="page-pagination"
-        background
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        @current-change="fetchList"
-        @size-change="handleSearch"
-      />
-    </el-card>
+      <template #footer>
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.pageSize"
+          class="page-pagination"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          @current-change="fetchList"
+          @size-change="handleSearch"
+        />
+      </template>
+    </PageCard>
 
     <el-dialog
       v-model="dialogVisible"
       :title="
-        editingId === null
-          ? t('system.role.dialog.createTitle')
-          : t('system.role.dialog.editTitle')
+        editingId === null ? t('system.role.dialog.createTitle') : t('system.role.dialog.editTitle')
       "
       width="480px"
       :close-on-click-modal="false"
@@ -459,109 +486,6 @@ async function saveGroups() {
 </template>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.toolbar-input {
-  width: 220px;
-}
-
-.toolbar-select {
-  width: 140px;
-}
-
-.toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
-/* 右侧操作组统一圆角，作为独立的操作簇与左侧查询条件区分开 */
-.toolbar-actions :deep(.el-button) {
-  border-radius: 8px;
-}
-
-/* 维护类操作：白底 + 图标徽标，成品化的次级操作按钮 */
-.toolbar-refresh {
-  --el-button-bg-color: transparent;
-  --el-button-border-color: var(--el-border-color);
-  --el-button-text-color: var(--el-text-color-primary);
-  --el-button-hover-bg-color: transparent;
-  --el-button-hover-border-color: var(--el-color-primary-light-5);
-  --el-button-hover-text-color: var(--el-text-color-primary);
-  --el-button-active-bg-color: var(--el-fill-color-light);
-  --el-button-active-border-color: var(--el-color-primary-light-3);
-  --el-button-active-text-color: var(--el-text-color-primary);
-  padding: 0 14px 0 7px;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.toolbar-refresh:not(.is-disabled):hover {
-  box-shadow: 0 2px 8px rgb(0 0 0 / 7%);
-}
-
-.toolbar-refresh.is-disabled {
-  opacity: 0.65;
-}
-
-.refresh-content {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-}
-
-/* 图标放在浅琥珀圆底上：小面积暖色点缀，既点出"缓存维护"的语义，又不与主色按钮撞色 */
-.refresh-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--el-color-warning-light-8);
-  box-shadow: inset 0 0 0 1px rgb(230 162 60 / 16%);
-  color: var(--el-color-warning-dark-2);
-  transition: background-color 0.2s ease;
-}
-
-.refresh-chip .el-icon {
-  font-size: 14px;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.toolbar-refresh:not(.is-disabled):hover .refresh-chip {
-  background: var(--el-color-warning-light-7);
-}
-
-.toolbar-refresh:not(.is-disabled):hover .refresh-chip .el-icon {
-  transform: rotate(180deg);
-}
-
-.refresh-chip.is-spinning .el-icon {
-  animation: refresh-spin 0.9s linear infinite;
-}
-
-@keyframes refresh-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.page-pagination {
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
 .group-body {
   min-height: 320px;
 }

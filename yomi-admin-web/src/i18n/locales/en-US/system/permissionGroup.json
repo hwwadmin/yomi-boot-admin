@@ -8,7 +8,7 @@
   "actions": {
     "edit": "Edit",
     "delete": "Delete",
-    "assignPermissions": "Assign permissions"
+    "assignPermissions": "Assign"
   },
   "createSuccess": "Permission group created",
   "saveSuccess": "Saved",

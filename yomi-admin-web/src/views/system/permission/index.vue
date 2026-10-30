@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import { Connection, Grid, Plus, Refresh, Search } from '@element-plus/icons-vue'
 
 import {
   createPermission,
@@ -11,6 +12,8 @@ import {
 } from '@/api/rbac'
 import type { PermissionQuery } from '@/api/rbac'
 import type { PermissionItem, PermissionType, Status } from '@/api/types'
+import NameCell from '@/components/NameCell.vue'
+import PageCard from '@/components/PageCard.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 
@@ -219,57 +222,73 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
 
 <template>
   <div class="system-permission">
-    <el-card shadow="never">
-      <div class="toolbar">
-        <el-input
-          v-model="query.keyword"
-          class="toolbar-input"
-          :placeholder="t('system.permission.searchPlaceholder')"
-          clearable
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        />
-        <el-select
-          v-model="query.type"
-          class="toolbar-select"
-          :placeholder="t('common.all')"
-          clearable
-        >
-          <el-option :label="t('system.permission.type.menu')" value="MENU" />
-          <el-option :label="t('system.permission.type.api')" value="API" />
-        </el-select>
-        <el-select
-          v-model="query.status"
-          class="toolbar-select"
-          :placeholder="t('common.all')"
-          clearable
-        >
-          <el-option :label="t('common.status.enabled')" value="ENABLED" />
-          <el-option :label="t('common.status.disabled')" value="DISABLED" />
-        </el-select>
-        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
-        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
-        <el-button
-          v-permission="'system:permission:create'"
-          type="primary"
-          plain
-          class="toolbar-add"
-          @click="openCreate"
-        >
-          {{ t('system.permission.add') }}
-        </el-button>
-      </div>
+    <PageCard>
+      <template #toolbar>
+        <div class="page-toolbar">
+          <div class="page-toolbar__filters">
+            <el-input
+              v-model="query.keyword"
+              class="page-toolbar__input"
+              :placeholder="t('system.permission.searchPlaceholder')"
+              :suffix-icon="Search"
+              clearable
+              @keyup.enter="handleSearch"
+              @clear="handleSearch"
+            />
+            <el-select
+              v-model="query.type"
+              class="page-toolbar__select"
+              :placeholder="t('common.all')"
+              clearable
+            >
+              <el-option :label="t('system.permission.type.menu')" value="MENU" />
+              <el-option :label="t('system.permission.type.api')" value="API" />
+            </el-select>
+            <el-select
+              v-model="query.status"
+              class="page-toolbar__select"
+              :placeholder="t('common.all')"
+              clearable
+            >
+              <el-option :label="t('common.status.enabled')" value="ENABLED" />
+              <el-option :label="t('common.status.disabled')" value="DISABLED" />
+            </el-select>
+            <el-button type="primary" :icon="Search" @click="handleSearch">
+              {{ t('common.action.search') }}
+            </el-button>
+            <el-button :icon="Refresh" @click="handleReset">
+              {{ t('common.action.reset') }}
+            </el-button>
+          </div>
+          <div class="page-toolbar__actions">
+            <el-button
+              v-permission="'system:permission:create'"
+              type="primary"
+              :icon="Plus"
+              @click="openCreate"
+            >
+              {{ t('system.permission.add') }}
+            </el-button>
+          </div>
+        </div>
+      </template>
 
-      <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column
-          prop="name"
-          :label="t('system.permission.columns.name')"
-          min-width="140"
-        />
+      <el-table v-loading="loading" :data="list">
+        <el-table-column :label="t('system.permission.columns.name')" min-width="180">
+          <template #default="{ row }">
+            <NameCell
+              :label="(row as PermissionItem).name"
+              :icon="(row as PermissionItem).type === 'MENU' ? Grid : Connection"
+              :tone="(row as PermissionItem).type === 'MENU' ? 'green' : 'orange'"
+            />
+          </template>
+        </el-table-column>
         <el-table-column
           prop="code"
           :label="t('system.permission.columns.code')"
           min-width="200"
+          class-name="table-code"
+          show-overflow-tooltip
         />
         <el-table-column :label="t('system.permission.columns.type')" width="100" align="center">
           <template #default="{ row }">
@@ -285,6 +304,7 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
         <el-table-column
           :label="t('system.permission.columns.resource')"
           min-width="260"
+          class-name="table-code"
           show-overflow-tooltip
         >
           <template #default="{ row }">
@@ -295,7 +315,7 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
             </template>
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.status')" width="100" align="center">
+        <el-table-column :label="t('common.field.status')" width="90" align="center">
           <template #default="{ row }">
             <el-switch
               v-permission="'system:permission:status'"
@@ -319,48 +339,52 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
         <el-table-column
           prop="remark"
           :label="t('common.field.remark')"
-          min-width="140"
+          min-width="160"
           show-overflow-tooltip
         />
-        <el-table-column :label="t('common.field.createdAt')" width="180">
+        <el-table-column :label="t('common.field.createdAt')" width="170" class-name="table-time">
           <template #default="{ row }">
             {{ formatDateTime((row as PermissionItem).createTime) }}
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.actions')" width="150" fixed="right" align="center">
+        <el-table-column :label="t('common.field.actions')" width="175" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-permission="'system:permission:update'"
-              link
-              type="primary"
-              @click="openEdit(row as PermissionItem)"
-            >
-              {{ t('system.permission.actions.edit') }}
-            </el-button>
-            <el-button
-              v-permission="'system:permission:delete'"
-              link
-              type="danger"
-              @click="handleDelete(row as PermissionItem)"
-            >
-              {{ t('system.permission.actions.delete') }}
-            </el-button>
+            <div class="table-actions">
+              <el-button
+                v-permission="'system:permission:update'"
+                link
+                type="primary"
+                @click="openEdit(row as PermissionItem)"
+              >
+                {{ t('system.permission.actions.edit') }}
+              </el-button>
+              <el-button
+                v-permission="'system:permission:delete'"
+                link
+                type="danger"
+                @click="handleDelete(row as PermissionItem)"
+              >
+                {{ t('system.permission.actions.delete') }}
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
 
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.pageSize"
-        class="page-pagination"
-        background
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        @current-change="fetchList"
-        @size-change="handleSearch"
-      />
-    </el-card>
+      <template #footer>
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.pageSize"
+          class="page-pagination"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          @current-change="fetchList"
+          @size-change="handleSearch"
+        />
+      </template>
+    </PageCard>
 
     <el-dialog
       v-model="dialogVisible"
@@ -436,30 +460,6 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
 </template>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.toolbar-input {
-  width: 220px;
-}
-
-.toolbar-select {
-  width: 130px;
-}
-
-.toolbar-add {
-  margin-left: auto;
-}
-
-.page-pagination {
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
 .method-tag {
   margin-right: 6px;
 }

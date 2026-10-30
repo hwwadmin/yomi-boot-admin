@@ -19,7 +19,7 @@
     "userId": "User ID",
     "actions": "Actions"
   },
-  "detail": "Details",
+  "detail": "View",
   "drawer": {
     "title": "Access record details",
     "requestAt": "Request time",

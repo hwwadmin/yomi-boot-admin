@@ -10,8 +10,8 @@
   },
   "actions": {
     "edit": "Edit",
-    "assignRoles": "Assign roles",
-    "resetPassword": "Reset password",
+    "assignRoles": "Roles",
+    "resetPassword": "Reset",
     "delete": "Delete"
   },
   "createSuccess": "User created",

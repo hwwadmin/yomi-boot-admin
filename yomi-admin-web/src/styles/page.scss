@@ -1,0 +1,118 @@
+/**
+ * 列表页共享的布局原语：工具栏、表格单元格语义、分页。
+ * 供各页面以固定 class 组合使用，避免六份重复样式。
+ */
+.page-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.page-toolbar .page-toolbar__input {
+  width: 260px;
+}
+
+.page-toolbar .page-toolbar__input--compact {
+  width: 220px;
+}
+
+/* el-select 自带 width:100%，这里用双类名提高优先级，避免被组件默认样式覆盖 */
+.page-toolbar .page-toolbar__select {
+  width: 145px;
+}
+
+/* 日期范围组件自带 el-input__wrapper 的 flex-grow，需要同时锁住宽度与伸缩 */
+.page-toolbar .page-toolbar__range {
+  --el-date-editor-width: 370px;
+  flex: 0 0 auto;
+}
+
+/* 表格操作列：文字链接之间用细分隔线，点击热区足够且不显拥挤 */
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+}
+
+.table-actions > .el-button {
+  position: relative;
+  height: auto;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.table-actions > .el-button:first-child {
+  padding-left: 0;
+}
+
+.table-actions > .el-button:last-child {
+  padding-right: 0;
+}
+
+.table-actions > .el-button + .el-button {
+  margin-left: 0;
+}
+
+.table-actions > .el-button + .el-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1px;
+  height: 12px;
+  background: var(--app-border-strong);
+  transform: translateY(-50%);
+}
+
+/* 编码 / 资源列 */
+.table-code .cell {
+  color: var(--app-text-2);
+  font-family: var(--app-font-mono);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+/* 时间列 */
+.table-time .cell {
+  color: var(--app-text-3);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 分页：总数靠左，控件靠右 */
+.page-pagination.el-pagination {
+  width: 100%;
+}
+
+.page-pagination .el-pagination__total {
+  margin-right: auto;
+}
+
+@media (max-width: 960px) {
+  .page-toolbar .page-toolbar__input,
+  .page-toolbar .page-toolbar__range {
+    --el-date-editor-width: 100%;
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .page-toolbar__actions {
+    margin-left: 0;
+  }
+}

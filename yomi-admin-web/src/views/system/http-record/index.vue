@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { Refresh, Search } from '@element-plus/icons-vue'
 
 import { getHttpRecordDetail, getHttpRecordPage } from '@/api/httpRecord'
 import type { HttpRecordDetail, HttpRecordItem, HttpRecordQuery } from '@/api/types'
+import PageCard from '@/components/PageCard.vue'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemHttpRecordPage' })
@@ -119,56 +121,69 @@ async function openDetail(row: HttpRecordItem) {
 
 <template>
   <div class="system-http-record">
-    <el-card shadow="never">
-      <div class="toolbar">
-        <el-input
-          v-model="query.keyword"
-          class="toolbar-input"
-          :placeholder="t('system.httpRecord.searchPlaceholder')"
-          clearable
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        />
-        <el-select
-          v-model="query.method"
-          class="toolbar-select"
-          :placeholder="t('system.httpRecord.allMethods')"
-          clearable
-        >
-          <el-option
-            v-for="method in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']"
-            :key="method"
-            :label="method"
-            :value="method"
-          />
-        </el-select>
-        <el-select
-          v-model="query.statusClass"
-          class="toolbar-select"
-          :placeholder="t('system.httpRecord.allStatus')"
-          clearable
-        >
-          <el-option
-            v-for="option in statusClassOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
-          />
-        </el-select>
-        <el-date-picker
-          v-model="timeRange"
-          class="toolbar-range"
-          type="datetimerange"
-          :range-separator="t('common.to')"
-          :start-placeholder="t('system.httpRecord.startTime')"
-          :end-placeholder="t('system.httpRecord.endTime')"
-        />
-        <el-button type="primary" @click="handleSearch">{{ t('common.action.search') }}</el-button>
-        <el-button @click="handleReset">{{ t('common.action.reset') }}</el-button>
-      </div>
+    <PageCard>
+      <template #toolbar>
+        <div class="page-toolbar">
+          <div class="page-toolbar__filters">
+            <el-input
+              v-model="query.keyword"
+              class="page-toolbar__input page-toolbar__input--compact"
+              :placeholder="t('system.httpRecord.searchPlaceholder')"
+              :suffix-icon="Search"
+              clearable
+              @keyup.enter="handleSearch"
+              @clear="handleSearch"
+            />
+            <el-select
+              v-model="query.method"
+              class="page-toolbar__select"
+              :placeholder="t('system.httpRecord.allMethods')"
+              clearable
+            >
+              <el-option
+                v-for="method in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']"
+                :key="method"
+                :label="method"
+                :value="method"
+              />
+            </el-select>
+            <el-select
+              v-model="query.statusClass"
+              class="page-toolbar__select"
+              :placeholder="t('system.httpRecord.allStatus')"
+              clearable
+            >
+              <el-option
+                v-for="option in statusClassOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+            <el-date-picker
+              v-model="timeRange"
+              class="page-toolbar__range"
+              type="datetimerange"
+              :range-separator="t('common.to')"
+              :start-placeholder="t('system.httpRecord.startTime')"
+              :end-placeholder="t('system.httpRecord.endTime')"
+            />
+            <el-button type="primary" :icon="Search" @click="handleSearch">
+              {{ t('common.action.search') }}
+            </el-button>
+            <el-button :icon="Refresh" @click="handleReset">
+              {{ t('common.action.reset') }}
+            </el-button>
+          </div>
+        </div>
+      </template>
 
-      <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column :label="t('system.httpRecord.columns.requestAt')" width="160">
+      <el-table v-loading="loading" :data="list">
+        <el-table-column
+          :label="t('system.httpRecord.columns.requestAt')"
+          width="170"
+          class-name="table-time"
+        >
           <template #default="{ row }">
             {{ formatDateTime((row as HttpRecordItem).requestAt) }}
           </template>
@@ -183,10 +198,11 @@ async function openDetail(row: HttpRecordItem) {
         <el-table-column
           :label="t('system.httpRecord.columns.path')"
           min-width="240"
+          class-name="table-code"
           show-overflow-tooltip
         >
           <template #default="{ row }">
-            <span class="record-path">{{ (row as HttpRecordItem).path }}</span>
+            {{ (row as HttpRecordItem).path }}
           </template>
         </el-table-column>
         <el-table-column :label="t('system.httpRecord.columns.result')" width="210" align="center">
@@ -196,11 +212,7 @@ async function openDetail(row: HttpRecordItem) {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column
-          :label="t('system.httpRecord.columns.duration')"
-          width="96"
-          align="right"
-        >
+        <el-table-column :label="t('system.httpRecord.columns.duration')" width="96" align="right">
           <template #default="{ row }">
             {{ (row as HttpRecordItem).durationMs }} {{ t('common.unit.ms') }}
           </template>
@@ -218,12 +230,7 @@ async function openDetail(row: HttpRecordItem) {
             }}
           </template>
         </el-table-column>
-        <el-table-column
-          :label="t('system.httpRecord.columns.actions')"
-          width="90"
-          fixed="right"
-          align="center"
-        >
+        <el-table-column :label="t('system.httpRecord.columns.actions')" width="90" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row as HttpRecordItem)">
               {{ t('system.httpRecord.detail') }}
@@ -232,24 +239,22 @@ async function openDetail(row: HttpRecordItem) {
         </el-table-column>
       </el-table>
 
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.pageSize"
-        class="page-pagination"
-        background
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        :page-sizes="[10, 20, 50]"
-        @current-change="fetchList"
-        @size-change="handleSearch"
-      />
-    </el-card>
+      <template #footer>
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.pageSize"
+          class="page-pagination"
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          @current-change="fetchList"
+          @size-change="handleSearch"
+        />
+      </template>
+    </PageCard>
 
-    <el-drawer
-      v-model="detailVisible"
-      :title="t('system.httpRecord.drawer.title')"
-      size="720px"
-    >
+    <el-drawer v-model="detailVisible" :title="t('system.httpRecord.drawer.title')" size="720px">
       <div v-loading="detailLoading" class="detail">
         <template v-if="detail">
           <el-descriptions :column="2" border>
@@ -286,9 +291,7 @@ async function openDetail(row: HttpRecordItem) {
               {{ detail.clientType || t('common.none') }}
             </el-descriptions-item>
             <el-descriptions-item :label="t('system.httpRecord.drawer.userId')">
-              {{
-                detail.userId === '0' ? t('system.httpRecord.drawer.anonymous') : detail.userId
-              }}
+              {{ detail.userId === '0' ? t('system.httpRecord.drawer.anonymous') : detail.userId }}
             </el-descriptions-item>
             <el-descriptions-item :label="t('system.httpRecord.drawer.createdAt')">
               {{ formatDateTime(detail.createTime) }}
@@ -349,35 +352,6 @@ async function openDetail(row: HttpRecordItem) {
 </template>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.toolbar-input {
-  width: 240px;
-}
-
-.toolbar-select {
-  width: 130px;
-}
-
-.toolbar-range {
-  width: 360px;
-}
-
-.page-pagination {
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
-.record-path {
-  font-family: var(--el-font-family-mono, monospace);
-  font-size: 13px;
-}
-
 /* 业务码可能长达 40 字符，超出列宽时换行，避免省略号 */
 .result-tag {
   max-width: 100%;
@@ -394,7 +368,7 @@ async function openDetail(row: HttpRecordItem) {
 }
 
 .detail-mono {
-  font-family: var(--el-font-family-mono, monospace);
+  font-family: var(--app-font-mono);
   font-size: 12px;
   word-break: break-all;
 }
@@ -414,11 +388,11 @@ async function openDetail(row: HttpRecordItem) {
 .detail-pre {
   max-height: 280px;
   margin: 0;
-  padding: 12px;
+  padding: 14px 16px;
   overflow: auto;
-  border-radius: 4px;
+  border-radius: var(--app-radius-lg);
   background: var(--el-fill-color-light);
-  font-family: var(--el-font-family-mono, monospace);
+  font-family: var(--app-font-mono);
   font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;

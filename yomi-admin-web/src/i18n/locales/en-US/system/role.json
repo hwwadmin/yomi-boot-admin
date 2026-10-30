@@ -9,7 +9,7 @@
   "actions": {
     "edit": "Edit",
     "delete": "Delete",
-    "assignGroups": "Assign permission groups"
+    "assignGroups": "Assign"
   },
   "statusUpdated": "Status updated",
   "statusConfirm": {

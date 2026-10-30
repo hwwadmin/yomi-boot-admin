@@ -2,7 +2,16 @@
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useFullscreen } from '@vueuse/core'
-import { Expand, Fold, FullScreen, Key, Moon, Sunny, SwitchButton } from '@element-plus/icons-vue'
+import {
+  CaretBottom,
+  Expand,
+  Fold,
+  FullScreen,
+  Key,
+  Moon,
+  Sunny,
+  SwitchButton,
+} from '@element-plus/icons-vue'
 
 import { changePassword as changePasswordApi, logout as logoutApi } from '@/api/auth'
 import { useAppStore } from '@/stores/app'
@@ -102,47 +111,75 @@ async function handleChangePassword() {
 <template>
   <div class="navbar">
     <div class="navbar-left">
-      <el-icon class="action-btn" :size="18" @click="appStore.toggleSidebar()">
-        <Fold v-if="!appStore.sidebarCollapsed" />
-        <Expand v-else />
-      </el-icon>
+      <button
+        type="button"
+        class="navbar-action"
+        :aria-label="
+          appStore.sidebarCollapsed ? t('layout.sidebar.expand') : t('layout.sidebar.collapse')
+        "
+        @click="appStore.toggleSidebar()"
+      >
+        <el-icon :size="18">
+          <Fold v-if="!appStore.sidebarCollapsed" />
+          <Expand v-else />
+        </el-icon>
+      </button>
       <Breadcrumb />
     </div>
     <div class="navbar-right">
       <el-tooltip :content="t('layout.language.switch')" placement="bottom">
-        <span class="action-btn lang-btn" @click="localeStore.toggleLocale()">
+        <button
+          type="button"
+          class="navbar-action navbar-action--text"
+          :aria-label="t('layout.language.switch')"
+          @click="localeStore.toggleLocale()"
+        >
           {{
             localeStore.locale === 'zh-CN'
               ? t('layout.language.shortEn')
               : t('layout.language.shortZh')
           }}
-        </span>
+        </button>
       </el-tooltip>
       <el-tooltip
         :content="t(appStore.isDark ? 'layout.theme.toLight' : 'layout.theme.toDark')"
         placement="bottom"
       >
-        <el-icon class="action-btn" :size="18" @click="appStore.toggleDark()">
-          <Moon v-if="!appStore.isDark" />
-          <Sunny v-else />
-        </el-icon>
+        <button
+          type="button"
+          class="navbar-action"
+          :aria-label="t(appStore.isDark ? 'layout.theme.toLight' : 'layout.theme.toDark')"
+          @click="appStore.toggleDark()"
+        >
+          <el-icon :size="18">
+            <Moon v-if="!appStore.isDark" />
+            <Sunny v-else />
+          </el-icon>
+        </button>
       </el-tooltip>
       <el-tooltip
         :content="t(isFullscreen ? 'layout.fullscreen.exit' : 'layout.fullscreen.enter')"
         placement="bottom"
       >
-        <el-icon class="action-btn" :size="18" @click="toggleFullscreen()">
-          <FullScreen />
-        </el-icon>
+        <button
+          type="button"
+          class="navbar-action"
+          :aria-label="t(isFullscreen ? 'layout.fullscreen.exit' : 'layout.fullscreen.enter')"
+          @click="toggleFullscreen()"
+        >
+          <el-icon :size="18"><FullScreen /></el-icon>
+        </button>
       </el-tooltip>
+      <span class="navbar-divider" />
       <el-dropdown trigger="click" @command="handleCommand">
         <span class="user-info">
-          <el-avatar :size="28" class="user-avatar">
+          <el-avatar :size="30" class="user-avatar">
             {{ userStore.userInfo?.nickname?.charAt(0) || 'U' }}
           </el-avatar>
           <span class="user-name">
             {{ userStore.userInfo?.nickname || t('layout.user.fallbackName') }}
           </span>
+          <el-icon class="user-caret" :size="12"><CaretBottom /></el-icon>
         </span>
         <template #dropdown>
           <el-dropdown-menu>
@@ -216,55 +253,104 @@ async function handleChangePassword() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   height: 100%;
 }
 
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .navbar-right {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 16px;
+  gap: 6px;
 }
 
-.action-btn {
-  display: flex;
+.navbar-action {
+  display: inline-flex;
   align-items: center;
-  color: var(--el-text-color-primary);
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-text-2);
   cursor: pointer;
-  transition: color 0.2s;
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease;
 }
 
-.action-btn:hover {
+.navbar-action:hover {
   color: var(--el-color-primary);
+  background-color: var(--el-fill-color-light);
 }
 
-.lang-btn {
-  font-size: 13px;
+.navbar-action:focus-visible {
+  outline: 2px solid var(--el-color-primary-light-5);
+  outline-offset: 2px;
+}
+
+.navbar-action--text {
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
+}
+
+.navbar-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--app-border);
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 8px;
   cursor: pointer;
   outline: none;
+  transition: background-color 0.18s ease;
+}
+
+.user-info:hover {
+  background-color: var(--el-fill-color-light);
 }
 
 .user-avatar {
-  background-color: var(--el-color-primary);
+  background: linear-gradient(135deg, #4a9bff 0%, #2b6fe0 100%);
+  box-shadow: 0 4px 10px -6px rgb(43 111 224 / 80%);
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .user-name {
-  color: var(--el-text-color-primary);
+  color: var(--app-text-1);
   font-size: 14px;
+  font-weight: 500;
+}
+
+.user-caret {
+  color: var(--app-text-3);
+}
+
+@media (max-width: 768px) {
+  .user-name {
+    display: none;
+  }
+
+  .navbar-divider {
+    display: none;
+  }
 }
 </style>

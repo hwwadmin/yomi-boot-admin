@@ -1,5 +1,9 @@
 {
   "subtitle": "后台管理系统",
+  "sidebar": {
+    "expand": "展开侧边栏",
+    "collapse": "收起侧边栏"
+  },
   "theme": {
     "toLight": "切换为亮色",
     "toDark": "切换为暗色"

@@ -1,0 +1,72 @@
+/**
+ * 全局设计 token：颜色、圆角、阴影、布局尺寸、字体。
+ * 业务样式统一引用这里的变量，避免各页面散落硬编码。
+ */
+:root {
+  /* 品牌色 */
+  --app-primary: #409eff;
+  --app-primary-strong: #2b7de0;
+
+  /* 底色与表面 */
+  --app-bg: #f5f7fa;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f7f9fc;
+  --app-border: #ebeef5;
+  --app-border-strong: #dde3ec;
+
+  /* 文本 */
+  --app-text-1: #1f2d3d;
+  --app-text-2: #4b5563;
+  --app-text-3: #8a94a6;
+
+  /* 侧边栏 */
+  --app-sider-bg: #0b1a2e;
+  --app-sider-bg-end: #0e2138;
+  --app-sider-text: rgb(255 255 255 / 66%);
+  --app-sider-text-active: #ffffff;
+  --app-sider-hover: rgb(255 255 255 / 8%);
+  --app-sider-active-gradient: linear-gradient(96deg, #2f6fe4 0%, #3f9bff 100%);
+
+  /* 圆角 */
+  --app-radius-sm: 4px;
+  --app-radius-base: 6px;
+  --app-radius-lg: 8px;
+  --app-radius-card: 10px;
+
+  /* 阴影 */
+  --app-shadow-card: 0 1px 2px rgb(15 35 95 / 4%), 0 8px 24px -12px rgb(15 35 95 / 12%);
+  --app-shadow-pop: 0 18px 40px -24px rgb(15 35 95 / 35%);
+
+  /* 布局 */
+  --app-header-height: 60px;
+  --app-sidebar-width: 224px;
+  --app-sidebar-collapsed-width: 64px;
+  --app-main-padding-y: 20px;
+  --app-main-padding-x: 24px;
+
+  /* 表格 */
+  --app-table-header-bg: #f7f9fc;
+  --app-table-row-hover: #f5f9ff;
+
+  /* 控件 */
+  --app-control-height: 36px;
+
+  /* 字体 */
+  --app-font-mono:
+    ui-monospace, sfmono-regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+html.dark {
+  --app-bg: #0b1220;
+  --app-surface: #141c2a;
+  --app-surface-muted: #1a2333;
+  --app-border: rgb(255 255 255 / 8%);
+  --app-border-strong: rgb(255 255 255 / 14%);
+  --app-text-1: #e6eaf2;
+  --app-text-2: #b6c0d0;
+  --app-text-3: #7f8ba0;
+  --app-shadow-card: 0 1px 2px rgb(0 0 0 / 35%), 0 12px 32px -16px rgb(0 0 0 / 60%);
+  --app-shadow-pop: 0 18px 40px -24px rgb(0 0 0 / 70%);
+  --app-table-header-bg: #1a2333;
+  --app-table-row-hover: rgb(64 158 255 / 10%);
+}

@@ -92,7 +92,8 @@ onMounted(async () => {
 
 <template>
   <div class="login-page">
-    <el-card class="login-card" shadow="always">
+    <el-card class="login-card" shadow="never">
+      <div class="login-brand"><span class="login-brand__badge">Y</span></div>
       <div class="login-title">Yomi Admin</div>
       <div class="login-subtitle">{{ t('auth.subtitle') }}</div>
       <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="handleLogin">
@@ -164,28 +165,50 @@ onMounted(async () => {
   justify-content: center;
   height: 100%;
   background:
-    radial-gradient(1200px 600px at 70% -10%, #36cfc933, transparent),
-    radial-gradient(1000px 500px at 0% 100%, #409eff26, transparent), var(--el-bg-color-page);
+    radial-gradient(900px 480px at 10% -10%, rgb(64 158 255 / 16%), transparent 62%),
+    radial-gradient(760px 420px at 100% 108%, rgb(34 184 207 / 12%), transparent 62%), var(--app-bg);
 }
 
 .login-card {
-  width: 380px;
-  padding: 8px 8px 4px;
+  width: 400px;
+  border: 1px solid var(--app-border);
+  border-radius: 12px;
+  box-shadow: var(--app-shadow-pop);
+}
+
+.login-brand {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.login-brand__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4a9bff 0%, #2b6fe0 100%);
+  box-shadow: 0 10px 24px -12px rgb(43 111 224 / 85%);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .login-title {
-  margin-top: 8px;
-  color: var(--el-text-color-primary);
-  font-size: 24px;
+  margin-top: 16px;
+  color: var(--app-text-1);
+  font-size: 22px;
   font-weight: 700;
   text-align: center;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .login-subtitle {
-  margin: 8px 0 28px;
-  color: var(--el-text-color-secondary);
-  font-size: 14px;
+  margin: 6px 0 26px;
+  color: var(--app-text-3);
+  font-size: 13px;
   text-align: center;
 }
 
@@ -201,14 +224,14 @@ onMounted(async () => {
   flex: 0 0 120px;
   align-items: center;
   justify-content: center;
-  height: 40px;
+  height: 42px;
   padding: 0;
   overflow: hidden;
-  color: var(--el-text-color-secondary);
+  color: var(--app-text-3);
   font-size: 12px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color);
-  border-radius: var(--el-border-radius-base);
+  border-radius: var(--app-radius-base);
   cursor: pointer;
 }
 
@@ -238,11 +261,13 @@ onMounted(async () => {
 .login-btn {
   width: 100%;
   margin-top: 4px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 .mock-tip {
   margin: 14px 0 4px;
-  color: var(--el-text-color-secondary);
+  color: var(--app-text-3);
   font-size: 12px;
   text-align: center;
 }

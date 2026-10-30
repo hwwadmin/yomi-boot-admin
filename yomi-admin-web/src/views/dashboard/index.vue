@@ -48,15 +48,15 @@ const displayName = computed(() => userStore.userInfo?.nickname || t('dashboard.
   gap: 32px;
   overflow: hidden;
   padding: 34px 40px;
-  border-radius: 18px;
+  border-radius: 12px;
   background:
-    radial-gradient(80% 160% at 92% -30%, rgba(64, 158, 255, 0.18) 0%, rgba(64, 158, 255, 0) 60%),
-    radial-gradient(70% 140% at 4% 130%, rgba(103, 194, 58, 0.14) 0%, rgba(103, 194, 58, 0) 55%),
-    linear-gradient(118deg, #f7fbff 0%, #ffffff 46%, #f5fbf1 100%);
+    radial-gradient(80% 160% at 92% -30%, rgb(64 158 255 / 16%) 0%, rgb(64 158 255 / 0%) 60%),
+    radial-gradient(70% 140% at 4% 130%, rgb(23 162 184 / 12%) 0%, rgb(23 162 184 / 0%) 55%),
+    linear-gradient(118deg, #f7fbff 0%, #ffffff 46%, #f3faff 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 0 0 1px rgba(64, 158, 255, 0.08),
-    0 24px 48px -32px rgba(30, 64, 110, 0.35);
+    inset 0 1px 0 rgb(255 255 255 / 90%),
+    inset 0 0 0 1px rgb(64 158 255 / 8%),
+    var(--app-shadow-card);
 }
 
 /* 右上方点阵纹理，朝插画方向淡出 */
@@ -97,8 +97,8 @@ const displayName = computed(() => userStore.userInfo?.nickname || t('dashboard.
   height: 4px;
   margin-bottom: 16px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #409eff, #67c23a);
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.35);
+  background: linear-gradient(90deg, #409eff, #17a2b8);
+  box-shadow: 0 2px 8px rgb(64 158 255 / 35%);
 }
 
 .welcome-title {
@@ -111,7 +111,7 @@ const displayName = computed(() => userStore.userInfo?.nickname || t('dashboard.
 
 .welcome-greeting {
   display: block;
-  background: linear-gradient(96deg, #1554d1 0%, #409eff 48%, #4fae4f 100%);
+  background: linear-gradient(96deg, #1554d1 0%, #409eff 48%, #17a2b8 100%);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -152,13 +152,13 @@ const displayName = computed(() => userStore.userInfo?.nickname || t('dashboard.
 /* 暗色主题 */
 html.dark .welcome-hero {
   background:
-    radial-gradient(80% 160% at 92% -30%, rgba(64, 158, 255, 0.24) 0%, rgba(64, 158, 255, 0) 60%),
-    radial-gradient(70% 140% at 4% 130%, rgba(103, 194, 58, 0.14) 0%, rgba(103, 194, 58, 0) 55%),
-    linear-gradient(118deg, #101a2c 0%, #0d1524 46%, #0f1d1a 100%);
+    radial-gradient(80% 160% at 92% -30%, rgb(64 158 255 / 24%) 0%, rgb(64 158 255 / 0%) 60%),
+    radial-gradient(70% 140% at 4% 130%, rgb(23 162 184 / 14%) 0%, rgb(23 162 184 / 0%) 55%),
+    linear-gradient(118deg, #101a2c 0%, #0d1524 46%, #0e1c2a 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 24px 48px -32px rgba(0, 0, 0, 0.7);
+    inset 0 1px 0 rgb(255 255 255 / 6%),
+    inset 0 0 0 1px rgb(255 255 255 / 6%),
+    var(--app-shadow-card);
 }
 
 html.dark .welcome-hero::before {
@@ -170,7 +170,7 @@ html.dark .welcome-hero::after {
 }
 
 html.dark .welcome-greeting {
-  background: linear-gradient(96deg, #7cc0ff 0%, #b6e3ff 48%, #95d475 100%);
+  background: linear-gradient(96deg, #7cc0ff 0%, #b6e3ff 48%, #6fd6e6 100%);
   background-clip: text;
   -webkit-background-clip: text;
 }
