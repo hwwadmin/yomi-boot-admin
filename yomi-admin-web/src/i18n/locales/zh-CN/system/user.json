@@ -11,6 +11,7 @@
   "actions": {
     "edit": "编辑",
     "assignRoles": "分配角色",
+    "sessions": "会话",
     "resetPassword": "重置密码",
     "delete": "删除"
   },
@@ -49,6 +50,34 @@
     "newPassword": "新密码",
     "placeholder": "6-72 位，重置后该用户需重新登录",
     "success": "密码已重置，该用户需使用新密码重新登录"
+  },
+  "session": {
+    "title": "在线会话 - {name}",
+    "refresh": "刷新",
+    "revokeAll": "全部下线",
+    "revoke": "下线",
+    "current": "当前会话",
+    "empty": "该用户当前没有在线会话",
+    "count": "共 {count} 个会话",
+    "currentHint": "全部下线会包含当前会话，请使用退出登录",
+    "columns": {
+      "loginIp": "登录 IP",
+      "client": "客户端",
+      "loginAt": "登录时间",
+      "expireAt": "到期时间"
+    },
+    "revokeConfirm": {
+      "title": "下线会话",
+      "message": "确定下线「{name}」在 {ip} 的会话吗？",
+      "confirm": "下线"
+    },
+    "revokeAllConfirm": {
+      "title": "全部下线",
+      "message": "确定下线「{name}」的全部 {count} 个会话吗？",
+      "confirm": "全部下线"
+    },
+    "revoked": "会话已下线",
+    "revokedAll": "该用户全部会话已下线"
   },
   "validation": {
     "usernameRequired": "请输入用户名",

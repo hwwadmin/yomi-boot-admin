@@ -28,6 +28,7 @@ func TestAPIDocCoverage(t *testing.T) {
 	group := engine.Group("")
 	(&AuthHandler{}).Routes(group)
 	(&UserHandler{}).Routes(group)
+	(&UserSessionHandler{}).Routes(group)
 	(&RoleHandler{}).Routes(group)
 	(&PermissionHandler{}).Routes(group)
 	(&PermissionGroupHandler{}).Routes(group)

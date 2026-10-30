@@ -137,7 +137,7 @@ func TestLoginVerifiesCaptchaThenIssuesToken(t *testing.T) {
 		Password:    "secret",
 		CaptchaID:   "cid",
 		CaptchaCode: "1234",
-	}, "10.0.0.1")
+	}, "10.0.0.1", "test-agent")
 	if err != nil {
 		t.Fatalf("登录失败: %v", err)
 	}
@@ -163,10 +163,10 @@ func TestLoginVerifiesCaptchaThenIssuesToken(t *testing.T) {
 	if len(out.User.Menus) != 1 || out.User.Menus[0].UIPath != "/system/user" {
 		t.Fatalf("菜单未聚合: %+v", out.User.Menus)
 	}
-	if tokens.session == nil || tokens.session.UserID != 7 || tokens.session.ClientType != "admin" {
+	if tokens.session == nil || tokens.session.UserID != 7 || tokens.session.ClientType != "admin" || tokens.session.LoginIP != "10.0.0.1" {
 		t.Fatalf("令牌会话不符: %+v", tokens.session)
 	}
-	if sessionContext := tokens.session.ContextMap(); sessionContext["username"] != "admin" || sessionContext["nickname"] != "超级管理员" {
+	if sessionContext := tokens.session.ContextMap(); sessionContext["username"] != "admin" || sessionContext["nickname"] != "超级管理员" || sessionContext["user_agent"] != "test-agent" {
 		t.Fatalf("令牌上下文不符: %+v", sessionContext)
 	}
 }
@@ -182,7 +182,7 @@ func TestLoginStopsWhenCaptchaFails(t *testing.T) {
 		Password:    "secret",
 		CaptchaID:   "cid",
 		CaptchaCode: "0000",
-	}, "10.0.0.1")
+	}, "10.0.0.1", "test-agent")
 	if !errors.Is(err, ErrCaptchaMismatch) {
 		t.Fatalf("期望 ErrCaptchaMismatch，实际 %v", err)
 	}
@@ -205,7 +205,7 @@ func TestLoginStopsWhenGuardLocked(t *testing.T) {
 	_, err := uc.Execute(context.Background(), &LoginInput{
 		Username: "admin",
 		Password: "secret",
-	}, "10.0.0.1")
+	}, "10.0.0.1", "test-agent")
 	if !errors.Is(err, ErrLoginLocked) {
 		t.Fatalf("期望 ErrLoginLocked，实际 %v", err)
 	}
@@ -220,7 +220,7 @@ func TestLoginStopsWhenRateLimited(t *testing.T) {
 	}
 
 	uc := NewLoginUsecase(&fakeUserService{}, &fakeAuthService{}, &fakeTokenService{}, &fakeCaptchaVerifier{}, guard)
-	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1")
+	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1", "test-agent")
 	if !errors.Is(err, ErrLoginRateLimited) {
 		t.Fatalf("期望 ErrLoginRateLimited，实际 %v", err)
 	}
@@ -230,7 +230,7 @@ func TestLoginFailsClosedWhenGuardUnavailable(t *testing.T) {
 	guard := &fakeLoginGuard{beforeErr: errors.New("redis down")}
 
 	uc := NewLoginUsecase(&fakeUserService{}, &fakeAuthService{}, &fakeTokenService{}, &fakeCaptchaVerifier{}, guard)
-	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1")
+	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1", "test-agent")
 	if !errors.Is(err, ErrLoginGuardUnavailable) {
 		t.Fatalf("期望 ErrLoginGuardUnavailable，实际 %v", err)
 	}
@@ -241,7 +241,7 @@ func TestLoginCountsInvalidCredential(t *testing.T) {
 	guard := &fakeLoginGuard{}
 
 	uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{}, &fakeCaptchaVerifier{}, guard)
-	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "wrong"}, "10.0.0.1")
+	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "wrong"}, "10.0.0.1", "test-agent")
 	if !errors.Is(err, usercontract.ErrInvalidCredential) {
 		t.Fatalf("期望 ErrInvalidCredential，实际 %v", err)
 	}
@@ -257,7 +257,7 @@ func TestLoginReturnsLockedWhenFailureTriggersLock(t *testing.T) {
 	}
 
 	uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{}, &fakeCaptchaVerifier{}, guard)
-	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "wrong"}, "10.0.0.1")
+	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "wrong"}, "10.0.0.1", "test-agent")
 	if !errors.Is(err, ErrLoginLocked) {
 		t.Fatalf("期望 ErrLoginLocked，实际 %v", err)
 	}
@@ -268,7 +268,7 @@ func TestLoginDisabledAccountDoesNotCountFailure(t *testing.T) {
 	guard := &fakeLoginGuard{}
 
 	uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{}, &fakeCaptchaVerifier{}, guard)
-	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1")
+	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1", "test-agent")
 	if !errors.Is(err, usercontract.ErrUserDisabled) {
 		t.Fatalf("期望 ErrUserDisabled，实际 %v", err)
 	}
@@ -282,7 +282,7 @@ func TestLoginInternalErrorDoesNotCountFailure(t *testing.T) {
 	guard := &fakeLoginGuard{}
 
 	uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{}, &fakeCaptchaVerifier{}, guard)
-	if _, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1"); err == nil {
+	if _, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1", "test-agent"); err == nil {
 		t.Fatal("内部错误应向上传播")
 	}
 	if guard.failureCalls != 0 || guard.successCalls != 0 {
@@ -299,7 +299,7 @@ func TestLoginIgnoresGuardResetFailure(t *testing.T) {
 	guard := &fakeLoginGuard{successErr: errors.New("redis down")}
 
 	uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{value: "tok"}, &fakeCaptchaVerifier{}, guard)
-	out, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1")
+	out, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1", "test-agent")
 	if err != nil {
 		t.Fatalf("清零失败不应阻断登录: %v", err)
 	}
@@ -319,7 +319,7 @@ func TestLoginKeepsFailureBudgetWhenIssueFails(t *testing.T) {
 	guard := &fakeLoginGuard{}
 
 	uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{err: errors.New("issue down")}, &fakeCaptchaVerifier{}, guard)
-	if _, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1"); err == nil {
+	if _, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1", "test-agent"); err == nil {
 		t.Fatal("签发令牌失败应向上传播")
 	}
 	if guard.successCalls != 0 {
@@ -344,7 +344,7 @@ func TestLoginRejectsOversizedInput(t *testing.T) {
 			guard := &fakeLoginGuard{}
 
 			uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{}, captcha, guard)
-			_, err := uc.Execute(context.Background(), &LoginInput{Username: tc.username, Password: tc.password}, "10.0.0.1")
+			_, err := uc.Execute(context.Background(), &LoginInput{Username: tc.username, Password: tc.password}, "10.0.0.1", "test-agent")
 			if !errors.Is(err, usercontract.ErrInvalidInput) {
 				t.Fatalf("期望 ErrInvalidInput，实际 %v", err)
 			}

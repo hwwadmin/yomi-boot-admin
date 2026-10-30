@@ -115,6 +115,43 @@ func TestEnsureCanManageUser(t *testing.T) {
 	}
 }
 
+func TestEnsureCanKickUser(t *testing.T) {
+	ctx := context.Background()
+	users := &fakeUserGetter{users: map[int64]*userentity.User{
+		1: {ID: 1, Status: userenums.UserStatusEnabled},
+		2: {ID: 2, Status: userenums.UserStatusEnabled},
+		3: {ID: 3, Status: userenums.UserStatusDisabled},
+		4: {ID: 4, Status: userenums.UserStatusEnabled},
+	}}
+	guard := New(users, &fakeSuperReader{userIDs: []int64{1, 2}}, &fakeLocker{})
+
+	// 超管踢另一名启用超管：放行
+	if err := guard.EnsureCanKickUser(ctx, 1, 2); err != nil {
+		t.Fatalf("超管踢超管应放行: %v", err)
+	}
+
+	// 普通管理员踢启用超管：拒绝
+	if err := guard.EnsureCanKickUser(ctx, 4, 1); !errors.Is(err, ErrKickSuperDenied) {
+		t.Fatalf("非超管踢超管期望 ErrKickSuperDenied，实际 %v", err)
+	}
+
+	// 已停用超管账号不再受保护，与停用/删除口径一致
+	if err := guard.EnsureCanKickUser(ctx, 4, 3); err != nil {
+		t.Fatalf("踢已停用超管账号不应受限: %v", err)
+	}
+
+	// 超管踢普通用户：放行
+	if err := guard.EnsureCanKickUser(ctx, 1, 4); err != nil {
+		t.Fatalf("超管踢普通用户应放行: %v", err)
+	}
+
+	// 唯一启用超管踢自己：放行（踢下线不等于移除超管）
+	guard = New(users, &fakeSuperReader{userIDs: []int64{1}}, &fakeLocker{})
+	if err := guard.EnsureCanKickUser(ctx, 1, 1); err != nil {
+		t.Fatalf("唯一超管踢自己应放行: %v", err)
+	}
+}
+
 func TestEnsureCanBindRoles(t *testing.T) {
 	ctx := context.Background()
 	users := &fakeUserGetter{users: map[int64]*userentity.User{

@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { Plus, Refresh, Search, User } from '@element-plus/icons-vue'
+import { Plus, Monitor, Refresh, Search, User } from '@element-plus/icons-vue'
 
 import { bindUserRoles, getUserRoles } from '@/api/rbac'
-import { createUser, deleteUser, getUserPage, resetUserPassword, updateUser } from '@/api/user'
-import type { RoleItem, UserItem, UserStatus } from '@/api/types'
+import {
+  createUser,
+  deleteUser,
+  getUserPage,
+  getUserSessions,
+  resetUserPassword,
+  revokeUserSession,
+  revokeUserSessions,
+  updateUser,
+} from '@/api/user'
+import type { RoleItem, UserItem, UserSessionItem, UserStatus } from '@/api/types'
 import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
 import { confirmAction } from '@/utils/confirm'
@@ -232,6 +241,77 @@ async function handleResetPassword() {
     resetPwdSubmitting.value = false
   }
 }
+
+// ———————— 在线会话 ————————
+const sessionDrawerVisible = ref(false)
+const sessionLoading = ref(false)
+const sessionKicking = ref(false)
+const sessionTarget = ref<UserItem | null>(null)
+const sessions = ref<UserSessionItem[]>([])
+const hasCurrentSession = computed(() => sessions.value.some((session) => session.current))
+
+function sessionName() {
+  return sessionTarget.value?.nickname || sessionTarget.value?.username || ''
+}
+
+async function fetchSessions() {
+  if (!sessionTarget.value) return
+  sessionLoading.value = true
+  try {
+    sessions.value = await getUserSessions(sessionTarget.value.id)
+  } finally {
+    sessionLoading.value = false
+  }
+}
+
+function openSessions(row: UserItem) {
+  sessionTarget.value = row
+  sessions.value = []
+  sessionDrawerVisible.value = true
+  fetchSessions()
+}
+
+async function handleRevokeSession(session: UserSessionItem) {
+  if (!sessionTarget.value || session.current) return
+  const confirmed = await confirmAction({
+    title: t('system.user.session.revokeConfirm.title'),
+    message: t('system.user.session.revokeConfirm.message', {
+      name: sessionName(),
+      ip: session.loginIp || '-',
+    }),
+    confirmButtonText: t('system.user.session.revokeConfirm.confirm'),
+  })
+  if (!confirmed) return
+  sessionKicking.value = true
+  try {
+    await revokeUserSession(sessionTarget.value.id, session.sessionId)
+    ElMessage.success(t('system.user.session.revoked'))
+    await fetchSessions()
+  } finally {
+    sessionKicking.value = false
+  }
+}
+
+async function handleRevokeAllSessions() {
+  if (!sessionTarget.value || !sessions.value.length || hasCurrentSession.value) return
+  const confirmed = await confirmAction({
+    title: t('system.user.session.revokeAllConfirm.title'),
+    message: t('system.user.session.revokeAllConfirm.message', {
+      name: sessionName(),
+      count: sessions.value.length,
+    }),
+    confirmButtonText: t('system.user.session.revokeAllConfirm.confirm'),
+  })
+  if (!confirmed) return
+  sessionKicking.value = true
+  try {
+    await revokeUserSessions(sessionTarget.value.id)
+    ElMessage.success(t('system.user.session.revokedAll'))
+    await fetchSessions()
+  } finally {
+    sessionKicking.value = false
+  }
+}
 </script>
 
 <template>
@@ -312,7 +392,7 @@ async function handleResetPassword() {
             {{ formatDateTime((row as UserItem).createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.actions')" width="290" fixed="right">
+        <el-table-column :label="t('common.field.actions')" width="350" fixed="right">
           <template #default="{ row }">
             <div class="table-actions">
               <el-button
@@ -330,6 +410,15 @@ async function handleResetPassword() {
                 @click="openRoleDialog(row as UserItem)"
               >
                 {{ t('system.user.actions.assignRoles') }}
+              </el-button>
+              <el-button
+                v-permission="'system:user:session:list'"
+                link
+                type="primary"
+                :icon="Monitor"
+                @click="openSessions(row as UserItem)"
+              >
+                {{ t('system.user.actions.sessions') }}
               </el-button>
               <el-button
                 v-permission="'system:user:reset-password'"
@@ -482,6 +571,98 @@ async function handleResetPassword() {
         </el-button>
       </template>
     </el-dialog>
+
+    <el-drawer
+      v-model="sessionDrawerVisible"
+      :title="t('system.user.session.title', { name: sessionName() })"
+      size="680px"
+    >
+      <div class="session-toolbar">
+        <div class="session-toolbar__actions">
+          <el-button :icon="Refresh" :loading="sessionLoading" @click="fetchSessions">
+            {{ t('system.user.session.refresh') }}
+          </el-button>
+          <el-tooltip
+            :disabled="!hasCurrentSession"
+            :content="t('system.user.session.currentHint')"
+            placement="top"
+          >
+            <span>
+              <el-button
+                v-permission="'system:user:session:revoke-all'"
+                type="danger"
+                plain
+                :loading="sessionKicking"
+                :disabled="!sessions.length || hasCurrentSession"
+                @click="handleRevokeAllSessions"
+              >
+                {{ t('system.user.session.revokeAll') }}
+              </el-button>
+            </span>
+          </el-tooltip>
+        </div>
+        <span class="session-count">
+          {{ t('system.user.session.count', { count: sessions.length }) }}
+        </span>
+      </div>
+
+      <el-table
+        v-loading="sessionLoading"
+        :data="sessions"
+        :empty-text="t('system.user.session.empty')"
+      >
+        <el-table-column :label="t('system.user.session.columns.loginIp')" min-width="130">
+          <template #default="{ row }">
+            <span>{{ (row as UserSessionItem).loginIp || '-' }}</span>
+            <el-tag
+              v-if="(row as UserSessionItem).current"
+              class="session-current"
+              type="success"
+              size="small"
+            >
+              {{ t('system.user.session.current') }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="userAgent"
+          :label="t('system.user.session.columns.client')"
+          min-width="220"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          :label="t('system.user.session.columns.loginAt')"
+          width="170"
+          class-name="table-time"
+        >
+          <template #default="{ row }">
+            {{ formatDateTime((row as UserSessionItem).loginAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="t('system.user.session.columns.expireAt')"
+          width="170"
+          class-name="table-time"
+        >
+          <template #default="{ row }">
+            {{ formatDateTime((row as UserSessionItem).expireAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('common.field.actions')" width="90" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              v-permission="'system:user:session:revoke'"
+              link
+              type="danger"
+              :disabled="(row as UserSessionItem).current || sessionKicking"
+              @click="handleRevokeSession(row as UserSessionItem)"
+            >
+              {{ t('system.user.session.revoke') }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-drawer>
   </div>
 </template>
 
@@ -509,5 +690,27 @@ async function handleResetPassword() {
   margin: 8px 0 0;
   color: var(--el-text-color-secondary);
   font-size: 12px;
+}
+
+.session-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.session-toolbar__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.session-count {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.session-current {
+  margin-left: 6px;
 }
 </style>

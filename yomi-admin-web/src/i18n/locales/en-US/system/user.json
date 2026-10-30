@@ -11,6 +11,7 @@
   "actions": {
     "edit": "Edit",
     "assignRoles": "Roles",
+    "sessions": "Sessions",
     "resetPassword": "Reset",
     "delete": "Delete"
   },
@@ -49,6 +50,34 @@
     "newPassword": "New password",
     "placeholder": "6-72 characters. The user must sign in again after the reset",
     "success": "Password reset. The user must sign in with the new password"
+  },
+  "session": {
+    "title": "Online sessions - {name}",
+    "refresh": "Refresh",
+    "revokeAll": "Revoke all",
+    "revoke": "Revoke",
+    "current": "Current",
+    "empty": "No active sessions for this user",
+    "count": "{count} session(s)",
+    "currentHint": "Revoking all includes the current session. Use sign out instead.",
+    "columns": {
+      "loginIp": "Login IP",
+      "client": "Client",
+      "loginAt": "Signed in",
+      "expireAt": "Expires"
+    },
+    "revokeConfirm": {
+      "title": "Revoke session",
+      "message": "Revoke the session of \"{name}\" at {ip}?",
+      "confirm": "Revoke"
+    },
+    "revokeAllConfirm": {
+      "title": "Revoke all sessions",
+      "message": "Revoke all {count} session(s) of \"{name}\"?",
+      "confirm": "Revoke all"
+    },
+    "revoked": "Session revoked",
+    "revokedAll": "All sessions revoked"
   },
   "validation": {
     "usernameRequired": "Please enter a username",

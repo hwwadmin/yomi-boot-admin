@@ -118,6 +118,9 @@ const permissions: MockPermission[] = [
   { id: 'p12', code: 'system:user:create', name: '创建用户', type: 'API', httpMethod: 'POST', httpPath: '/api/system/users', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p13', code: 'system:user:update', name: '更新用户', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/users/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p14', code: 'system:user:delete', name: '删除用户', type: 'API', httpMethod: 'DELETE', httpPath: '/api/system/users/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p16', code: 'system:user:session:list', name: '用户会话列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/user/session', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p17', code: 'system:user:session:revoke', name: '强制下线会话', type: 'API', httpMethod: 'POST', httpPath: '/api/system/user/session/revoke', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p18', code: 'system:user:session:revoke-all', name: '强制下线用户全部会话', type: 'API', httpMethod: 'POST', httpPath: '/api/system/user/session/revoke-all', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p21', code: 'system:role:list', name: '角色列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p22', code: 'system:role:detail', name: '角色详情', type: 'API', httpMethod: 'GET', httpPath: '/api/system/role/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p23', code: 'system:role:create', name: '创建角色', type: 'API', httpMethod: 'POST', httpPath: '/api/system/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
@@ -139,7 +142,7 @@ const permissions: MockPermission[] = [
 
 // ———————— 权限组 ————————
 const permissionGroups: MockPermissionGroup[] = [
-  { id: 'g1', code: 'system_user', name: '用户管理', status: 'ENABLED', remark: '用户菜单、用户 CRUD 与用户角色绑定', permissionIds: ['p1', 'p11', 'p12', 'p13', 'p14', 'p41', 'p42'], createTime: now(), updateTime: now() },
+  { id: 'g1', code: 'system_user', name: '用户管理', status: 'ENABLED', remark: '用户菜单、用户 CRUD、用户角色绑定与会话管理', permissionIds: ['p1', 'p11', 'p12', 'p13', 'p14', 'p41', 'p42', 'p16', 'p17', 'p18'], createTime: now(), updateTime: now() },
   { id: 'g2', code: 'system_role', name: '角色管理', status: 'ENABLED', remark: '角色菜单、角色 CRUD 与角色绑定权限组', permissionIds: ['p2', 'p21', 'p22', 'p23', 'p24', 'p25', 'p26'], createTime: now(), updateTime: now() },
   { id: 'g3', code: 'system_permission', name: '权限管理', status: 'ENABLED', remark: '权限目录与权限组的查看、维护', permissionIds: ['p3', 'p5', 'p31', 'p32', 'p61', 'p62', 'p63', 'p64', 'p65'], createTime: now(), updateTime: now() },
   { id: 'g4', code: 'system_http_record', name: '访问记录', status: 'ENABLED', remark: '访问记录菜单、列表与详情', permissionIds: ['p4', 'p51', 'p52'], createTime: now(), updateTime: now() },
@@ -190,6 +193,62 @@ const users: MockUser[] = Array.from({ length: 28 }, (_, index) => {
   }
 })
 let nextUserId = users.length + 1
+
+// ———————— 在线会话（mock） ————————
+interface MockUserSession {
+  sessionId: string
+  userId: string
+  username: string
+  nickname: string
+  clientType: string
+  loginIp: string
+  userAgent: string
+  loginAt: number
+  expireAt: number
+  current: boolean
+}
+
+const userSessions: MockUserSession[] = [
+  {
+    sessionId: 'mock-session-current',
+    userId: users[0]!.id,
+    username: users[0]!.username,
+    nickname: users[0]!.nickname,
+    clientType: 'admin',
+    loginIp: '127.0.0.1',
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36',
+    loginAt: now() - 15 * 60_000,
+    expireAt: now() + 105 * 60_000,
+    current: true,
+  },
+  {
+    sessionId: 'mock-session-phone',
+    userId: users[0]!.id,
+    username: users[0]!.username,
+    nickname: users[0]!.nickname,
+    clientType: 'admin',
+    loginIp: '192.168.1.24',
+    userAgent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+    loginAt: now() - 40 * 60_000,
+    expireAt: now() + 80 * 60_000,
+    current: false,
+  },
+  {
+    sessionId: 'mock-session-user002',
+    userId: users[1]!.id,
+    username: users[1]!.username,
+    nickname: users[1]!.nickname,
+    clientType: 'admin',
+    loginIp: '10.0.0.8',
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36',
+    loginAt: now() - 5 * 60_000,
+    expireAt: now() + 115 * 60_000,
+    current: false,
+  },
+]
 
 // ———————— 访问记录 ————————
 const httpRecordSeeds = [
@@ -457,6 +516,75 @@ const routes: MockRoute[] = [
     handler: async ({ req, res }) => {
       const token = bearerToken(req)
       if (token) tokenToUsername.delete(token)
+      sendJson(res, ok(null))
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/system\/user$/,
+    handler: async ({ req, res, query }) => {
+      await delay(80)
+      if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const keyword = (query.get('keyword') ?? '').trim().toLowerCase()
+      const filtered = users.filter(
+        (user) =>
+          !keyword ||
+          user.username.toLowerCase().includes(keyword) ||
+          user.nickname.toLowerCase().includes(keyword),
+      )
+      sendJson(res, paginate(filtered.map(userView), query))
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/system\/user\/session$/,
+    handler: async ({ req, res, query }) => {
+      await delay(80)
+      const current = currentUser(req)
+      if (!current) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const userId = (query.get('userId') ?? '').trim()
+      const items = userSessions
+        .filter((session) => session.userId === userId)
+        .map((session) => ({ ...session, current: session.current && current.id === userId }))
+      sendJson(res, ok(items))
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/system\/user\/session\/revoke$/,
+    handler: async ({ req, res }) => {
+      await delay(120)
+      const current = currentUser(req)
+      if (!current) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const body = await readBody(req)
+      const userId = String(body.userId ?? '')
+      const sessionId = String(body.sessionId ?? '')
+      const index = userSessions.findIndex(
+        (session) => session.userId === userId && session.sessionId === sessionId,
+      )
+      if (index === -1) return sendJson(res, ok(null))
+      if (current.id === userId && userSessions[index]!.current) {
+        return sendJson(res, fail('不能操作当前登录账号', 'ADMIN_CANNOT_OPERATE_SELF'))
+      }
+      userSessions.splice(index, 1)
+      sendJson(res, ok(null))
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/system\/user\/session\/revoke-all$/,
+    handler: async ({ req, res }) => {
+      await delay(120)
+      const current = currentUser(req)
+      if (!current) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const body = await readBody(req)
+      const userId = String(body.userId ?? '')
+      if (userId === current.id) {
+        return sendJson(res, fail('不能操作当前登录账号', 'ADMIN_CANNOT_OPERATE_SELF'))
+      }
+      for (let i = userSessions.length - 1; i >= 0; i -= 1) {
+        if (userSessions[i]!.userId === userId) userSessions.splice(i, 1)
+      }
       sendJson(res, ok(null))
     },
   },

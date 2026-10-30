@@ -194,6 +194,13 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 	registerHttpRecordHandler(slot, c.records.Records)
 	guard := superadmin.New(c.users.Users, c.rbac.Admin, newSuperAdminLocker(c.lock))
 
+	// 会话管理依赖基础库的 ListByUserID：它已由 *token.Service 实现，但尚未进入
+	// TokenService 接口，这里做能力断言桥接；缺失时启动即失败，避免运行期才 500。
+	sessionTokens, ok := c.token.(userusecase.SessionTokens)
+	if !ok {
+		panic("yomi-admin: 当前 yomi-boot token 服务未提供 ListByUserID，无法启用用户会话管理")
+	}
+
 	registrars := []router.Registrar{
 		corehandler.NewHealthHandler("/api/v1/health", "/api/v1/health/ops", c.appCtx),
 		apphandler.NewAuthHandler(
@@ -212,6 +219,11 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 			userusecase.NewResetUserPasswordUsecase(c.users.Users, guard, c.token),
 			rbacusecase.NewGetUserRolesUsecase(c.users.Users, c.rbac.Admin),
 			rbacusecase.NewBindUserRolesUsecase(c.rbac.Admin, guard, c.tx),
+		),
+		apphandler.NewUserSessionHandler(
+			userusecase.NewListUserSessionsUsecase(sessionTokens),
+			userusecase.NewRevokeUserSessionUsecase(sessionTokens, guard),
+			userusecase.NewRevokeUserSessionsUsecase(sessionTokens, guard),
 		),
 		apphandler.NewRoleHandler(
 			rbacusecase.NewPageRolesUsecase(c.rbac.Admin),

@@ -21,3 +21,9 @@ var ErrTokenRevokeFailed = errors.NewBiz("ADMIN_TOKEN_REVOKE_FAILED",
 // 原密码不匹配而失败，用户该做的是重新登录。
 var ErrPasswordChangedTokenRevokeFailed = errors.NewBiz("ADMIN_PASSWORD_CHANGED_TOKEN_REVOKE_FAILED",
 	"密码已修改，但旧登录状态未完全撤销，请重新登录")
+
+// ErrSessionRevokeFailed 强制下线会话时，令牌撤销重试后仍失败。
+//
+// 与 ErrTokenRevokeFailed 的区别：账号状态没有变化，重试踢人即可，不涉及改密或停用。
+var ErrSessionRevokeFailed = errors.NewBiz("ADMIN_SESSION_REVOKE_FAILED",
+	"会话未撤销成功，请重试")

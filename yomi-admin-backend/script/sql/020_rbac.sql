@@ -146,6 +146,14 @@ VALUES (100000000000001014, 'system:user:delete', '删除用户', 'API', NULL, '
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001015, 'system:user:reset-password', '重置用户密码', 'API', NULL, 'POST', '/api/system/user/reset-password', 'ENABLED');
 
+-- 用户会话接口权限：挂在用户管理页的抽屉里，随用户菜单一起授予
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001016, 'system:user:session:list', '用户会话列表', 'API', NULL, 'GET', '/api/system/user/session', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001017, 'system:user:session:revoke', '强制下线会话', 'API', NULL, 'POST', '/api/system/user/session/revoke', 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000001018, 'system:user:session:revoke-all', '强制下线用户全部会话', 'API', NULL, 'POST', '/api/system/user/session/revoke-all', 'ENABLED');
+
 -- 角色接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001021, 'system:role:list', '角色列表', 'API', NULL, 'GET', '/api/system/role', 'ENABLED');
@@ -252,6 +260,13 @@ VALUES (100000000000005007, 100000000000003001, 100000000000001042);
 -- 重置密码按钮归入用户管理组；实际执行仍被后端限制为启用态超管
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
 VALUES (100000000000005008, 100000000000003001, 100000000000001015);
+-- 会话查看与下线归入用户管理组：能停用用户的人本来就能撤销其全部令牌，不构成额外提权
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005091, 100000000000003001, 100000000000001016);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005092, 100000000000003001, 100000000000001017);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005093, 100000000000003001, 100000000000001018);
 
 -- 角色管理组
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)

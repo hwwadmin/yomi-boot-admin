@@ -70,8 +70,9 @@ func (h *AuthHandler) login(c *gin.Context) {
 		return
 	}
 	clientIP := ginutil.ClientIP(c)
+	userAgent := c.GetHeader("User-Agent")
 	handle(c, func(ctx context.Context) (*authusecase.LoginOutput, error) {
-		return h.loginUC.Execute(ctx, in, clientIP)
+		return h.loginUC.Execute(ctx, in, clientIP, userAgent)
 	})
 }
 

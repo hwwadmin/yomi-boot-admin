@@ -19,6 +19,8 @@ import (
 const (
 	// maxLoginUsernameBytes 与用户表 username 列宽（VARCHAR(64)）一致
 	maxLoginUsernameBytes = 64
+	// maxUserAgentBytes 是写入令牌上下文的 User-Agent 上限，避免异常长头撑大会话快照
+	maxUserAgentBytes = 512
 )
 
 // captchaVerifier 校验登录图像验证码
@@ -79,7 +81,7 @@ func validateLoginInput(in *LoginInput) error {
 }
 
 // Execute 编排登录
-func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP string) (*LoginOutput, error) {
+func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP, userAgent string) (*LoginOutput, error) {
 	if err := validateLoginInput(in); err != nil {
 		return nil, err
 	}
@@ -128,9 +130,11 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP st
 	session := &token.TokenSession{
 		UserID:     out.User.ID,
 		ClientType: "admin",
+		LoginIP:    clientIP,
 	}
 	session.SetContextValue("username", out.User.Username)
 	session.SetContextValue("nickname", out.User.Nickname)
+	session.SetContextValue("user_agent", truncateUserAgent(userAgent))
 
 	tokenValue, err := uc.token.Issue(ctx, session)
 	if err != nil {
@@ -144,4 +148,12 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP st
 	}
 
 	return &LoginOutput{Token: tokenValue, User: identity}, nil
+}
+
+// truncateUserAgent 按字节截断 User-Agent；仅用于会话展示，不参与鉴权判断
+func truncateUserAgent(userAgent string) string {
+	if len(userAgent) <= maxUserAgentBytes {
+		return userAgent
+	}
+	return userAgent[:maxUserAgentBytes]
 }

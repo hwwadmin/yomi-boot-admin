@@ -114,6 +114,30 @@ export type UserPayload = Omit<UserItem, 'id' | 'createdAt' | 'roles'>
 /** 新增用户时的请求体（后端要求设置初始密码） */
 export type CreateUserPayload = UserPayload & { password: string }
 
+/** 用户在线会话 */
+export interface UserSessionItem {
+  /** 令牌的 SHA-256 摘要，不是明文令牌 */
+  sessionId: string
+  /** 会话所属用户（雪花 ID 字符串） */
+  userId: string
+  /** 登录时的用户名快照 */
+  username: string
+  /** 登录时的昵称快照 */
+  nickname: string
+  /** 端类型，如 admin */
+  clientType: string
+  /** 登录 IP */
+  loginIp: string
+  /** 登录时的 User-Agent */
+  userAgent: string
+  /** 登录时间（Unix 毫秒） */
+  loginAt: number
+  /** 到期时间（Unix 毫秒） */
+  expireAt: number
+  /** 是否调用者当前使用的会话 */
+  current: boolean
+}
+
 /** 权限类型 */
 export type PermissionType = 'MENU' | 'API'
 

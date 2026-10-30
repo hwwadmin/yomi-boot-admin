@@ -261,6 +261,62 @@ paths:
             schema: { $ref: '#/components/schemas/BindUserRolesRequest' }
       responses:
         '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/user/session:
+    get:
+      tags: [用户]
+      operationId: listUserSessions
+      summary: 查询用户在线会话
+      description: |
+        返回指定用户当前有效的会话；会话 ID 是 token 的 SHA-256 摘要，不是明文令牌。
+        没有会话时返回空数组。
+      parameters:
+        - { $ref: '#/components/parameters/UserId' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data:
+                            type: array
+                            items: { $ref: '#/components/schemas/UserSessionItem' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/user/session/revoke:
+    post:
+      tags: [用户]
+      operationId: revokeUserSession
+      summary: 强制下线用户会话
+      description: |
+        撤销指定用户的单个会话。会话不属于该用户或已过期时按幂等成功处理；
+        不能下线自己的当前会话；目标是启用态超管时操作者也必须是启用态超管。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RevokeUserSessionRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/user/session/revoke-all:
+    post:
+      tags: [用户]
+      operationId: revokeUserSessions
+      summary: 强制下线用户全部会话
+      description: |
+        撤销指定用户的全部会话。不能对操作者自己执行；
+        目标是启用态超管时操作者也必须是启用态超管。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RevokeUserSessionsRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
   /api/system/role:
     get:
       tags: [角色]
@@ -1014,6 +1070,31 @@ components:
           type: array
           items: { $ref: '#/components/schemas/RoleBrief' }
         createdAt: { type: integer, format: int64, description: 创建时间（Unix 毫秒） }
+    UserSessionItem:
+      type: object
+      required: [sessionId, userId, username, nickname, clientType, loginIp, userAgent, loginAt, expireAt, current]
+      properties:
+        sessionId: { type: string, description: 令牌的 SHA-256 摘要，不是明文令牌 }
+        userId: { type: string, description: 雪花 ID }
+        username: { type: string, description: 登录时的用户名快照 }
+        nickname: { type: string, description: 登录时的昵称快照 }
+        clientType: { type: string, description: 端类型，如 admin }
+        loginIp: { type: string, description: 登录 IP }
+        userAgent: { type: string, description: 登录时的 User-Agent }
+        loginAt: { type: integer, format: int64, description: 登录时间（Unix 毫秒） }
+        expireAt: { type: integer, format: int64, description: 到期时间（Unix 毫秒） }
+        current: { type: boolean, description: 是否调用者当前使用的会话 }
+    RevokeUserSessionRequest:
+      type: object
+      required: [userId, sessionId]
+      properties:
+        userId: { type: string, description: 目标用户 ID（雪花 ID 字符串） }
+        sessionId: { type: string, description: 会话 ID（token 的 SHA-256 摘要） }
+    RevokeUserSessionsRequest:
+      type: object
+      required: [userId]
+      properties:
+        userId: { type: string, description: 目标用户 ID（雪花 ID 字符串），不能是自己 }
     UserRolesOutput:
       type: object
       description: 用户角色绑定视图

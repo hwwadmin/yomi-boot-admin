@@ -101,6 +101,25 @@ func (g *Guard) EnsureCanResetPassword(ctx context.Context, operatorID int64) er
 	return nil
 }
 
+// EnsureCanKickUser 校验操作者能否强制下线目标用户的会话。
+//
+// 规则：目标是启用态超管时，操作者也必须是启用态超管。
+// 与 EnsureCanManageUser 的区别：踢下线不改变超管集合，因此不加"最后一名超管"限制，
+// 也不需要持锁。
+func (g *Guard) EnsureCanKickUser(ctx context.Context, operatorID, targetUserID int64) error {
+	enabledSupers, err := g.enabledSuperUserIDs(ctx)
+	if err != nil {
+		return err
+	}
+
+	if _, targetSuper := enabledSupers[targetUserID]; targetSuper {
+		if _, actorSuper := enabledSupers[operatorID]; !actorSuper {
+			return errors.Sentinel(ErrKickSuperDenied)
+		}
+	}
+	return nil
+}
+
 // EnsureCanBindRoles 校验本次用户角色变更是否允许。
 //
 // 必须在 WithLock 内调用，且锁需覆盖后续写入与提交。
