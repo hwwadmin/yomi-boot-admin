@@ -103,19 +103,9 @@ func (s *UserService) Create(ctx context.Context, in *input.CreateUserInput) (*e
 		return nil, err
 	}
 
-	nickname := strings.TrimSpace(in.Nickname)
-	if nickname == "" || utf8.RuneCountInString(nickname) > maxNicknameRunes {
-		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
-	}
-
-	email := strings.TrimSpace(in.Email)
-	if email != "" && !validateutil.IsValidEmail(email) {
-		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
-	}
-
-	phone := strings.TrimSpace(in.Phone)
-	if phone != "" && !validateutil.IsValidPhone(phone) {
-		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	nickname, email, phone, err := normalizeProfile(in.Nickname, in.Email, in.Phone)
+	if err != nil {
+		return nil, err
 	}
 
 	if !enums.IsValidUserStatus(in.Status) {
@@ -166,19 +156,9 @@ func (s *UserService) Update(ctx context.Context, in *input.UpdateUserInput) err
 		return errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 
-	nickname := strings.TrimSpace(in.Nickname)
-	if nickname == "" || utf8.RuneCountInString(nickname) > maxNicknameRunes {
-		return errors.Sentinel(service_contract.ErrInvalidInput)
-	}
-
-	email := strings.TrimSpace(in.Email)
-	if email != "" && !validateutil.IsValidEmail(email) {
-		return errors.Sentinel(service_contract.ErrInvalidInput)
-	}
-
-	phone := strings.TrimSpace(in.Phone)
-	if phone != "" && !validateutil.IsValidPhone(phone) {
-		return errors.Sentinel(service_contract.ErrInvalidInput)
+	nickname, email, phone, err := normalizeProfile(in.Nickname, in.Email, in.Phone)
+	if err != nil {
+		return err
 	}
 
 	user, found, err := s.users.FindByID(ctx, in.ID)
@@ -194,6 +174,34 @@ func (s *UserService) Update(ctx context.Context, in *input.UpdateUserInput) err
 	user.Phone = phone
 	user.Status = in.Status
 	return s.users.Update(ctx, user, in.OperatorID)
+}
+
+// UpdateProfile 更新用户自身资料，不改变用户名与状态
+func (s *UserService) UpdateProfile(ctx context.Context, in *input.UpdateProfileInput) (*entity.User, error) {
+	if in.ID <= 0 {
+		return nil, errors.Sentinel(service_contract.ErrUserNotFound)
+	}
+
+	nickname, email, phone, err := normalizeProfile(in.Nickname, in.Email, in.Phone)
+	if err != nil {
+		return nil, err
+	}
+
+	user, found, err := s.users.FindByID(ctx, in.ID)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, errors.Sentinel(service_contract.ErrUserNotFound)
+	}
+
+	user.Nickname = nickname
+	user.Email = email
+	user.Phone = phone
+	if err := s.users.Update(ctx, user, in.OperatorID); err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 // Delete 软删除用户；调用方负责最后一名超管与自操作校验
@@ -269,6 +277,26 @@ func (s *UserService) ResetPassword(ctx context.Context, in *input.ResetPassword
 		return err
 	}
 	return s.users.UpdatePassword(ctx, in.ID, passwordHash, in.OperatorID)
+}
+
+// normalizeProfile 统一裁剪并校验昵称、邮箱与手机号
+func normalizeProfile(nickname, email, phone string) (string, string, string, error) {
+	nickname = strings.TrimSpace(nickname)
+	if nickname == "" || utf8.RuneCountInString(nickname) > maxNicknameRunes {
+		return "", "", "", errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	email = strings.TrimSpace(email)
+	if email != "" && !validateutil.IsValidEmail(email) {
+		return "", "", "", errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	phone = strings.TrimSpace(phone)
+	if phone != "" && !validateutil.IsValidPhone(phone) {
+		return "", "", "", errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+
+	return nickname, email, phone, nil
 }
 
 // validatePassword 校验密码长度：下限按业务设定，上限取自 bcrypt 的 72 字节

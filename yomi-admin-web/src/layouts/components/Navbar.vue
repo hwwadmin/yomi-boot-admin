@@ -11,6 +11,7 @@ import {
   Moon,
   Sunny,
   SwitchButton,
+  User,
 } from '@element-plus/icons-vue'
 
 import { changePassword as changePasswordApi, logout as logoutApi } from '@/api/auth'
@@ -28,6 +29,10 @@ const { t } = useI18n()
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 
 async function handleCommand(command: string) {
+  if (command === 'profile') {
+    openProfile()
+    return
+  }
   if (command === 'change-password') {
     openChangePassword()
     return
@@ -104,6 +109,50 @@ async function handleChangePassword() {
     // 失败提示由 request 拦截器统一处理；改密失败保持当前登录态
   } finally {
     changePwdSubmitting.value = false
+  }
+}
+
+// ———————— 个人资料 ————————
+const profileVisible = ref(false)
+const profileSubmitting = ref(false)
+const profileRef = ref<FormInstance>()
+const profileForm = reactive({ nickname: '', email: '', phone: '' })
+
+const profileRoles = computed(() => userStore.userInfo?.roles ?? [])
+
+const profileRules = computed<FormRules>(() => ({
+  nickname: [
+    { required: true, message: t('layout.profile.validation.nicknameRequired'), trigger: 'blur' },
+  ],
+  email: [{ type: 'email', message: t('validation.email'), trigger: 'blur' }],
+  phone: [{ pattern: /^1\d{10}$/, message: t('validation.phone'), trigger: 'blur' }],
+}))
+
+function openProfile() {
+  Object.assign(profileForm, {
+    nickname: userStore.userInfo?.nickname ?? '',
+    email: userStore.userInfo?.email ?? '',
+    phone: userStore.userInfo?.phone ?? '',
+  })
+  profileVisible.value = true
+}
+
+async function handleUpdateProfile() {
+  const valid = await profileRef.value?.validate().catch(() => false)
+  if (!valid) return
+  profileSubmitting.value = true
+  try {
+    await userStore.updateProfile({
+      nickname: profileForm.nickname.trim(),
+      email: profileForm.email.trim(),
+      phone: profileForm.phone.trim(),
+    })
+    ElMessage.success(t('layout.profile.success'))
+    profileVisible.value = false
+  } catch {
+    // 失败提示由 request 拦截器统一处理；保存失败时保持弹窗与已填内容
+  } finally {
+    profileSubmitting.value = false
   }
 }
 </script>
@@ -183,6 +232,9 @@ async function handleChangePassword() {
         </span>
         <template #dropdown>
           <el-dropdown-menu>
+            <el-dropdown-item command="profile" :icon="User">
+              {{ t('layout.menu.profile') }}
+            </el-dropdown-item>
             <el-dropdown-item command="change-password" :icon="Key">
               {{ t('layout.menu.changePassword') }}
             </el-dropdown-item>
@@ -193,6 +245,75 @@ async function handleChangePassword() {
         </template>
       </el-dropdown>
     </div>
+
+    <el-dialog
+      v-model="profileVisible"
+      :title="t('layout.profile.title')"
+      width="480px"
+      :close-on-click-modal="false"
+      @closed="profileRef?.clearValidate()"
+    >
+      <div class="profile-summary">
+        <el-avatar :size="52" class="user-avatar">
+          {{ userStore.userInfo?.nickname?.charAt(0) || 'U' }}
+        </el-avatar>
+        <div class="profile-summary-text">
+          <span class="profile-summary-name">{{ userStore.userInfo?.nickname }}</span>
+          <span class="profile-summary-account">@{{ userStore.userInfo?.username }}</span>
+        </div>
+      </div>
+      <el-form
+        ref="profileRef"
+        :model="profileForm"
+        :rules="profileRules"
+        label-width="auto"
+        :validate-on-rule-change="false"
+      >
+        <el-form-item :label="t('common.field.nickname')" prop="nickname">
+          <el-input
+            v-model="profileForm.nickname"
+            maxlength="32"
+            :placeholder="t('layout.profile.nicknamePlaceholder')"
+          />
+        </el-form-item>
+        <el-form-item :label="t('common.field.email')" prop="email">
+          <el-input
+            v-model="profileForm.email"
+            maxlength="64"
+            :placeholder="t('layout.profile.emailPlaceholder')"
+          />
+        </el-form-item>
+        <el-form-item :label="t('common.field.phone')" prop="phone">
+          <el-input
+            v-model="profileForm.phone"
+            maxlength="11"
+            :placeholder="t('layout.profile.phonePlaceholder')"
+          />
+        </el-form-item>
+        <el-form-item :label="t('common.field.role')">
+          <div class="profile-roles">
+            <el-tag
+              v-for="role in profileRoles"
+              :key="role.code"
+              :type="role.status === 'ENABLED' ? 'primary' : 'info'"
+              effect="light"
+              size="small"
+            >
+              {{ role.name }}
+            </el-tag>
+            <span v-if="profileRoles.length === 0" class="profile-empty">
+              {{ t('common.none') }}
+            </span>
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="profileVisible = false">{{ t('common.action.cancel') }}</el-button>
+        <el-button type="primary" :loading="profileSubmitting" @click="handleUpdateProfile">
+          {{ t('common.action.save') }}
+        </el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog
       v-model="changePwdVisible"
@@ -344,6 +465,51 @@ async function handleChangePassword() {
 
 .user-caret {
   color: var(--app-text-3);
+}
+
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+}
+
+.profile-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-summary-name {
+  overflow: hidden;
+  color: var(--app-text-1);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-summary-account {
+  color: var(--app-text-3);
+  font-size: 12px;
+}
+
+.profile-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-height: 24px;
+}
+
+.profile-empty {
+  color: var(--app-text-3);
+  font-size: 13px;
 }
 
 .form-hint {

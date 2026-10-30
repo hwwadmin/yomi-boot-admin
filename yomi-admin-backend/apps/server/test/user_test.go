@@ -39,7 +39,12 @@ func TestProfileAndUserCRUD(t *testing.T) {
 		Username    string   `json:"username"`
 		Nickname    string   `json:"nickname"`
 		Permissions []string `json:"permissions"`
-		Menus       []struct {
+		Roles       []struct {
+			Code   string `json:"code"`
+			Name   string `json:"name"`
+			Status string `json:"status"`
+		} `json:"roles"`
+		Menus []struct {
 			Code   string `json:"code"`
 			Name   string `json:"name"`
 			UIPath string `json:"uiPath"`
@@ -48,7 +53,8 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	if err := json.Unmarshal(profile.Data, &profileData); err != nil {
 		t.Fatalf("解析 profile 失败: %v body=%s", err, body)
 	}
-	if profileData.Username != adminUsername || len(profileData.Permissions) == 0 || len(profileData.Menus) == 0 {
+	if profileData.Username != adminUsername || len(profileData.Permissions) == 0 ||
+		len(profileData.Roles) == 0 || len(profileData.Menus) == 0 {
 		t.Fatalf("profile 内容不符合预期: %+v", profileData)
 	}
 
@@ -135,6 +141,70 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	page = parsePage[userItem](t, body)
 	if page.Total != 0 {
 		t.Fatalf("软删除后仍能查到用户: %s", body)
+	}
+}
+
+func TestUpdateOwnProfile(t *testing.T) {
+	requireServer(t)
+	token := login(t, adminUsername, adminPassword)
+
+	body, ok := testclient.Get(API("/auth/profile"), token)
+	if !ok {
+		t.Fatalf("profile 不可达: %s", body)
+	}
+	profile := parseSuccess(t, body)
+	var before struct {
+		Nickname string `json:"nickname"`
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
+	}
+	if err := json.Unmarshal(profile.Data, &before); err != nil {
+		t.Fatalf("解析 profile 失败: %v body=%s", err, body)
+	}
+	defer func() {
+		body, ok := testclient.Post(API("/auth/profile"), token, map[string]any{
+			"nickname": before.Nickname,
+			"email":    before.Email,
+			"phone":    before.Phone,
+		})
+		if !ok {
+			t.Fatalf("恢复管理员资料不可达: %s", body)
+		}
+	}()
+
+	body, ok = testclient.Post(API("/auth/profile"), token, map[string]any{
+		"nickname": "资料更新测试",
+		"email":    "profile@example.com",
+		"phone":    "13900139001",
+	})
+	if !ok {
+		t.Fatalf("更新个人资料接口不可达: %s", body)
+	}
+	updated := parseSuccess(t, body)
+	var after struct {
+		Username string `json:"username"`
+		Nickname string `json:"nickname"`
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
+	}
+	if err := json.Unmarshal(updated.Data, &after); err != nil {
+		t.Fatalf("解析更新结果失败: %v body=%s", err, body)
+	}
+	if after.Username != adminUsername || after.Nickname != "资料更新测试" ||
+		after.Email != "profile@example.com" || after.Phone != "13900139001" {
+		t.Fatalf("个人资料更新结果不符合预期: %+v", after)
+	}
+
+	body, ok = testclient.Get(API("/auth/profile"), token)
+	if !ok {
+		t.Fatalf("更新后 profile 不可达: %s", body)
+	}
+	profile = parseSuccess(t, body)
+	if err := json.Unmarshal(profile.Data, &after); err != nil {
+		t.Fatalf("解析更新后 profile 失败: %v body=%s", err, body)
+	}
+	if after.Nickname != "资料更新测试" || after.Email != "profile@example.com" {
+		t.Fatalf("个人资料未持久化: %+v", after)
 	}
 }
 

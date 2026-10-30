@@ -396,6 +396,13 @@ function identity(user: MockUser) {
   return {
     username: user.username,
     nickname: user.nickname,
+    email: user.email,
+    phone: user.phone,
+    roles: user.roles.map((role) => ({
+      code: role.code,
+      name: role.name,
+      status: role.status,
+    })),
     permissions: grantedCodes(user),
     menus: visibleMenus(user).map((item) => ({
       code: item.code,
@@ -507,6 +514,32 @@ const routes: MockRoute[] = [
       await delay(80)
       const user = currentUser(req)
       if (!user) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      sendJson(res, ok(identity(user)))
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/auth\/profile$/,
+    handler: async ({ req, res }) => {
+      await delay(120)
+      const user = currentUser(req)
+      if (!user) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
+      const body = await readBody(req)
+      const nickname = String(body.nickname ?? '').trim()
+      const email = String(body.email ?? '').trim()
+      const phone = String(body.phone ?? '').trim()
+      if (!nickname || nickname.length > 32) {
+        return sendJson(res, fail('用户参数不合法', 'ADMIN_INVALID_INPUT'))
+      }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return sendJson(res, fail('用户参数不合法', 'ADMIN_INVALID_INPUT'))
+      }
+      if (phone && !/^1\d{10}$/.test(phone)) {
+        return sendJson(res, fail('用户参数不合法', 'ADMIN_INVALID_INPUT'))
+      }
+      user.nickname = nickname
+      user.email = email
+      user.phone = phone
       sendJson(res, ok(identity(user)))
     },
   },

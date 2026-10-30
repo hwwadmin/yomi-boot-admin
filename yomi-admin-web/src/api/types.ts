@@ -67,6 +67,13 @@ export interface ChangePasswordPayload {
   newPassword: string
 }
 
+/** 更新自身资料请求体；用户名与状态不可修改 */
+export interface UpdateProfilePayload {
+  nickname: string
+  email: string
+  phone: string
+}
+
 /** 菜单视图 */
 export interface MenuItem {
   code: string
@@ -74,10 +81,21 @@ export interface MenuItem {
   uiPath: string
 }
 
+/** 当前登录用户的角色摘要 */
+export interface IdentityRole {
+  code: string
+  name: string
+  status: Status
+}
+
 /** 当前登录用户信息 */
 export interface UserInfo {
   username: string
   nickname: string
+  email: string
+  phone: string
+  /** 已绑角色，含停用角色 */
+  roles: IdentityRole[]
   /** 权限编码列表，'*' 表示全部权限 */
   permissions: string[]
   /** 可见菜单，用于过滤侧栏与页面访问 */

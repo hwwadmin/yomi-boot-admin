@@ -2,8 +2,8 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
 
-import { getProfile, login as loginApi } from '@/api/auth'
-import type { UserInfo } from '@/api/types'
+import { getProfile, login as loginApi, updateProfile as updateProfileApi } from '@/api/auth'
+import type { UpdateProfilePayload, UserInfo } from '@/api/types'
 
 const TOKEN_KEY = 'yomi:token'
 
@@ -25,11 +25,16 @@ export const useUserStore = defineStore('user', () => {
     userInfo.value = await getProfile()
   }
 
+  /** 更新当前登录用户资料，并用后端返回的身份信息覆盖本地状态 */
+  async function updateProfile(data: UpdateProfilePayload) {
+    userInfo.value = await updateProfileApi(data)
+  }
+
   /** 清空登录态；跳转由调用方或响应拦截器负责 */
   function reset() {
     token.value = ''
     userInfo.value = null
   }
 
-  return { token, userInfo, permissions, login, fetchProfile, reset }
+  return { token, userInfo, permissions, login, fetchProfile, updateProfile, reset }
 })

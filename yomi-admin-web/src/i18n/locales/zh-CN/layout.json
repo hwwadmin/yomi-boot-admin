@@ -21,8 +21,19 @@
     "fallbackName": "未登录"
   },
   "menu": {
+    "profile": "个人资料",
     "changePassword": "修改密码",
     "logout": "退出登录"
+  },
+  "profile": {
+    "title": "个人资料",
+    "nicknamePlaceholder": "请输入昵称",
+    "emailPlaceholder": "请输入邮箱",
+    "phonePlaceholder": "请输入手机号",
+    "success": "个人资料已更新",
+    "validation": {
+      "nicknameRequired": "请输入昵称"
+    }
   },
   "logout": {
     "confirmTitle": "提示",

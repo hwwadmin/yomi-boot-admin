@@ -63,6 +63,23 @@ func (s *RbacAuthService) ListPermissionCodes(ctx context.Context, userID int64)
 	return s.listPermissionCodesFromSQL(ctx, userID)
 }
 
+// ListRoles 列出用户已绑角色（含停用），用于身份视图展示
+func (s *RbacAuthService) ListRoles(ctx context.Context, userID int64) ([]*entity.Role, error) {
+	if userID <= 0 {
+		return []*entity.Role{}, nil
+	}
+
+	rolesByUser, err := s.repo.ListRolesByUserIDs(ctx, []int64{userID})
+	if err != nil {
+		return nil, err
+	}
+	roles := rolesByUser[userID]
+	if roles == nil {
+		return []*entity.Role{}, nil
+	}
+	return roles, nil
+}
+
 // loadSnapshot 读取授权投影；未启用或读取失败时返回 false 由调用方降级
 func (s *RbacAuthService) loadSnapshot(ctx context.Context) (*snapshot.Snapshot, bool) {
 	if s.projection == nil {

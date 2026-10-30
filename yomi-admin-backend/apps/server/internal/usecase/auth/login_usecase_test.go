@@ -37,11 +37,16 @@ func (f *fakeUserService) Authenticate(_ context.Context, in *userinput.Authenti
 type fakeAuthService struct {
 	rbaccontract.RbacAuthService
 	permissions []string
+	roles       []*rbacentity.Role
 	menus       []*rbacentity.Permission
 }
 
 func (f *fakeAuthService) ListPermissionCodes(context.Context, int64) ([]string, error) {
 	return f.permissions, nil
+}
+
+func (f *fakeAuthService) ListRoles(context.Context, int64) ([]*rbacentity.Role, error) {
+	return f.roles, nil
 }
 
 func (f *fakeAuthService) ListMenus(context.Context, int64) ([]*rbacentity.Permission, error) {

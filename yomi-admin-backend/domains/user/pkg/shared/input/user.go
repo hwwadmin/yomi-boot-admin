@@ -37,6 +37,15 @@ type UpdateUserInput struct {
 	OperatorID int64
 }
 
+// UpdateProfileInput 更新自身资料入参；用户名与状态不可变
+type UpdateProfileInput struct {
+	ID         int64
+	Nickname   string
+	Email      string
+	Phone      string
+	OperatorID int64
+}
+
 // DeleteUserInput 删除用户入参
 type DeleteUserInput struct {
 	ID         int64

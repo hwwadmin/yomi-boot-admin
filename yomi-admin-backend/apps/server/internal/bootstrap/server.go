@@ -207,6 +207,7 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 			authusecase.NewLoginUsecase(c.users.Users, c.rbac.Auth, c.token, c.captcha, c.loginGuard),
 			c.captcha,
 			authusecase.NewProfileUsecase(c.users.Users, c.rbac.Auth),
+			authusecase.NewUpdateProfileUsecase(c.users.Users, c.rbac.Auth),
 			authusecase.NewLogoutUsecase(c.token),
 			authusecase.NewChangePasswordUsecase(c.users.Users, c.token),
 			c.loginConfig,

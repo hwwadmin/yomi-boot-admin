@@ -143,6 +143,7 @@ biz:
       - { method: GET, path: /api/system/api-doc/swagger-ui-bundle.js, token: false }
       # 登录即可：校验令牌，但不校验接口权限
       - { method: GET, path: /api/auth/profile, token: true }
+      - { method: POST, path: /api/auth/profile, token: true }
       - { method: POST, path: /api/auth/logout, token: true }
       - { method: POST, path: /api/auth/password, token: true }
 

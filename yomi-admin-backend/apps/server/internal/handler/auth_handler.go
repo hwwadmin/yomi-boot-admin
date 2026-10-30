@@ -13,12 +13,13 @@ import (
 
 // AuthHandler 认证相关路由
 type AuthHandler struct {
-	loginUC    *authusecase.LoginUsecase
-	captchaUC  *authusecase.CaptchaUsecase
-	profileUC  *authusecase.ProfileUsecase
-	logoutUC   *authusecase.LogoutUsecase
-	passwordUC *authusecase.ChangePasswordUsecase
-	configUC   *authusecase.LoginConfigUsecase
+	loginUC         *authusecase.LoginUsecase
+	captchaUC       *authusecase.CaptchaUsecase
+	profileUC       *authusecase.ProfileUsecase
+	updateProfileUC *authusecase.UpdateProfileUsecase
+	logoutUC        *authusecase.LogoutUsecase
+	passwordUC      *authusecase.ChangePasswordUsecase
+	configUC        *authusecase.LoginConfigUsecase
 }
 
 // NewAuthHandler 创建认证 Handler
@@ -26,17 +27,19 @@ func NewAuthHandler(
 	loginUC *authusecase.LoginUsecase,
 	captchaUC *authusecase.CaptchaUsecase,
 	profileUC *authusecase.ProfileUsecase,
+	updateProfileUC *authusecase.UpdateProfileUsecase,
 	logoutUC *authusecase.LogoutUsecase,
 	passwordUC *authusecase.ChangePasswordUsecase,
 	configUC *authusecase.LoginConfigUsecase,
 ) *AuthHandler {
 	return &AuthHandler{
-		loginUC:    loginUC,
-		captchaUC:  captchaUC,
-		profileUC:  profileUC,
-		logoutUC:   logoutUC,
-		passwordUC: passwordUC,
-		configUC:   configUC,
+		loginUC:         loginUC,
+		captchaUC:       captchaUC,
+		profileUC:       profileUC,
+		updateProfileUC: updateProfileUC,
+		logoutUC:        logoutUC,
+		passwordUC:      passwordUC,
+		configUC:        configUC,
 	}
 }
 
@@ -46,6 +49,7 @@ func (h *AuthHandler) Routes(router *gin.RouterGroup) {
 	router.GET("/api/auth/config", h.loginConfig)
 	router.POST("/api/auth/login", h.login)
 	router.GET("/api/auth/profile", h.profile)
+	router.POST("/api/auth/profile", h.updateProfile)
 	router.POST("/api/auth/logout", h.logout)
 	router.POST("/api/auth/password", h.changePassword)
 }
@@ -83,6 +87,20 @@ func (h *AuthHandler) profile(c *gin.Context) {
 	}
 	handle(c, func(ctx context.Context) (*authusecase.IdentityView, error) {
 		return h.profileUC.Execute(ctx, userID)
+	})
+}
+
+func (h *AuthHandler) updateProfile(c *gin.Context) {
+	in := new(authusecase.UpdateProfileInput)
+	if !corehandler.BindJSON(c, in) {
+		return
+	}
+	userID, ok := operatorID(c)
+	if !ok {
+		return
+	}
+	handle(c, func(ctx context.Context) (*authusecase.IdentityView, error) {
+		return h.updateProfileUC.Execute(ctx, in, userID)
 	})
 }
 

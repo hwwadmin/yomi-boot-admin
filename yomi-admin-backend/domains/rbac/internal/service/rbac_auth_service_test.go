@@ -37,6 +37,29 @@ func TestAuthServiceSuperAdmin(t *testing.T) {
 	}
 }
 
+func TestAuthServiceListRoles(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeRepo()
+	repo.roles[1] = &entity.Role{ID: 1, Code: "super_admin", Name: "超级管理员", Status: enums.StatusEnabled}
+	repo.roles[2] = &entity.Role{ID: 2, Code: "viewer", Name: "只读角色", Status: enums.StatusDisabled}
+	repo.userRoles[7] = []int64{1, 2}
+	svc := NewRbacAuthService(repo, nil)
+
+	roles, err := svc.ListRoles(ctx, 7)
+	if err != nil {
+		t.Fatalf("查询用户角色失败: %v", err)
+	}
+	if len(roles) != 2 || roles[0].Name != "超级管理员" || roles[1].Status != enums.StatusDisabled {
+		t.Fatalf("用户角色应包含启用与停用角色: %+v", roles)
+	}
+	if roles, err := svc.ListRoles(ctx, 0); err != nil || len(roles) != 0 {
+		t.Fatalf("非法用户不应返回角色: %+v err=%v", roles, err)
+	}
+	if roles, err := svc.ListRoles(ctx, 99); err != nil || len(roles) != 0 {
+		t.Fatalf("未绑定角色的用户应返回空列表: %+v err=%v", roles, err)
+	}
+}
+
 func TestAuthServiceNormalUser(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeRepo()

@@ -5,6 +5,7 @@ import type {
   LoginConfig,
   LoginParams,
   LoginResult,
+  UpdateProfilePayload,
   UserInfo,
 } from './types'
 
@@ -26,6 +27,11 @@ export function login(data: LoginParams) {
 /** 当前登录用户信息 */
 export function getProfile() {
   return request<UserInfo>({ url: '/auth/profile', method: 'get' })
+}
+
+/** 更新当前登录用户资料，返回更新后的身份信息 */
+export function updateProfile(data: UpdateProfilePayload) {
+  return request<UserInfo>({ url: '/auth/profile', method: 'post', data })
 }
 
 /** 退出登录 */

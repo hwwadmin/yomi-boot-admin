@@ -20,6 +20,8 @@ type UserService interface {
 	Create(ctx context.Context, in *input.CreateUserInput) (*entity.User, error)
 	// Update 更新用户资料与状态；调用方负责最后一名超管与自操作校验
 	Update(ctx context.Context, in *input.UpdateUserInput) error
+	// UpdateProfile 更新用户自身资料（昵称/邮箱/手机号），不改变用户名与状态
+	UpdateProfile(ctx context.Context, in *input.UpdateProfileInput) (*entity.User, error)
 	// Delete 软删除用户；调用方负责最后一名超管与自操作校验
 	Delete(ctx context.Context, in *input.DeleteUserInput) error
 	// ChangePassword 校验原密码后修改密码；调用方负责撤销该用户的登录令牌

@@ -21,8 +21,19 @@
     "fallbackName": "Not signed in"
   },
   "menu": {
+    "profile": "Profile",
     "changePassword": "Change password",
     "logout": "Sign out"
+  },
+  "profile": {
+    "title": "Profile",
+    "nicknamePlaceholder": "Enter your nickname",
+    "emailPlaceholder": "Enter your email",
+    "phonePlaceholder": "Enter your phone number",
+    "success": "Profile updated",
+    "validation": {
+      "nicknameRequired": "Please enter a nickname"
+    }
   },
   "logout": {
     "confirmTitle": "Notice",

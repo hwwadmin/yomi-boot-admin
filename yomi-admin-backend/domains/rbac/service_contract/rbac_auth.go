@@ -14,4 +14,6 @@ type RbacAuthService interface {
 	ListMenus(ctx context.Context, userID int64) ([]*entity.Permission, error)
 	// ListPermissionCodes 列出用户拥有的启用权限编码；超管返回 ["*"]
 	ListPermissionCodes(ctx context.Context, userID int64) ([]string, error)
+	// ListRoles 列出用户已绑角色（含停用），用于身份视图展示
+	ListRoles(ctx context.Context, userID int64) ([]*entity.Role, error)
 }

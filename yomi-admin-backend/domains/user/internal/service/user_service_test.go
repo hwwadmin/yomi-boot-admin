@@ -264,6 +264,39 @@ func TestUpdateAndDeleteUser(t *testing.T) {
 	}
 }
 
+func TestUpdateProfileKeepsUsernameAndStatus(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	admin := seedUser(t, repo, "admin", "admin123", enums.UserStatusEnabled)
+	svc := newTestUserService(repo)
+
+	user, err := svc.UpdateProfile(ctx, &input.UpdateProfileInput{
+		ID:         admin.ID,
+		Nickname:   " 新昵称 ",
+		Email:      " admin@example.com ",
+		Phone:      "13900139000",
+		OperatorID: 999,
+	})
+	if err != nil {
+		t.Fatalf("更新自身资料失败: %v", err)
+	}
+	if user.Nickname != "新昵称" || user.Email != "admin@example.com" || user.Phone != "13900139000" {
+		t.Fatalf("资料未按预期裁剪/更新: %+v", user)
+	}
+	if user.Username != "admin" || user.Status != enums.UserStatusEnabled {
+		t.Fatalf("自身资料更新不应改变用户名或状态: %+v", user)
+	}
+
+	if _, err := svc.UpdateProfile(ctx, &input.UpdateProfileInput{
+		ID: admin.ID, Nickname: "x", Email: "not-an-email",
+	}); !errors.Is(err, service_contract.ErrInvalidInput) {
+		t.Fatalf("非法邮箱期望 ErrInvalidInput，实际 %v", err)
+	}
+	if _, err := svc.UpdateProfile(ctx, &input.UpdateProfileInput{ID: 999, Nickname: "x"}); !errors.Is(err, service_contract.ErrUserNotFound) {
+		t.Fatalf("更新不存在用户期望 ErrUserNotFound，实际 %v", err)
+	}
+}
+
 func TestChangePassword(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()

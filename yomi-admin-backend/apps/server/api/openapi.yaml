@@ -128,6 +128,32 @@ paths:
                         properties:
                           data: { $ref: '#/components/schemas/IdentityView' }
                   - $ref: '#/components/schemas/EnvelopeError'
+    post:
+      tags: [认证]
+      operationId: updateProfile
+      summary: 更新当前登录用户的个人资料
+      description: |
+        更新当前登录用户的昵称、邮箱与手机号；用户名与状态不可修改。
+        需携带有效 token（无需 API 权限）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateProfileRequest' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/IdentityView' }
+                  - $ref: '#/components/schemas/EnvelopeError'
   /api/auth/logout:
     post:
       tags: [认证]
@@ -1005,13 +1031,27 @@ components:
         code: { type: string, description: 菜单编码 }
         name: { type: string, description: 菜单名称 }
         uiPath: { type: string, description: 前端路由路径 }
+    RoleView:
+      type: object
+      description: 登录态返回的角色摘要
+      required: [code, name, status]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        status: { $ref: '#/components/schemas/Status' }
     IdentityView:
       type: object
       description: 登录与当前用户接口共用的身份视图
-      required: [username, nickname, permissions, menus]
+      required: [username, nickname, email, phone, roles, permissions, menus]
       properties:
         username: { type: string }
         nickname: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        roles:
+          type: array
+          description: 已绑角色（含停用）
+          items: { $ref: '#/components/schemas/RoleView' }
         permissions:
           type: array
           description: 权限编码列表
@@ -1033,6 +1073,13 @@ components:
       properties:
         token: { type: string, description: '访问 token，后续请求放入 `Authorization: Bearer` 头' }
         user: { $ref: '#/components/schemas/IdentityView' }
+    UpdateProfileRequest:
+      type: object
+      required: [nickname]
+      properties:
+        nickname: { type: string, description: 昵称，1-32 个字符 }
+        email: { type: string, description: 邮箱，可为空；格式不合法返回 ADMIN_INVALID_INPUT }
+        phone: { type: string, description: 手机号，可为空；格式不合法返回 ADMIN_INVALID_INPUT }
     ChangePasswordRequest:
       type: object
       required: [oldPassword, newPassword]
