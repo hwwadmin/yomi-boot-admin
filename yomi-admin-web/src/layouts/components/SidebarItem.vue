@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { Avatar, Grid, Key, Lock, Odometer, Tickets, User } from '@element-plus/icons-vue'
+import { Avatar, Grid, Key, Lock, Odometer, Setting, Tickets, User } from '@element-plus/icons-vue'
 
 import type { MenuNode } from '@/stores/permission'
 
 defineProps<{ item: MenuNode }>()
 
 // 菜单图标映射：路由 meta.icon 为 @element-plus/icons-vue 的组件名
-const iconMap: Record<string, Component> = { Odometer, User, Avatar, Key, Grid, Tickets, Lock }
+const iconMap: Record<string, Component> = { Odometer, User, Avatar, Key, Grid, Tickets, Lock, Setting }
 
 function resolveIcon(name?: string): Component | undefined {
   return name ? iconMap[name] : undefined

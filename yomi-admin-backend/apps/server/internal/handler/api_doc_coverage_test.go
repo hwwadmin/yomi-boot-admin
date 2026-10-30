@@ -33,6 +33,7 @@ func TestAPIDocCoverage(t *testing.T) {
 	(&PermissionGroupHandler{}).Routes(group)
 	(&HttpRecordHandler{}).Routes(group)
 	(&RbacCacheHandler{}).Routes(group)
+	(&SysParamHandler{}).Routes(group)
 	NewApiDocHandler().Routes(group)
 
 	registered := make(map[string]struct{})

@@ -14,9 +14,11 @@ import (
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 	httprecoreusecase "yomi-admin-backend/apps/server/internal/usecase/httprecord"
 	rbacusecase "yomi-admin-backend/apps/server/internal/usecase/rbac"
+	sysparamusecase "yomi-admin-backend/apps/server/internal/usecase/sysparam"
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 	httprecordprovider "yomi-admin-backend/domains/httprecord/provider"
 	rbacprovider "yomi-admin-backend/domains/rbac/provider"
+	sysparamprovider "yomi-admin-backend/domains/sysparam/provider"
 	userprovider "yomi-admin-backend/domains/user/provider"
 
 	"gitee.com/hq_project/yomi-boot/boot"
@@ -62,6 +64,7 @@ type container struct {
 	users       userprovider.Module
 	rbac        rbacprovider.Module
 	records     httprecordprovider.Module
+	sysparam    sysparamprovider.Module
 	tx          tx.Executor
 	token       token.TokenService
 	captcha     *authusecase.CaptchaUsecase
@@ -138,6 +141,11 @@ func load(slot *plugin.PluginSlot) container {
 			rbac: rbacModule,
 			records: httprecordprovider.Provide(httprecordprovider.Deps{
 				DB:          db.DB(),
+				IDGenerator: snowflakePlugin.Generator(),
+			}),
+			sysparam: sysparamprovider.Provide(sysparamprovider.Deps{
+				DB:          db.DB(),
+				DBType:      db.Type(),
 				IDGenerator: snowflakePlugin.Generator(),
 			}),
 			tx:    txPlugin.Executor(),
@@ -236,6 +244,14 @@ func Wire(slot *plugin.PluginSlot) []router.Registrar {
 		),
 		apphandler.NewRbacCacheHandler(
 			rbacusecase.NewRefreshRbacCacheUsecase(c.rbac.Cache),
+		),
+		apphandler.NewSysParamHandler(
+			sysparamusecase.NewPageParamsUsecase(c.sysparam.Admin),
+			sysparamusecase.NewGetParamUsecase(c.sysparam.Admin),
+			sysparamusecase.NewCreateParamUsecase(c.sysparam.Admin),
+			sysparamusecase.NewUpdateParamUsecase(c.sysparam.Admin),
+			sysparamusecase.NewDeleteParamUsecase(c.sysparam.Admin),
+			sysparamusecase.NewSetParamStatusUsecase(c.sysparam.Admin),
 		),
 	}
 	// API 文档默认关闭（biz.docs.enabled），避免生产环境暴露路由信息

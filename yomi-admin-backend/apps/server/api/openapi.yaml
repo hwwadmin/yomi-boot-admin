@@ -34,6 +34,8 @@ tags:
     description: HTTP 访问记录查询
   - name: 鉴权缓存
     description: RBAC 鉴权投影缓存维护
+  - name: 系统参数
+    description: 系统参数管理
 security:
   - bearerAuth: []
 paths:
@@ -686,6 +688,123 @@ paths:
                         properties:
                           data: { $ref: '#/components/schemas/CacheRefreshOutput' }
                   - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/param:
+    get:
+      tags: [系统参数]
+      operationId: pageParams
+      summary: 分页查询系统参数
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+        - { $ref: '#/components/parameters/Keyword' }
+        - name: status
+          in: query
+          required: false
+          description: 按状态过滤，缺省查全部
+          schema: { $ref: '#/components/schemas/Status' }
+        - name: valueType
+          in: query
+          required: false
+          description: 按值类型过滤，缺省查全部
+          schema: { $ref: '#/components/schemas/ParamValueType' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/ParamItemPage' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/param/detail:
+    get:
+      tags: [系统参数]
+      operationId: getParamDetail
+      summary: 查询参数详情
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/ParamItem' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/param/create:
+    post:
+      tags: [系统参数]
+      operationId: createParam
+      summary: 创建系统参数
+      description: 参数键全局唯一且创建后不可变；参数保存后对业务立即生效。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateParamRequest' }
+      responses:
+        '200':
+          description: 业务结果（恒 200，code 判定成败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: '#/components/schemas/EnvelopeBase'
+                      - type: object
+                        required: [data]
+                        properties:
+                          data: { $ref: '#/components/schemas/ParamItem' }
+                  - $ref: '#/components/schemas/EnvelopeError'
+  /api/system/param/update:
+    post:
+      tags: [系统参数]
+      operationId: updateParam
+      summary: 更新系统参数
+      description: 仅更新取值、名称与备注；键与值类型不可变，启停走独立接口；保存后对业务立即生效。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateParamRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/param/delete:
+    post:
+      tags: [系统参数]
+      operationId: deleteParam
+      summary: 删除系统参数（物理删除）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IdRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
+  /api/system/param/set-status:
+    post:
+      tags: [系统参数]
+      operationId: setParamStatus
+      summary: 参数启停
+      description: 禁用即覆盖值失效，业务读取方回退代码内默认值。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetStatusRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidResult' }
 components:
   securitySchemes:
     bearerAuth:
@@ -1022,6 +1141,49 @@ components:
         permissionGroupCount: { type: integer, description: 权限组数量 }
         relationCount: { type: integer, description: 绑定关系数量 }
         durationMs: { type: integer, format: int64, description: 重建耗时（毫秒） }
+    ParamValueType:
+      type: string
+      description: 系统参数值类型，决定写入校验与业务读取的转换方式
+      enum: [BOOL, INT, STRING, JSON]
+    ParamItemPage:
+      type: object
+      description: 系统参数分页载荷，作为响应 data 字段输出
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ParamItem' }
+        total: { type: integer, format: int64, description: 满足条件的总条数 }
+    ParamItem:
+      type: object
+      required: [id, key, value, valueType, name, remark, status, createTime, updateTime]
+      properties:
+        id: { type: string, description: 雪花 ID }
+        key: { type: string, description: 参数键，全局唯一，创建后不可变，如 order.auto_cancel_days }
+        value: { type: string, description: 参数值，统一字符串形态存储，按 valueType 解释 }
+        valueType: { $ref: '#/components/schemas/ParamValueType' }
+        name: { type: string }
+        remark: { type: string }
+        status: { $ref: '#/components/schemas/Status' }
+        createTime: { type: integer, format: int64, description: Unix 毫秒 }
+        updateTime: { type: integer, format: int64, description: Unix 毫秒 }
+    CreateParamRequest:
+      type: object
+      required: [key, value, valueType, name]
+      properties:
+        key: { type: string, description: 参数键，小写点分命名（如 order.auto_cancel_days），创建后不可变，长度上限 128 }
+        value: { type: string, description: 参数值（字符串形态），BOOL 仅 true/false，INT 为整数，JSON 需合法 JSON 文档，长度上限 2048 }
+        valueType: { $ref: '#/components/schemas/ParamValueType' }
+        name: { type: string, description: 参数名称（展示用），1..64 字符 }
+        remark: { type: string, description: 备注，不超过 255 字符 }
+    UpdateParamRequest:
+      type: object
+      required: [id, value, name]
+      properties:
+        id: { type: string, description: 资源雪花 ID（也接受数字） }
+        value: { type: string, description: 参数值（字符串形态），按创建时的值类型校验 }
+        name: { type: string, description: 参数名称，1..64 字符 }
+        remark: { type: string, description: 备注，不超过 255 字符 }
     IdRequest:
       type: object
       required: [id]

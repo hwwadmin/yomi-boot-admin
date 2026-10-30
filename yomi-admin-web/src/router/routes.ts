@@ -60,6 +60,12 @@ export const staticRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/system/http-record/index.vue'),
         meta: { title: '访问记录', icon: 'Tickets' },
       },
+      {
+        path: 'system/param',
+        name: 'system-param',
+        component: () => import('@/views/system/param/index.vue'),
+        meta: { title: '参数', icon: 'Setting' },
+      },
     ],
   },
   {

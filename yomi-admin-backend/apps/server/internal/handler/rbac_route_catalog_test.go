@@ -40,6 +40,7 @@ func TestRBACRouteCatalogCoverage(t *testing.T) {
 	(&PermissionGroupHandler{}).Routes(group)
 	(&HttpRecordHandler{}).Routes(group)
 	(&RbacCacheHandler{}).Routes(group)
+	(&SysParamHandler{}).Routes(group)
 	NewApiDocHandler().Routes(group)
 	corehandler.NewHealthHandler("/api/v1/health", "/api/v1/health/ops",
 		appctx.NewAppCtx("yomi-admin-test", "test", "test")).Routes(group)

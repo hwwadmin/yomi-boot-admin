@@ -265,3 +265,44 @@ export interface HttpRecordDetail extends HttpRecordItem {
   responseBodyTruncated: boolean
   createTime: number
 }
+
+/** 系统参数值类型，决定后端写入校验与业务读取的转换方式 */
+export type ParamValueType = 'BOOL' | 'INT' | 'STRING' | 'JSON'
+
+/** 系统参数列表项 */
+export interface SysParamItem {
+  id: string
+  /** 参数键，全局唯一，创建后不可变 */
+  key: string
+  /** 参数值，统一字符串形态存储，按 valueType 解释 */
+  value: string
+  valueType: ParamValueType
+  name: string
+  remark: string
+  status: Status
+  createTime: number
+  updateTime: number
+}
+
+/** 系统参数查询参数 */
+export interface SysParamQuery extends PageQuery {
+  keyword?: string
+  status?: Status | ''
+  valueType?: ParamValueType | ''
+}
+
+/** 系统参数创建请求体；键创建后不可变，启停走独立接口 */
+export interface SysParamCreatePayload {
+  key: string
+  value: string
+  valueType: ParamValueType
+  name: string
+  remark: string
+}
+
+/** 系统参数更新请求体；键与值类型不可变 */
+export interface SysParamUpdatePayload {
+  value: string
+  name: string
+  remark: string
+}
