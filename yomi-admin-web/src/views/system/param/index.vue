@@ -295,6 +295,9 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
       :close-on-click-modal="false"
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="参数名称" prop="name">
+          <el-input v-model="form.name" maxlength="64" />
+        </el-form-item>
         <el-form-item label="参数键" prop="key">
           <el-input
             v-model="form.key"
@@ -331,9 +334,6 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
             :maxlength="form.valueType === 'STRING' ? 2048 : undefined"
             :placeholder="form.valueType === 'INT' ? '64 位整数' : '参数取值'"
           />
-        </el-form-item>
-        <el-form-item label="参数名称" prop="name">
-          <el-input v-model="form.name" maxlength="64" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" maxlength="255" :rows="3" />

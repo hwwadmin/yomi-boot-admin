@@ -47,10 +47,10 @@ export function setSysParamStatus(id: string, status: Status) {
   return request<null>({ url: '/system/param/set-status', method: 'post', data: { id, status } })
 }
 
-/** 参数值类型展示名 */
+/** 参数值类型展示名；按展示顺序声明（对象键序遍历，字符串放第一位） */
 export const paramValueTypeLabels: Record<ParamValueType, string> = {
+  STRING: '字符串',
   BOOL: '布尔',
   INT: '整数',
-  STRING: '字符串',
   JSON: 'JSON',
 }
