@@ -7,7 +7,6 @@ import (
 	"yomi-admin-backend/apps/server/internal/middleware"
 	"yomi-admin-backend/apps/server/internal/support/audit"
 	"yomi-admin-backend/apps/server/internal/support/loginguard"
-	auditlogusecase "yomi-admin-backend/apps/server/internal/usecase/auditlog"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 	auditlogprovider "yomi-admin-backend/domains/auditlog/provider"
 	httprecordprovider "yomi-admin-backend/domains/httprecord/provider"
@@ -130,7 +129,7 @@ func load(slot *plugin.PluginSlot) container {
 		})
 		var auditRecorder audit.Recorder
 		if bizCfg.Audit.EnabledOrDefault() {
-			auditRecorder = auditlogusecase.NewRecorder(auditModule.Writer, snowflakePlugin.Generator())
+			auditRecorder = audit.NewTwoPhaseRecorder(auditModule.Writer, snowflakePlugin.Generator())
 		}
 
 		appContainer = container{
