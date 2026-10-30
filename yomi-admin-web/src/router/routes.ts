@@ -64,7 +64,7 @@ export const staticRoutes: RouteRecordRaw[] = [
         path: 'system/param',
         name: 'system-param',
         component: () => import('@/views/system/param/index.vue'),
-        meta: { title: '参数', icon: 'Setting' },
+        meta: { title: '系统参数', icon: 'Setting' },
       },
     ],
   },

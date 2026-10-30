@@ -131,6 +131,7 @@ VALUES (100000000000001005, 'system:permission-group', '权限组', 'MENU', '/sy
 -- INSERT IGNORE 不会更新已存在的行，这里显式修正既有库中的旧菜单名称
 UPDATE `t_rbac_permission` SET `name` = '角色' WHERE `code` = 'system:role' AND `permission_type` = 'MENU';
 UPDATE `t_rbac_permission` SET `name` = '权限' WHERE `code` = 'system:permission' AND `permission_type` = 'MENU';
+UPDATE `t_rbac_permission` SET `name` = '系统参数' WHERE `code` = 'system:param' AND `permission_type` = 'MENU';
 
 -- 用户接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
@@ -207,7 +208,7 @@ VALUES (100000000000001071, 'system:rbac_cache:refresh', '刷新权限缓存', '
 
 -- 系统参数菜单与接口权限
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
-VALUES (100000000000001006, 'system:param', '参数', 'MENU', '/system/param', NULL, NULL, 'ENABLED');
+VALUES (100000000000001006, 'system:param', '系统参数', 'MENU', '/system/param', NULL, NULL, 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001081, 'system:param:list', '参数列表', 'API', NULL, 'GET', '/api/system/param', 'ENABLED');
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)

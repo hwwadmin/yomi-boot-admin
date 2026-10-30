@@ -188,13 +188,6 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
 <template>
   <div class="system-param">
     <el-card shadow="never">
-      <el-alert
-        class="param-alert"
-        type="info"
-        :closable="false"
-        show-icon
-        title="参数保存后立即对业务生效（业务读取直接查库）；参数缺失、禁用或数据库故障时，业务读取方使用代码内默认值。"
-      />
       <div class="toolbar">
         <el-input
           v-model="query.keyword"
@@ -355,10 +348,6 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
 </template>
 
 <style scoped>
-.param-alert {
-  margin-bottom: 16px;
-}
-
 .toolbar {
   display: flex;
   flex-wrap: wrap;
