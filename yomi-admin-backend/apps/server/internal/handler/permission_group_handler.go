@@ -23,24 +23,27 @@ type PermissionGroupHandler struct {
 	bindPermissionsUC *rbacusecase.BindGroupPermissionsUsecase
 }
 
+// PermissionGroupHandlerDeps 权限组管理 Handler 依赖
+type PermissionGroupHandlerDeps struct {
+	Page            *rbacusecase.PagePermissionGroupsUsecase
+	Get             *rbacusecase.GetPermissionGroupUsecase
+	Create          *rbacusecase.CreatePermissionGroupUsecase
+	Update          *rbacusecase.UpdatePermissionGroupUsecase
+	Delete          *rbacusecase.DeletePermissionGroupUsecase
+	SetStatus       *rbacusecase.SetPermissionGroupStatusUsecase
+	BindPermissions *rbacusecase.BindGroupPermissionsUsecase
+}
+
 // NewPermissionGroupHandler 创建权限组 Handler
-func NewPermissionGroupHandler(
-	pageUC *rbacusecase.PagePermissionGroupsUsecase,
-	getUC *rbacusecase.GetPermissionGroupUsecase,
-	createUC *rbacusecase.CreatePermissionGroupUsecase,
-	updateUC *rbacusecase.UpdatePermissionGroupUsecase,
-	deleteUC *rbacusecase.DeletePermissionGroupUsecase,
-	setStatusUC *rbacusecase.SetPermissionGroupStatusUsecase,
-	bindPermissionsUC *rbacusecase.BindGroupPermissionsUsecase,
-) *PermissionGroupHandler {
+func NewPermissionGroupHandler(deps PermissionGroupHandlerDeps) *PermissionGroupHandler {
 	return &PermissionGroupHandler{
-		pageUC:            pageUC,
-		getUC:             getUC,
-		createUC:          createUC,
-		updateUC:          updateUC,
-		deleteUC:          deleteUC,
-		setStatusUC:       setStatusUC,
-		bindPermissionsUC: bindPermissionsUC,
+		pageUC:            deps.Page,
+		getUC:             deps.Get,
+		createUC:          deps.Create,
+		updateUC:          deps.Update,
+		deleteUC:          deps.Delete,
+		setStatusUC:       deps.SetStatus,
+		bindPermissionsUC: deps.BindPermissions,
 	}
 }
 

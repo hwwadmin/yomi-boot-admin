@@ -2,21 +2,11 @@
 package bootstrap
 
 import (
-	"fmt"
 	"sync"
 	svcconfig "yomi-admin-backend/apps/server/internal/config"
 	"yomi-admin-backend/apps/server/internal/middleware"
 	"yomi-admin-backend/apps/server/internal/support/loginguard"
-	"yomi-admin-backend/apps/server/internal/support/superadmin"
-	superadminredislock "yomi-admin-backend/apps/server/internal/support/superadmin/redislock"
-
-	apphandler "yomi-admin-backend/apps/server/internal/handler"
-
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
-	httprecoreusecase "yomi-admin-backend/apps/server/internal/usecase/httprecord"
-	rbacusecase "yomi-admin-backend/apps/server/internal/usecase/rbac"
-	sysparamusecase "yomi-admin-backend/apps/server/internal/usecase/sysparam"
-	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 	httprecordprovider "yomi-admin-backend/domains/httprecord/provider"
 	rbacprovider "yomi-admin-backend/domains/rbac/provider"
 	sysparamprovider "yomi-admin-backend/domains/sysparam/provider"
@@ -30,15 +20,11 @@ import (
 	"gitee.com/hq_project/yomi-boot/component/common/token"
 	"gitee.com/hq_project/yomi-boot/component/core/appctx"
 	"gitee.com/hq_project/yomi-boot/component/core/config"
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
-	"gitee.com/hq_project/yomi-boot/component/core/router"
 	"gitee.com/hq_project/yomi-boot/plugin"
 	appctxplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/appctx"
 	dbplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/db"
 	redisplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/redis"
 	redisratelimitplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/redisratelimit"
-	routerplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/router"
 	snowflakeplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/snowflake"
 	tokenplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/token"
 
@@ -187,96 +173,6 @@ func toRbacCacheOptions(cfg svcconfig.RbacCacheConfig) rbacprovider.CacheOptions
 		RefreshInterval: cfg.RefreshInterval(),
 		MemorySync:      cfg.MemorySyncOrDefault(),
 	}
-}
-
-// Wire 根据插件插槽装配 HTTP 服务
-func Wire(slot *plugin.PluginSlot) []router.Registrar {
-	c := load(slot)
-	registerHttpRecordHandler(slot, httprecoreusecase.NewSaveRecordUsecase(c.records.Records))
-	guard := superadmin.New(c.users.Users, c.rbac.Admin, superadminredislock.New(c.lock))
-
-	// 会话管理依赖基础库的 ListByUserID：它已由 *token.Service 实现，但尚未进入
-	// TokenService 接口，这里做能力断言桥接；缺失时启动即失败，避免运行期才 500。
-	sessionTokens, ok := c.token.(userusecase.SessionTokens)
-	if !ok {
-		panic("yomi-admin: 当前 yomi-boot token 服务未提供 ListByUserID，无法启用用户会话管理")
-	}
-
-	registrars := []router.Registrar{
-		corehandler.NewHealthHandler("/api/v1/health", "/api/v1/health/ops", c.appCtx),
-		apphandler.NewAuthHandler(
-			authusecase.NewLoginUsecase(c.users.Users, c.rbac.Auth, c.token, c.captcha, c.loginGuard),
-			c.captcha,
-			authusecase.NewProfileUsecase(c.users.Users, c.rbac.Auth),
-			authusecase.NewUpdateProfileUsecase(c.users.Users, c.rbac.Auth),
-			authusecase.NewLogoutUsecase(c.token),
-			authusecase.NewChangePasswordUsecase(c.users.Users, c.token),
-			c.loginConfig,
-		),
-		apphandler.NewUserHandler(
-			userusecase.NewPageUsersUsecase(c.users.Users, c.rbac.Admin),
-			userusecase.NewCreateUserUsecase(c.users.Users, c.tx),
-			userusecase.NewUpdateUserUsecase(c.users.Users, guard, c.tx, c.token),
-			userusecase.NewDeleteUserUsecase(c.users.Users, c.rbac.Admin, guard, c.tx, c.token),
-			userusecase.NewResetUserPasswordUsecase(c.users.Users, guard, c.token),
-			rbacusecase.NewGetUserRolesUsecase(c.users.Users, c.rbac.Admin),
-			rbacusecase.NewBindUserRolesUsecase(c.rbac.Admin, guard, c.tx),
-		),
-		apphandler.NewUserSessionHandler(
-			userusecase.NewListUserSessionsUsecase(sessionTokens),
-			userusecase.NewRevokeUserSessionUsecase(sessionTokens, guard),
-			userusecase.NewRevokeUserSessionsUsecase(sessionTokens, guard),
-		),
-		apphandler.NewRoleHandler(
-			rbacusecase.NewPageRolesUsecase(c.rbac.Admin),
-			rbacusecase.NewGetRoleUsecase(c.rbac.Admin),
-			rbacusecase.NewCreateRoleUsecase(c.rbac.Admin),
-			rbacusecase.NewUpdateRoleUsecase(c.rbac.Admin),
-			rbacusecase.NewDeleteRoleUsecase(c.rbac.Admin, c.tx),
-			rbacusecase.NewSetRoleStatusUsecase(c.rbac.Admin),
-			rbacusecase.NewBindRoleGroupsUsecase(c.rbac.Admin, c.tx),
-		),
-		apphandler.NewPermissionHandler(
-			rbacusecase.NewPagePermissionsUsecase(c.rbac.Admin),
-			rbacusecase.NewCreatePermissionUsecase(c.rbac.Admin),
-			rbacusecase.NewUpdatePermissionUsecase(c.rbac.Admin),
-			rbacusecase.NewDeletePermissionUsecase(c.rbac.Admin, c.tx),
-			rbacusecase.NewSetPermissionStatusUsecase(c.rbac.Admin),
-		),
-		apphandler.NewPermissionGroupHandler(
-			rbacusecase.NewPagePermissionGroupsUsecase(c.rbac.Admin),
-			rbacusecase.NewGetPermissionGroupUsecase(c.rbac.Admin),
-			rbacusecase.NewCreatePermissionGroupUsecase(c.rbac.Admin),
-			rbacusecase.NewUpdatePermissionGroupUsecase(c.rbac.Admin),
-			rbacusecase.NewDeletePermissionGroupUsecase(c.rbac.Admin, c.tx),
-			rbacusecase.NewSetPermissionGroupStatusUsecase(c.rbac.Admin),
-			rbacusecase.NewBindGroupPermissionsUsecase(c.rbac.Admin, c.tx),
-		),
-		apphandler.NewHttpRecordHandler(
-			httprecoreusecase.NewPageRecordsUsecase(c.records.Records),
-			httprecoreusecase.NewGetRecordUsecase(c.records.Records),
-		),
-		apphandler.NewRbacCacheHandler(
-			rbacusecase.NewRefreshRbacCacheUsecase(c.rbac.Cache),
-		),
-		apphandler.NewSysParamHandler(
-			sysparamusecase.NewPageParamsUsecase(c.sysparam.Admin),
-			sysparamusecase.NewGetParamUsecase(c.sysparam.Admin),
-			sysparamusecase.NewCreateParamUsecase(c.sysparam.Admin),
-			sysparamusecase.NewUpdateParamUsecase(c.sysparam.Admin),
-			sysparamusecase.NewDeleteParamUsecase(c.sysparam.Admin),
-			sysparamusecase.NewSetParamStatusUsecase(c.sysparam.Admin),
-		),
-	}
-	// API 文档默认关闭（biz.docs.enabled），避免生产环境暴露路由信息
-	bizCfg := config.MustSection[svcconfig.BootConfig](slot.Config, svcconfig.SectionKey)
-	if bizCfg.Docs.EnabledOrDefault() {
-		registrars = append(registrars, apphandler.NewApiDocHandler())
-		httpCfg := config.MustSection[routerplugin.BootConfig](slot.Config, routerplugin.SectionKey).ToConfig()
-		logger.Info(slot.RuntimeContext(), "API 文档已启用",
-			"url", fmt.Sprintf("http://127.0.0.1:%d%s/api/system/api-doc", httpCfg.Port, httpCfg.RouterPrefixClean()))
-	}
-	return registrars
 }
 
 // Middlewares 在默认中间件链后追加 RBAC 鉴权

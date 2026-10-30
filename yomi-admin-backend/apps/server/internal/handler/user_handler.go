@@ -23,24 +23,27 @@ type UserHandler struct {
 	bindRolesUC *rbacusecase.BindUserRolesUsecase
 }
 
+// UserHandlerDeps 系统用户 Handler 依赖
+type UserHandlerDeps struct {
+	Page          *userusecase.PageUsersUsecase
+	Create        *userusecase.CreateUserUsecase
+	Update        *userusecase.UpdateUserUsecase
+	Delete        *userusecase.DeleteUserUsecase
+	ResetPassword *userusecase.ResetUserPasswordUsecase
+	GetRoles      *rbacusecase.GetUserRolesUsecase
+	BindRoles     *rbacusecase.BindUserRolesUsecase
+}
+
 // NewUserHandler 创建系统用户 Handler
-func NewUserHandler(
-	pageUC *userusecase.PageUsersUsecase,
-	createUC *userusecase.CreateUserUsecase,
-	updateUC *userusecase.UpdateUserUsecase,
-	deleteUC *userusecase.DeleteUserUsecase,
-	resetPwdUC *userusecase.ResetUserPasswordUsecase,
-	getRolesUC *rbacusecase.GetUserRolesUsecase,
-	bindRolesUC *rbacusecase.BindUserRolesUsecase,
-) *UserHandler {
+func NewUserHandler(deps UserHandlerDeps) *UserHandler {
 	return &UserHandler{
-		pageUC:      pageUC,
-		createUC:    createUC,
-		updateUC:    updateUC,
-		deleteUC:    deleteUC,
-		resetPwdUC:  resetPwdUC,
-		getRolesUC:  getRolesUC,
-		bindRolesUC: bindRolesUC,
+		pageUC:      deps.Page,
+		createUC:    deps.Create,
+		updateUC:    deps.Update,
+		deleteUC:    deps.Delete,
+		resetPwdUC:  deps.ResetPassword,
+		getRolesUC:  deps.GetRoles,
+		bindRolesUC: deps.BindRoles,
 	}
 }
 

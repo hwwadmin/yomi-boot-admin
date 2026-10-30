@@ -21,20 +21,23 @@ type PermissionHandler struct {
 	setStatusUC *rbacusecase.SetPermissionStatusUsecase
 }
 
+// PermissionHandlerDeps 权限目录 Handler 依赖
+type PermissionHandlerDeps struct {
+	Page      *rbacusecase.PagePermissionsUsecase
+	Create    *rbacusecase.CreatePermissionUsecase
+	Update    *rbacusecase.UpdatePermissionUsecase
+	Delete    *rbacusecase.DeletePermissionUsecase
+	SetStatus *rbacusecase.SetPermissionStatusUsecase
+}
+
 // NewPermissionHandler 创建权限 Handler
-func NewPermissionHandler(
-	pageUC *rbacusecase.PagePermissionsUsecase,
-	createUC *rbacusecase.CreatePermissionUsecase,
-	updateUC *rbacusecase.UpdatePermissionUsecase,
-	deleteUC *rbacusecase.DeletePermissionUsecase,
-	setStatusUC *rbacusecase.SetPermissionStatusUsecase,
-) *PermissionHandler {
+func NewPermissionHandler(deps PermissionHandlerDeps) *PermissionHandler {
 	return &PermissionHandler{
-		pageUC:      pageUC,
-		createUC:    createUC,
-		updateUC:    updateUC,
-		deleteUC:    deleteUC,
-		setStatusUC: setStatusUC,
+		pageUC:      deps.Page,
+		createUC:    deps.Create,
+		updateUC:    deps.Update,
+		deleteUC:    deps.Delete,
+		setStatusUC: deps.SetStatus,
 	}
 }
 

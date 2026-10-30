@@ -22,22 +22,25 @@ type SysParamHandler struct {
 	setStatusUC *sysparamusecase.SetParamStatusUsecase
 }
 
+// SysParamHandlerDeps 系统参数 Handler 依赖
+type SysParamHandlerDeps struct {
+	Page      *sysparamusecase.PageParamsUsecase
+	Get       *sysparamusecase.GetParamUsecase
+	Create    *sysparamusecase.CreateParamUsecase
+	Update    *sysparamusecase.UpdateParamUsecase
+	Delete    *sysparamusecase.DeleteParamUsecase
+	SetStatus *sysparamusecase.SetParamStatusUsecase
+}
+
 // NewSysParamHandler 创建系统参数 Handler
-func NewSysParamHandler(
-	pageUC *sysparamusecase.PageParamsUsecase,
-	getUC *sysparamusecase.GetParamUsecase,
-	createUC *sysparamusecase.CreateParamUsecase,
-	updateUC *sysparamusecase.UpdateParamUsecase,
-	deleteUC *sysparamusecase.DeleteParamUsecase,
-	setStatusUC *sysparamusecase.SetParamStatusUsecase,
-) *SysParamHandler {
+func NewSysParamHandler(deps SysParamHandlerDeps) *SysParamHandler {
 	return &SysParamHandler{
-		pageUC:      pageUC,
-		getUC:       getUC,
-		createUC:    createUC,
-		updateUC:    updateUC,
-		deleteUC:    deleteUC,
-		setStatusUC: setStatusUC,
+		pageUC:      deps.Page,
+		getUC:       deps.Get,
+		createUC:    deps.Create,
+		updateUC:    deps.Update,
+		deleteUC:    deps.Delete,
+		setStatusUC: deps.SetStatus,
 	}
 }
 

@@ -55,6 +55,9 @@ script/dev/         开发脚本
 简单说：`handler` 只接参数；`usecase` 管流程、事务和鉴权；`domain` 管业务规则和存储；
 `support` 放多个模块共用的小规则，比如超管保护。四个 domain 都是独立的 Go module，可以单独复用。
 
+装配按上下文拆分：`internal/bootstrap/wire.go` 只列模块与跨模块依赖，各上下文的 Handler 构造
+放在 `wire_<context>.go`；新增接口只改对应上下文文件，不要往中心函数里堆构造代码。
+
 ## HTTP 接口约定
 
 - 对外接口只用 `GET` 和 `POST`：查询用 `GET`（参数走 Query），变更用 `POST`（参数走 JSON Body）。

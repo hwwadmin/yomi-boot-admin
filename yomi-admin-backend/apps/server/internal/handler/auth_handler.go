@@ -22,24 +22,27 @@ type AuthHandler struct {
 	configUC        *authusecase.LoginConfigUsecase
 }
 
+// AuthHandlerDeps 认证 Handler 依赖
+type AuthHandlerDeps struct {
+	Login          *authusecase.LoginUsecase
+	Captcha        *authusecase.CaptchaUsecase
+	Profile        *authusecase.ProfileUsecase
+	UpdateProfile  *authusecase.UpdateProfileUsecase
+	Logout         *authusecase.LogoutUsecase
+	ChangePassword *authusecase.ChangePasswordUsecase
+	LoginConfig    *authusecase.LoginConfigUsecase
+}
+
 // NewAuthHandler 创建认证 Handler
-func NewAuthHandler(
-	loginUC *authusecase.LoginUsecase,
-	captchaUC *authusecase.CaptchaUsecase,
-	profileUC *authusecase.ProfileUsecase,
-	updateProfileUC *authusecase.UpdateProfileUsecase,
-	logoutUC *authusecase.LogoutUsecase,
-	passwordUC *authusecase.ChangePasswordUsecase,
-	configUC *authusecase.LoginConfigUsecase,
-) *AuthHandler {
+func NewAuthHandler(deps AuthHandlerDeps) *AuthHandler {
 	return &AuthHandler{
-		loginUC:         loginUC,
-		captchaUC:       captchaUC,
-		profileUC:       profileUC,
-		updateProfileUC: updateProfileUC,
-		logoutUC:        logoutUC,
-		passwordUC:      passwordUC,
-		configUC:        configUC,
+		loginUC:         deps.Login,
+		captchaUC:       deps.Captcha,
+		profileUC:       deps.Profile,
+		updateProfileUC: deps.UpdateProfile,
+		logoutUC:        deps.Logout,
+		passwordUC:      deps.ChangePassword,
+		configUC:        deps.LoginConfig,
 	}
 }
 

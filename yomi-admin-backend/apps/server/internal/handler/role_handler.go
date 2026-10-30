@@ -23,24 +23,27 @@ type RoleHandler struct {
 	bindGroupsUC *rbacusecase.BindRoleGroupsUsecase
 }
 
+// RoleHandlerDeps 角色管理 Handler 依赖
+type RoleHandlerDeps struct {
+	Page       *rbacusecase.PageRolesUsecase
+	Get        *rbacusecase.GetRoleUsecase
+	Create     *rbacusecase.CreateRoleUsecase
+	Update     *rbacusecase.UpdateRoleUsecase
+	Delete     *rbacusecase.DeleteRoleUsecase
+	SetStatus  *rbacusecase.SetRoleStatusUsecase
+	BindGroups *rbacusecase.BindRoleGroupsUsecase
+}
+
 // NewRoleHandler 创建角色 Handler
-func NewRoleHandler(
-	pageUC *rbacusecase.PageRolesUsecase,
-	getUC *rbacusecase.GetRoleUsecase,
-	createUC *rbacusecase.CreateRoleUsecase,
-	updateUC *rbacusecase.UpdateRoleUsecase,
-	deleteUC *rbacusecase.DeleteRoleUsecase,
-	setStatusUC *rbacusecase.SetRoleStatusUsecase,
-	bindGroupsUC *rbacusecase.BindRoleGroupsUsecase,
-) *RoleHandler {
+func NewRoleHandler(deps RoleHandlerDeps) *RoleHandler {
 	return &RoleHandler{
-		pageUC:       pageUC,
-		getUC:        getUC,
-		createUC:     createUC,
-		updateUC:     updateUC,
-		deleteUC:     deleteUC,
-		setStatusUC:  setStatusUC,
-		bindGroupsUC: bindGroupsUC,
+		pageUC:       deps.Page,
+		getUC:        deps.Get,
+		createUC:     deps.Create,
+		updateUC:     deps.Update,
+		deleteUC:     deps.Delete,
+		setStatusUC:  deps.SetStatus,
+		bindGroupsUC: deps.BindGroups,
 	}
 }
 
