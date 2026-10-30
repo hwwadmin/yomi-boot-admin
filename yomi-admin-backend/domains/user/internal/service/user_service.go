@@ -84,6 +84,42 @@ func (s *UserService) GetByID(ctx context.Context, id int64) (*entity.User, erro
 	return user, nil
 }
 
+// GetNamesByIDs 按用户 ID 批量取用户名；不存在的 ID 不出现在结果里
+func (s *UserService) GetNamesByIDs(ctx context.Context, ids []int64) (map[int64]string, error) {
+	unique := positiveUniqueIDs(ids)
+	if len(unique) == 0 {
+		return map[int64]string{}, nil
+	}
+
+	users, err := s.users.FindUsersByIDs(ctx, unique)
+	if err != nil {
+		return nil, err
+	}
+
+	names := make(map[int64]string, len(users))
+	for _, user := range users {
+		names[user.ID] = user.Username
+	}
+	return names, nil
+}
+
+// positiveUniqueIDs 去重并剔除非法 ID，避免把重复值带进 IN 查询
+func positiveUniqueIDs(ids []int64) []int64 {
+	unique := make([]int64, 0, len(ids))
+	seen := make(map[int64]struct{}, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		unique = append(unique, id)
+	}
+	return unique
+}
+
 // Page 分页查询用户
 func (s *UserService) Page(ctx context.Context, in *input.PageUsersInput) (*output.PageUsersOutput, error) {
 	items, total, err := s.users.Page(ctx, in.Keyword, in.Page, in.PageSize)

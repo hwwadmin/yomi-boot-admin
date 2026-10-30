@@ -58,7 +58,8 @@ func (r *Recorder) Finish(ctx context.Context, ref audit.Ref, spec audit.Spec, o
 
 // write 写一条审计记录；使用独立 context，失败或 panic 只告警
 func (r *Recorder) write(ctx context.Context, ref audit.Ref, spec audit.Spec,
-	phase auditlogenums.Phase, result auditlogenums.Result, bizCode string) {
+	phase auditlogenums.Phase, result auditlogenums.Result, bizCode string,
+) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			logger.Warn(ctx, "审计写入 panic", "event", spec.Event, "auditId", ref.AuditID, "panic", rec)
@@ -78,7 +79,6 @@ func (r *Recorder) write(ctx context.Context, ref audit.Ref, spec audit.Spec,
 		ClientIP:     spec.ClientIP,
 		TargetType:   spec.Target.Type,
 		TargetID:     spec.Target.ID,
-		TargetName:   spec.Target.Name,
 		Result:       result,
 		BizCode:      bizCode,
 	})

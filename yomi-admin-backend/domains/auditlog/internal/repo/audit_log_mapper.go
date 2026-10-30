@@ -21,7 +21,6 @@ func toLogEntity(row *auditLogModel) *entity.Log {
 		ClientIP:     row.ClientIP,
 		TargetType:   row.TargetType,
 		TargetID:     row.TargetID,
-		TargetName:   row.TargetName,
 		Result:       row.Result,
 		BizCode:      row.BizCode,
 		CreateTime:   row.CreateTime.UnixMilli(),
@@ -42,7 +41,6 @@ func toLogModel(log *entity.Log) *auditLogModel {
 		ClientIP:     log.ClientIP,
 		TargetType:   log.TargetType,
 		TargetID:     log.TargetID,
-		TargetName:   log.TargetName,
 		Result:       log.Result,
 		BizCode:      log.BizCode,
 	}

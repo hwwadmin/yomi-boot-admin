@@ -66,7 +66,6 @@ func TestRecordPersistsSanitizedLog(t *testing.T) {
 		ClientIP:     " 1.2.3.4 ",
 		TargetType:   " user ",
 		TargetID:     8,
-		TargetName:   " alice ",
 		Result:       enums.ResultSuccess,
 		BizCode:      " OK ",
 	})
@@ -79,7 +78,7 @@ func TestRecordPersistsSanitizedLog(t *testing.T) {
 	log := repo.created[0]
 	if log.ID == 0 || log.AuditID != 99 || log.Phase != enums.PhaseFinished ||
 		log.EventCode != "auth.login" || log.OperatorName != "admin" ||
-		log.ClientIP != "1.2.3.4" || log.TargetType != "user" || log.TargetName != "alice" ||
+		log.ClientIP != "1.2.3.4" || log.TargetType != "user" ||
 		log.BizCode != "OK" || log.Result != enums.ResultSuccess || log.CreateTime <= 0 {
 		t.Fatalf("落库字段不符合预期: %+v", log)
 	}
@@ -96,7 +95,6 @@ func TestRecordTruncatesLongFields(t *testing.T) {
 		OperatorName: long,
 		ClientIP:     long,
 		TargetType:   long,
-		TargetName:   long,
 		Result:       enums.ResultFailure,
 		BizCode:      long,
 	})
@@ -105,7 +103,7 @@ func TestRecordTruncatesLongFields(t *testing.T) {
 	}
 	log := repo.created[0]
 	if len(log.OperatorName) > 64 || len(log.ClientIP) > 64 || len(log.TargetType) > 32 ||
-		len(log.TargetName) > 64 || len(log.BizCode) > 64 {
+		len(log.BizCode) > 64 {
 		t.Fatalf("超长字段未截断: %+v", log)
 	}
 }

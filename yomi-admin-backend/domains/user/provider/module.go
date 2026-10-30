@@ -27,7 +27,5 @@ type Module struct {
 // Provide 装配 user 域
 func Provide(deps Deps) Module {
 	userRepo := repo.NewUserRepo(deps.DB, deps.DBType)
-	return Module{
-		Users: service.NewUserService(userRepo, deps.IDGenerator),
-	}
+	return Module{Users: service.NewUserService(userRepo, deps.IDGenerator)}
 }

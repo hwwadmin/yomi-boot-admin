@@ -47,6 +47,24 @@ func (r *UserRepo) FindByID(ctx context.Context, id int64) (*entity.User, bool, 
 	return toUserEntity(&row), true, nil
 }
 
+// FindUsersByIDs 按主键批量查询；空入参返回空切片，已软删除的记录不返回
+func (r *UserRepo) FindUsersByIDs(ctx context.Context, ids []int64) ([]*entity.User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	rows := make([]*userModel, 0, len(ids))
+	if err := r.FindByIDs(ctx, ids, &userModel{}, &rows); err != nil {
+		return nil, errors.Wrap(err, "批量查询用户失败")
+	}
+
+	users := make([]*entity.User, 0, len(rows))
+	for _, row := range rows {
+		users = append(users, toUserEntity(row))
+	}
+	return users, nil
+}
+
 // FindCredentialByUsername 按登录名查询验密凭证
 func (r *UserRepo) FindCredentialByUsername(ctx context.Context, username string) (*repo_contract.UserCredential, bool, error) {
 	var row userModel

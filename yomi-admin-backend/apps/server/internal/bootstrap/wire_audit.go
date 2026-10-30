@@ -10,6 +10,6 @@ import (
 // newAuditLogRegistrar 组装操作审计日志查询模块
 func newAuditLogRegistrar(c container) router.Registrar {
 	return apphandler.NewAuditLogHandler(apphandler.AuditLogHandlerDeps{
-		Page: auditlogusecase.NewPageLogsUsecase(c.audit.Reader),
+		Page: auditlogusecase.NewPageLogsUsecase(c.audit.Reader, c.users.Users),
 	})
 }

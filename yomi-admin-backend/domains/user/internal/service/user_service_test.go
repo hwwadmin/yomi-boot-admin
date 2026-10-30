@@ -35,6 +35,16 @@ func (r *fakeUserRepo) FindByID(_ context.Context, id int64) (*entity.User, bool
 	return user, ok, nil
 }
 
+func (r *fakeUserRepo) FindUsersByIDs(_ context.Context, ids []int64) ([]*entity.User, error) {
+	users := make([]*entity.User, 0, len(ids))
+	for _, id := range ids {
+		if user, ok := r.users[id]; ok {
+			users = append(users, user)
+		}
+	}
+	return users, nil
+}
+
 func (r *fakeUserRepo) FindCredentialByUsername(_ context.Context, username string) (*repo_contract.UserCredential, bool, error) {
 	cred, ok := r.credentials[username]
 	if !ok {

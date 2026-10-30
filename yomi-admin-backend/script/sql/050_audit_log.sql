@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS `t_audit_log` (
     `client_ip`     VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '来源IP',
     `target_type`   VARCHAR(32)  NOT NULL DEFAULT '' COMMENT '目标类型，如 user；无目标为空',
     `target_id`     BIGINT       NOT NULL DEFAULT 0 COMMENT '目标ID；无目标为0',
-    `target_name`   VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '目标名称快照，如被重置用户的用户名',
     `result`        VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT '结果：PENDING-开始未出结果，SUCCESS-成功，FAILURE-失败',
     `biz_code`      VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '业务码；成功为 OK',
     `create_time`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '事件发生时间（UTC）',

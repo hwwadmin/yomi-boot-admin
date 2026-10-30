@@ -6,7 +6,7 @@ import (
 	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
 )
 
-// toLogItem 将审计日志实体转换为列表项
+// toLogItem 将审计日志实体转换为列表项；目标用户名不落库，由 fillTargetNames 回填
 func toLogItem(log *entity.Log) LogItem {
 	if log == nil {
 		return LogItem{}
@@ -21,7 +21,6 @@ func toLogItem(log *entity.Log) LogItem {
 		ClientIP:     log.ClientIP,
 		TargetType:   log.TargetType,
 		TargetID:     dto.JSONInt64(log.TargetID),
-		TargetName:   log.TargetName,
 		Result:       log.Result,
 		BizCode:      log.BizCode,
 		CreateTime:   log.CreateTime,

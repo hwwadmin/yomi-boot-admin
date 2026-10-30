@@ -14,7 +14,6 @@ type Log struct {
 	ClientIP     string
 	TargetType   string
 	TargetID     int64
-	TargetName   string
 	Result       enums.Result
 	BizCode      string
 	CreateTime   int64 // Unix 毫秒时间戳

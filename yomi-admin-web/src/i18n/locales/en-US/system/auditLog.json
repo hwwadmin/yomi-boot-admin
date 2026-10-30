@@ -1,5 +1,5 @@
 {
-  "searchPlaceholder": "Operator / target / source IP / audit event ID",
+  "searchPlaceholder": "Operator / source IP / audit event ID",
   "allEvents": "All events",
   "allPhases": "All phases",
   "allResults": "All results",

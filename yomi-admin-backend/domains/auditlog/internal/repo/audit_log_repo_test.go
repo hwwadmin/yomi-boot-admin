@@ -38,7 +38,7 @@ func seedLogs(t *testing.T, r *AuditLogRepo, ctx context.Context) {
 	})
 	mustCreate(t, r, ctx, &entity.Log{
 		ID: 3, AuditID: 1003, Phase: enums.PhaseFinished, EventCode: "auth.reset_password", OperatorID: 7, OperatorName: "admin",
-		ClientIP: "10.0.0.3", TargetType: "user", TargetID: 9, TargetName: "bob",
+		ClientIP: "10.0.0.3", TargetType: "user", TargetID: 9,
 		Result: enums.ResultSuccess, BizCode: "OK", CreateTime: 2000,
 	})
 }
@@ -60,7 +60,7 @@ func TestAuditLogRepoCreateAndPage(t *testing.T) {
 	}
 	// 实体映射与快照字段
 	if items[1].AuditID != 1003 || items[1].Phase != enums.PhaseFinished ||
-		items[1].TargetType != "user" || items[1].TargetID != 9 || items[1].TargetName != "bob" {
+		items[1].TargetType != "user" || items[1].TargetID != 9 {
 		t.Fatalf("目标字段映射错误: %+v", items[1])
 	}
 	if items[0].CreateTime != 3000 {
@@ -72,8 +72,8 @@ func TestAuditLogRepoFilters(t *testing.T) {
 	r, ctx := newTestRepo(t)
 	seedLogs(t, r, ctx)
 
-	// keyword 命中操作者/目标/IP
-	for _, keyword := range []string{"ali", "bob", "10.0.0.2"} {
+	// keyword 命中操作者/来源 IP（目标用户名不落库，不参与 SQL 过滤）
+	for _, keyword := range []string{"ali", "10.0.0.2"} {
 		items, total, err := r.Page(ctx, &repo_contract.Filter{Keyword: keyword, Page: 1, PageSize: 10})
 		if err != nil || total != 1 || len(items) != 1 {
 			t.Fatalf("keyword=%s total=%d err=%v", keyword, total, err)

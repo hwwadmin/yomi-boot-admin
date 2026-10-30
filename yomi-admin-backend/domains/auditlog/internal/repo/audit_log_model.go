@@ -20,7 +20,6 @@ type auditLogModel struct {
 	ClientIP     string       `gorm:"column:client_ip;size:64"`
 	TargetType   string       `gorm:"column:target_type;size:32"`
 	TargetID     int64        `gorm:"column:target_id"`
-	TargetName   string       `gorm:"column:target_name;size:64"`
 	Result       enums.Result `gorm:"column:result;size:16"`
 	BizCode      string       `gorm:"column:biz_code;size:64"`
 	orm.BaseModel

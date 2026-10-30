@@ -1491,7 +1491,7 @@ components:
         clientIp: { type: string, description: 来源 IP }
         targetType: { type: string, description: 目标类型，如 user；无目标为空 }
         targetId: { type: string, description: '目标雪花 ID，无目标为 "0"' }
-        targetName: { type: string, description: 目标名称快照 }
+        targetName: { type: string, description: 目标用户名；不落库，查询时按 targetId 实时取用户表，用户不存在或已删除时为空 }
         result: { type: string, enum: [PENDING, SUCCESS, FAILURE], description: 操作结果 }
         bizCode: { type: string, description: 业务码，成功为 OK }
         createTime: { type: integer, format: int64, description: 事件发生时间（Unix 毫秒） }

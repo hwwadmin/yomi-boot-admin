@@ -28,4 +28,6 @@ type UserService interface {
 	ChangePassword(ctx context.Context, in *input.ChangePasswordInput) error
 	// ResetPassword 直接重置密码（不需要原密码）；调用方负责权限校验与撤销该用户的登录令牌
 	ResetPassword(ctx context.Context, in *input.ResetPasswordInput) error
+	// GetNamesByIDs 按用户 ID 批量取用户名（供其他域的列表回填）；不存在或已软删除的 ID 不出现在结果里
+	GetNamesByIDs(ctx context.Context, ids []int64) (map[int64]string, error)
 }

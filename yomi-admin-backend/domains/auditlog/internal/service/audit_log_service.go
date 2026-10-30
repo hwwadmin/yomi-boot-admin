@@ -23,7 +23,6 @@ const (
 	maxOperatorNameBytes = 64
 	maxClientIPBytes     = 64
 	maxTargetTypeBytes   = 32
-	maxTargetNameBytes   = 64
 	maxBizCodeBytes      = 64
 )
 
@@ -33,8 +32,10 @@ type AuditLogService struct {
 	ids  snowflake.Generator
 }
 
-var _ service_contract.AuditLogWriter = (*AuditLogService)(nil)
-var _ service_contract.AuditLogReader = (*AuditLogService)(nil)
+var (
+	_ service_contract.AuditLogWriter = (*AuditLogService)(nil)
+	_ service_contract.AuditLogReader = (*AuditLogService)(nil)
+)
 
 // NewAuditLogService 创建审计日志域服务
 func NewAuditLogService(logs repo_contract.AuditLogRepo, ids snowflake.Generator) *AuditLogService {
@@ -87,7 +88,6 @@ func (s *AuditLogService) Record(ctx context.Context, in *input.RecordInput) err
 		ClientIP:     cutString(strings.TrimSpace(in.ClientIP), maxClientIPBytes),
 		TargetType:   cutString(strings.TrimSpace(in.TargetType), maxTargetTypeBytes),
 		TargetID:     in.TargetID,
-		TargetName:   cutString(strings.TrimSpace(in.TargetName), maxTargetNameBytes),
 		Result:       in.Result,
 		BizCode:      cutString(strings.TrimSpace(in.BizCode), maxBizCodeBytes),
 		CreateTime:   createTime,

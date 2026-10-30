@@ -17,7 +17,7 @@ func TestAuditResetPassword(t *testing.T) {
 	startTime := auditStartTime()
 	suffix := time.Now().UnixNano()
 
-	userID, _, _ := createAuditUser(t, adminToken, suffix)
+	userID, targetUsername, _ := createAuditUser(t, adminToken, suffix)
 	body, _ := testclient.Post(API("/system/user/reset-password"), adminToken, userusecase.ResetUserPasswordInput{
 		ID:          dto.JSONInt64(userID),
 		NewPassword: "auditpass3",
@@ -35,7 +35,7 @@ func TestAuditResetPassword(t *testing.T) {
 		t.Fatalf("重置密码开始记录错误: %+v", started)
 	}
 	if finished.Result != "SUCCESS" || finished.OperatorName != adminUsername ||
-		finished.TargetType != "user" || finished.TargetID != targetID || finished.TargetName != "" {
+		finished.TargetType != "user" || finished.TargetID != targetID || finished.TargetName != targetUsername {
 		t.Fatalf("重置密码结束记录错误: %+v", finished)
 	}
 }

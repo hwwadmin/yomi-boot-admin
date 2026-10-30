@@ -68,10 +68,10 @@ func (r *AuditLogRepo) Page(ctx context.Context, filter *repo_contract.Filter) (
 
 // applyLogFilter 按过滤条件拼装查询
 func applyLogFilter(query *gorm.DB, filter *repo_contract.Filter) *gorm.DB {
+	// 关键字只匹配落库快照（操作者名、来源 IP）：目标用户名不落库，由查询侧按 ID 实时回填，无法参与 SQL 过滤
 	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
 		like := orm.LikeFull(keyword)
-		query = query.Where("operator_name LIKE ? OR target_name LIKE ? OR client_ip LIKE ?",
-			like, like, like)
+		query = query.Where("operator_name LIKE ? OR client_ip LIKE ?", like, like)
 	}
 	if filter.EventCode != "" {
 		query = query.Where("event_code = ?", filter.EventCode)

@@ -16,6 +16,8 @@ type UserCredential struct {
 type UserRepo interface {
 	// FindByID 按主键查询
 	FindByID(ctx context.Context, id int64) (*entity.User, bool, error)
+	// FindUsersByIDs 按主键批量查询；不存在或已软删除的 ID 不出现在结果里
+	FindUsersByIDs(ctx context.Context, ids []int64) ([]*entity.User, error)
 	// FindCredentialByUsername 按登录名查询验密凭证
 	FindCredentialByUsername(ctx context.Context, username string) (*UserCredential, bool, error)
 	// FindCredentialByID 按主键查询验密凭证

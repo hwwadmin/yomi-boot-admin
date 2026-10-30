@@ -28,11 +28,10 @@ type Operator struct {
 	Name string
 }
 
-// Target 是业务目标快照
+// Target 是业务目标快照；只记类型与 ID，目标用户名由查询侧按 ID 实时回填，不落库
 type Target struct {
 	Type string
 	ID   int64
-	Name string
 }
 
 // Spec 是一次操作要记录的业务事实
