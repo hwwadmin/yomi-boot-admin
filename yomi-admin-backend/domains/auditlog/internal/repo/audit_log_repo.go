@@ -43,19 +43,45 @@ func (r *AuditLogRepo) Create(ctx context.Context, log *entity.Log) error {
 	return nil
 }
 
-// Page 分页查询审计日志；按事件时间与主键倒序
+// Page 分页查询审计日志；按事件时间与主键倒序。
+//
+// 深翻页走"索引子查询 + 主键回表"：子查询只取本页的主键，排序与跳过都发生在
+// (create_time, id) 索引里，不取整行；外层再按主键取这几十行。直接
+// LIMIT/OFFSET 大偏移量时，被跳过的每一行都要回表取整行再丢掉，页数一深就慢。
+// 子查询列必须改名（id AS page_id），否则外层 ORDER BY 里的 id 会和派生表撞名。
 func (r *AuditLogRepo) Page(ctx context.Context, filter *repo_contract.Filter) ([]*entity.Log, int64, error) {
 	if filter == nil {
 		return nil, 0, errors.New("审计日志分页过滤条件不能为空")
 	}
 
-	query := tx.Exec(ctx, r.DB).Model(&auditLogModel{})
-	query = applyLogFilter(query, filter)
+	orders := []orm.OrderClause{orm.OrderDesc("create_time"), orm.OrderDesc("id")}
+	base := applyLogFilter(r.scopedQuery(ctx), filter)
+
+	var total int64
+	if err := base.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return nil, 0, errors.Wrap(err, "统计审计日志失败")
+	}
+	if total == 0 {
+		return []*entity.Log{}, 0, nil
+	}
+
+	pageIDs, err := orm.ApplyPage(base.Session(&gorm.Session{}).Select("id AS page_id"),
+		filter.Page, filter.PageSize, orders...)
+	if err != nil {
+		return nil, 0, errors.Wrap(err, "审计日志分页参数非法")
+	}
+
+	query, err := orm.ApplyPage(
+		r.scopedQuery(ctx).
+			Select("t_audit_log.*").
+			Joins("JOIN (?) AS page_ids ON page_ids.page_id = t_audit_log.id", pageIDs),
+		1, filter.PageSize, orders...)
+	if err != nil {
+		return nil, 0, errors.Wrap(err, "审计日志分页参数非法")
+	}
 
 	var rows []*auditLogModel
-	total, err := r.CountPage(ctx, query, filter.Page, filter.PageSize, &rows,
-		orm.OrderDesc("create_time"), orm.OrderDesc("id"))
-	if err != nil {
+	if err := query.Find(&rows).Error; err != nil {
 		return nil, 0, errors.Wrap(err, "分页查询审计日志失败")
 	}
 
@@ -64,6 +90,14 @@ func (r *AuditLogRepo) Page(ctx context.Context, filter *repo_contract.Filter) (
 		items = append(items, toLogEntity(row))
 	}
 	return items, total, nil
+}
+
+// scopedQuery 返回审计日志的基础查询。
+//
+// 审计只追加、不软删（见建表脚本），这里显式 Unscoped：若带上 GORM 自动加的
+// delete_time IS NULL，子查询就必须回表逐行判断，索引覆盖失效，深翻页优化白做。
+func (r *AuditLogRepo) scopedQuery(ctx context.Context) *gorm.DB {
+	return tx.Exec(ctx, r.DB).Unscoped().Model(&auditLogModel{})
 }
 
 // applyLogFilter 按过滤条件拼装查询
