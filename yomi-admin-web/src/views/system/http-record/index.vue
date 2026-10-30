@@ -150,7 +150,7 @@ async function openDetail(row: HttpRecordItem) {
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column label="请求时间" width="170">
+        <el-table-column label="请求时间" width="160">
           <template #default="{ row }">
             {{ formatDateTime((row as HttpRecordItem).requestAt) }}
           </template>
@@ -162,27 +162,27 @@ async function openDetail(row: HttpRecordItem) {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="路径" min-width="200" show-overflow-tooltip>
+        <el-table-column label="路径" min-width="240" show-overflow-tooltip>
           <template #default="{ row }">
             <span class="record-path">{{ (row as HttpRecordItem).path }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="结果" width="150" align="center">
+        <el-table-column label="结果" width="210" align="center">
           <template #default="{ row }">
-            <el-tag :type="resultTagType(row as HttpRecordItem)" size="small">
+            <el-tag :type="resultTagType(row as HttpRecordItem)" size="small" class="result-tag">
               {{ (row as HttpRecordItem).bizCode || (row as HttpRecordItem).statusCode }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="耗时" width="90" align="right">
+        <el-table-column label="耗时" width="84" align="right">
           <template #default="{ row }"> {{ (row as HttpRecordItem).durationMs }} ms </template>
         </el-table-column>
-        <el-table-column label="用户 ID" width="140" show-overflow-tooltip>
+        <el-table-column label="用户 ID" width="172" show-overflow-tooltip>
           <template #default="{ row }">
             {{ (row as HttpRecordItem).userId === '0' ? '-' : (row as HttpRecordItem).userId }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="70" fixed="right" align="center">
+        <el-table-column label="操作" width="72" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row as HttpRecordItem)"
               >详情</el-button
@@ -313,6 +313,17 @@ async function openDetail(row: HttpRecordItem) {
 .record-path {
   font-family: var(--el-font-family-mono, monospace);
   font-size: 13px;
+}
+
+/* 业务码可能长达 40 字符，超出列宽时换行，避免省略号 */
+.result-tag {
+  max-width: 100%;
+  height: auto;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  line-height: 18px;
+  white-space: normal;
+  word-break: break-all;
 }
 
 .detail {
