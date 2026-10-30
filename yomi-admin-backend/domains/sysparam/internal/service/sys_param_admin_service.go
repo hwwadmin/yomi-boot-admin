@@ -20,15 +20,12 @@ import (
 )
 
 const (
-	maxKeyLength    = 128
-	maxValueRunes   = 2048
-	maxNameRunes    = 64
-	maxRemarkRunes  = 255
-	boolValueTrue   = "true"
-	boolValueFalse  = "false"
-	defaultPage     = 1
-	defaultPageSize = 10
-	maxPageSize     = 100
+	maxKeyLength   = 128
+	maxValueRunes  = 2048
+	maxNameRunes   = 64
+	maxRemarkRunes = 255
+	boolValueTrue  = "true"
+	boolValueFalse = "false"
 )
 
 // keyPattern 约束参数键为小写点分标识，每段以小写字母开头（如 order.auto_cancel_days）

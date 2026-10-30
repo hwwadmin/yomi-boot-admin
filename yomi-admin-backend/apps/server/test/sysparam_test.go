@@ -62,15 +62,21 @@ func TestSysParamFlow(t *testing.T) {
 	}
 	created := parseSuccess(t, body)
 	var param struct {
-		ID     string `json:"id"`
-		Key    string `json:"key"`
-		Status string `json:"status"`
+		ID         string `json:"id"`
+		Key        string `json:"key"`
+		Status     string `json:"status"`
+		CreateTime int64  `json:"createTime"`
+		UpdateTime int64  `json:"updateTime"`
 	}
 	if err := json.Unmarshal(created.Data, &param); err != nil || param.ID == "" {
 		t.Fatalf("解析创建结果失败: %v body=%s", err, body)
 	}
 	if param.Status != "ENABLED" {
 		t.Fatalf("新建参数状态 = %s, want ENABLED", param.Status)
+	}
+	// 创建响应的时间戳必须按契约给出真实值，不能是 0
+	if param.CreateTime <= 0 || param.UpdateTime <= 0 {
+		t.Fatalf("创建响应时间戳缺失: createTime=%d updateTime=%d", param.CreateTime, param.UpdateTime)
 	}
 
 	// 重复键被拒绝

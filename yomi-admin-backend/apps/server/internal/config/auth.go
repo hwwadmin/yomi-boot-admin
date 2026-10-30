@@ -65,7 +65,7 @@ func (c AuthConfig) Validate() error {
 func (c AuthConfig) PublicRoutes() []PublicRoute {
 	routes := make([]PublicRoute, 0, len(c.PublicPaths))
 	for _, item := range c.PublicPaths {
-		routes = append(routes, PublicRoute{Method: item.Method, Path: item.Path, Token: item.Token})
+		routes = append(routes, PublicRoute(item))
 	}
 	return routes
 }

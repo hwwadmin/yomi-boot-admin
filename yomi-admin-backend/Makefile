@@ -2,7 +2,7 @@
 # 请在 yomi-admin-backend 根目录执行 make 命令
 #
 # 原则：日常开发统一通过 make 调用；script/ 为实现细节，不直接执行。
-# 说明：本仓为 go.work 多 module，tidy/fmt/vet/lint/test 会遍历 apps/server、domains/user。
+# 说明：本仓为 go.work 多 module，tidy/fmt/vet/lint/test 会遍历 script/dev/workspace-modules.sh 里的 WORKSPACE_MODULES。
 
 GO          ?= go
 BIN_DIR     ?= bin

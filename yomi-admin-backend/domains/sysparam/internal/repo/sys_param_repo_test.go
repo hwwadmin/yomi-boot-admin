@@ -33,6 +33,9 @@ func mustCreate(t *testing.T, r *SysParamRepo, ctx context.Context, id int64, ke
 	if err := r.CreateParam(ctx, param, 100); err != nil {
 		t.Fatalf("CreateParam(%s) error = %v", key, err)
 	}
+	if param.CreateTime == 0 || param.UpdateTime == 0 {
+		t.Fatalf("CreateParam(%s) 未回填时间戳: createTime=%d updateTime=%d", key, param.CreateTime, param.UpdateTime)
+	}
 	return param
 }
 
@@ -68,9 +71,10 @@ func TestSysParamRepoCreateAndFind(t *testing.T) {
 func TestSysParamRepoPage(t *testing.T) {
 	r, ctx := newTestRepo(t)
 
-	mustCreate(t, r, ctx, 1, "a.enabled", "true", enums.ParamTypeBool, enums.StatusEnabled)
+	// 故意让键序与 id 序相反：只有按 id 倒序，最后创建的 a.enabled 才会排最前
+	mustCreate(t, r, ctx, 1, "c.greeting", "你好", enums.ParamTypeString, enums.StatusEnabled)
 	mustCreate(t, r, ctx, 2, "b.retries", "3", enums.ParamTypeInt, enums.StatusDisabled)
-	mustCreate(t, r, ctx, 3, "c.greeting", "你好", enums.ParamTypeString, enums.StatusEnabled)
+	mustCreate(t, r, ctx, 3, "a.enabled", "true", enums.ParamTypeBool, enums.StatusEnabled)
 
 	tests := []struct {
 		name   string
@@ -96,13 +100,13 @@ func TestSysParamRepoPage(t *testing.T) {
 		})
 	}
 
-	// 按键倒序：c > b > a
+	// 按主键倒序：id 3 → id 1，即最后创建的排最前
 	items, _, err := r.Page(ctx, &repo_contract.ParamFilter{Page: 1, PageSize: 10})
 	if err != nil {
 		t.Fatalf("Page() error = %v", err)
 	}
-	if items[0].Key != "c.greeting" || items[2].Key != "a.enabled" {
-		t.Fatalf("按键倒序失败: %s, %s, %s", items[0].Key, items[1].Key, items[2].Key)
+	if items[0].Key != "a.enabled" || items[2].Key != "c.greeting" {
+		t.Fatalf("按主键倒序失败: %s, %s, %s", items[0].Key, items[1].Key, items[2].Key)
 	}
 }
 
@@ -118,15 +122,6 @@ func TestSysParamRepoEnabledQueries(t *testing.T) {
 	}
 	if _, ok, err := r.GetEnabledByKey(ctx, "off.enabled"); err != nil || ok {
 		t.Fatalf("GetEnabledByKey(禁用) ok=%v err=%v, want 不返回", ok, err)
-	}
-
-	// LoadEnabled 只包含启用参数
-	items, err := r.LoadEnabled(ctx)
-	if err != nil {
-		t.Fatalf("LoadEnabled() error = %v", err)
-	}
-	if len(items) != 1 || items[0].Key != "on.enabled" {
-		t.Fatalf("LoadEnabled() = %+v, want 仅启用项", items)
 	}
 }
 

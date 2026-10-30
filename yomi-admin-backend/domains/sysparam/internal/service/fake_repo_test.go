@@ -13,9 +13,7 @@ import (
 // fakeRepo 内存版参数仓储：按存储顺序维护，支持注入查询故障
 type fakeRepo struct {
 	rows     []*entity.Param
-	findErr  error
 	getErr   error
-	loadErr  error
 	dupOnNew bool // 下一次 CreateParam 强制返回唯一键冲突
 }
 
@@ -39,9 +37,6 @@ func (f *fakeRepo) Page(_ context.Context, filter *repo_contract.ParamFilter) ([
 }
 
 func (f *fakeRepo) FindByID(_ context.Context, id int64) (*entity.Param, bool, error) {
-	if f.findErr != nil {
-		return nil, false, f.findErr
-	}
 	for _, row := range f.rows {
 		if row.ID == id {
 			return row, true, nil
@@ -69,19 +64,6 @@ func (f *fakeRepo) GetEnabledByKey(_ context.Context, key string) (*entity.Param
 		}
 	}
 	return nil, false, nil
-}
-
-func (f *fakeRepo) LoadEnabled(_ context.Context) ([]*entity.Param, error) {
-	if f.loadErr != nil {
-		return nil, f.loadErr
-	}
-	items := make([]*entity.Param, 0, len(f.rows))
-	for _, row := range f.rows {
-		if row.Status == enums.StatusEnabled {
-			items = append(items, row)
-		}
-	}
-	return items, nil
 }
 
 func (f *fakeRepo) CreateParam(_ context.Context, param *entity.Param, _ int64) error {

@@ -34,7 +34,7 @@ func NewSysParamRepo(d *gorm.DB, dbType sharedenums.DbType) *SysParamRepo {
 	}
 }
 
-// Page 分页查询参数；按键倒序保证新参数在前
+// Page 分页查询参数；按主键倒序，雪花 ID 单调递增，因此新参数排在最前
 func (r *SysParamRepo) Page(ctx context.Context, filter *repo_contract.ParamFilter) ([]*entity.Param, int64, error) {
 	if filter == nil {
 		return nil, 0, errors.New("参数分页过滤条件不能为空")
@@ -44,7 +44,7 @@ func (r *SysParamRepo) Page(ctx context.Context, filter *repo_contract.ParamFilt
 	query = applyParamFilter(query, filter)
 
 	var rows []*sysParamModel
-	total, err := r.CountPage(ctx, query, filter.Page, filter.PageSize, &rows, orm.OrderDesc("param_key"))
+	total, err := r.CountPage(ctx, query, filter.Page, filter.PageSize, &rows, orm.OrderDesc("id"))
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "分页查询系统参数失败")
 	}
@@ -82,7 +82,7 @@ func (r *SysParamRepo) FindByKey(ctx context.Context, key string) (*entity.Param
 	return toParamEntity(&row), true, nil
 }
 
-// GetEnabledByKey 按键查询单条启用参数，供缓存不可用时的读路径降级
+// GetEnabledByKey 按键查询单条启用参数，是业务读路径的唯一查询
 func (r *SysParamRepo) GetEnabledByKey(ctx context.Context, key string) (*entity.Param, bool, error) {
 	var row sysParamModel
 	err := tx.Exec(ctx, r.DB).
@@ -97,31 +97,21 @@ func (r *SysParamRepo) GetEnabledByKey(ctx context.Context, key string) (*entity
 	return toParamEntity(&row), true, nil
 }
 
-// LoadEnabled 加载全部启用参数，供投影全量构建
-func (r *SysParamRepo) LoadEnabled(ctx context.Context) ([]*entity.Param, error) {
-	var rows []*sysParamModel
-	if err := tx.Exec(ctx, r.DB).
-		Where("status = ?", enums.StatusEnabled).
-		Order("param_key").
-		Find(&rows).Error; err != nil {
-		return nil, errors.Wrap(err, "加载启用系统参数失败")
-	}
-
-	items := make([]*entity.Param, 0, len(rows))
-	for _, row := range rows {
-		items = append(items, toParamEntity(row))
-	}
-	return items, nil
-}
-
-// CreateParam 创建参数；param_key 唯一冲突时返回 ErrDuplicatedKey
+// CreateParam 创建参数；param_key 唯一冲突时返回 ErrDuplicatedKey。
+// 写入成功后把数据库生成的时间回填到实体，保证返回给调用方的实体与库内一致。
 func (r *SysParamRepo) CreateParam(ctx context.Context, param *entity.Param, operatorID int64) error {
-	if err := r.Create(ctx, toParamModel(param, operatorID)); err != nil {
+	row := toParamModel(param, operatorID)
+	if row == nil {
+		return errors.New("参数实体不能为空")
+	}
+	if err := r.Create(ctx, row); err != nil {
 		if yomidb.IsDuplicateKey(err, r.dbType) {
 			return errors.Sentinel(repo_contract.ErrDuplicatedKey)
 		}
 		return errors.Wrap(err, "创建系统参数失败")
 	}
+	param.CreateTime = row.CreateTime.UnixMilli()
+	param.UpdateTime = row.UpdateTime.UnixMilli()
 	return nil
 }
 
