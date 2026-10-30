@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 
+import { Refresh } from '@element-plus/icons-vue'
+
 import {
   bindRoleGroups,
   createRole,
@@ -242,23 +244,24 @@ async function saveGroups() {
         </el-select>
         <el-button type="primary" @click="handleSearch">查询</el-button>
         <el-button @click="handleReset">重置</el-button>
-        <el-button
-          v-permission="'system:role:create'"
-          type="primary"
-          plain
-          class="toolbar-add"
-          @click="openCreate"
-        >
-          新增角色
-        </el-button>
-        <el-button
-          v-permission="'system:rbac_cache:refresh'"
-          type="warning"
-          :loading="refreshingCache"
-          @click="handleRefreshCache"
-        >
-          刷新权限缓存
-        </el-button>
+        <div class="toolbar-actions">
+          <el-button v-permission="'system:role:create'" type="primary" plain @click="openCreate">
+            新增角色
+          </el-button>
+          <el-button
+            v-permission="'system:rbac_cache:refresh'"
+            class="toolbar-refresh"
+            :disabled="refreshingCache"
+            @click="handleRefreshCache"
+          >
+            <span class="refresh-content">
+              <span class="refresh-chip" :class="{ 'is-spinning': refreshingCache }">
+                <el-icon><Refresh /></el-icon>
+              </span>
+              刷新缓存
+            </span>
+          </el-button>
+        </div>
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
@@ -439,8 +442,87 @@ async function saveGroups() {
   width: 140px;
 }
 
-.toolbar-add {
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+}
+
+/* 右侧操作组统一圆角，作为独立的操作簇与左侧查询条件区分开 */
+.toolbar-actions :deep(.el-button) {
+  border-radius: 8px;
+}
+
+/* 维护类操作：白底 + 图标徽标，成品化的次级操作按钮 */
+.toolbar-refresh {
+  --el-button-bg-color: transparent;
+  --el-button-border-color: var(--el-border-color);
+  --el-button-text-color: var(--el-text-color-primary);
+  --el-button-hover-bg-color: transparent;
+  --el-button-hover-border-color: var(--el-color-primary-light-5);
+  --el-button-hover-text-color: var(--el-text-color-primary);
+  --el-button-active-bg-color: var(--el-fill-color-light);
+  --el-button-active-border-color: var(--el-color-primary-light-3);
+  --el-button-active-text-color: var(--el-text-color-primary);
+  padding: 0 14px 0 7px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.toolbar-refresh:not(.is-disabled):hover {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 7%);
+}
+
+.toolbar-refresh.is-disabled {
+  opacity: 0.65;
+}
+
+.refresh-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* 图标放在浅琥珀圆底上：小面积暖色点缀，既点出"缓存维护"的语义，又不与主色按钮撞色 */
+.refresh-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--el-color-warning-light-8);
+  box-shadow: inset 0 0 0 1px rgb(230 162 60 / 16%);
+  color: var(--el-color-warning-dark-2);
+  transition: background-color 0.2s ease;
+}
+
+.refresh-chip .el-icon {
+  font-size: 14px;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toolbar-refresh:not(.is-disabled):hover .refresh-chip {
+  background: var(--el-color-warning-light-7);
+}
+
+.toolbar-refresh:not(.is-disabled):hover .refresh-chip .el-icon {
+  transform: rotate(180deg);
+}
+
+.refresh-chip.is-spinning .el-icon {
+  animation: refresh-spin 0.9s linear infinite;
+}
+
+@keyframes refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .page-pagination {

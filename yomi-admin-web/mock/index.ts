@@ -16,7 +16,6 @@ interface MockResponse<T = unknown> {
   msg: string
   timestamp: number
   data: T
-  total?: number
 }
 
 interface MockPermission {
@@ -93,12 +92,11 @@ interface MockHttpRecord {
   createTime: number
 }
 
-const ok = <T>(data: T, total?: number): MockResponse<T> => ({
+const ok = <T>(data: T): MockResponse<T> => ({
   code: 'OK',
   msg: 'success',
   timestamp: Date.now(),
   data,
-  total,
 })
 const fail = (msg: string, code = 'ADMIN_ERROR'): MockResponse<null> => ({
   code,
@@ -366,12 +364,12 @@ function userView(user: MockUser) {
   }
 }
 
-/** 按页码切分并返回 data + total 顶层分页结构 */
-function paginate<T>(items: T[], query: URLSearchParams): MockResponse<T[]> {
+/** 按页码切分，按 yomi-boot 默认协议返回 data: { items, total } */
+function paginate<T>(items: T[], query: URLSearchParams): MockResponse<{ items: T[]; total: number }> {
   const page = Math.max(1, Number(query.get('page')) || 1)
   const pageSize = Math.min(200, Math.max(1, Number(query.get('pageSize')) || 10))
   const start = (page - 1) * pageSize
-  return ok(items.slice(start, start + pageSize), items.length)
+  return ok({ items: items.slice(start, start + pageSize), total: items.length })
 }
 
 type MockHandler = (ctx: {
