@@ -89,6 +89,7 @@ func (h *RoleHandler) create(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
+	in.IdempotencyKey = idempotencyKey(c)
 	handle(c, func(ctx context.Context) (*rbacusecase.RoleItem, error) {
 		return h.createUC.Execute(ctx, &in)
 	})

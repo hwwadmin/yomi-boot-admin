@@ -19,6 +19,7 @@ import { useAppStore } from '@/stores/app'
 import { useLocaleStore } from '@/stores/locale'
 import { useUserStore } from '@/stores/user'
 import { confirmAction } from '@/utils/confirm'
+import { newIdempotencyKey } from '@/utils/idempotency'
 import Breadcrumb from './Breadcrumb.vue'
 
 const appStore = useAppStore()
@@ -59,6 +60,8 @@ async function handleCommand(command: string) {
 // ———————— 修改密码 ————————
 const changePwdVisible = ref(false)
 const changePwdSubmitting = ref(false)
+/** 一次改密意图的幂等键：超时重试复用，成功后清空 */
+const changePwdKey = ref('')
 const changePwdRef = ref<FormInstance>()
 const changePwdForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 
@@ -88,6 +91,7 @@ const changePwdRules = computed<FormRules>(() => ({
 
 function openChangePassword() {
   Object.assign(changePwdForm, { oldPassword: '', newPassword: '', confirmPassword: '' })
+  changePwdKey.value = ''
   changePwdVisible.value = true
 }
 
@@ -97,10 +101,15 @@ async function handleChangePassword() {
   changePwdSubmitting.value = true
   try {
     // 后端会在改密成功后撤销该账号全部会话（含当前会话），必须重新登录
-    await changePasswordApi({
-      oldPassword: changePwdForm.oldPassword,
-      newPassword: changePwdForm.newPassword,
-    })
+    if (!changePwdKey.value) changePwdKey.value = newIdempotencyKey()
+    await changePasswordApi(
+      {
+        oldPassword: changePwdForm.oldPassword,
+        newPassword: changePwdForm.newPassword,
+      },
+      changePwdKey.value,
+    )
+    changePwdKey.value = ''
     ElMessage.success(t('layout.changePassword.success'))
     changePwdVisible.value = false
     userStore.reset()

@@ -13,7 +13,7 @@ func newRbacRegistrars(c container) []router.Registrar {
 		apphandler.NewRoleHandler(apphandler.RoleHandlerDeps{
 			Page:       rbacusecase.NewPageRolesUsecase(c.rbac.Admin),
 			Get:        rbacusecase.NewGetRoleUsecase(c.rbac.Admin),
-			Create:     rbacusecase.NewCreateRoleUsecase(c.rbac.Admin),
+			Create:     rbacusecase.NewCreateRoleUsecase(c.rbac.Admin, c.idem, c.tx),
 			Update:     rbacusecase.NewUpdateRoleUsecase(c.rbac.Admin),
 			Delete:     rbacusecase.NewDeleteRoleUsecase(c.rbac.Admin, c.tx),
 			SetStatus:  rbacusecase.NewSetRoleStatusUsecase(c.rbac.Admin),
@@ -21,7 +21,7 @@ func newRbacRegistrars(c container) []router.Registrar {
 		}),
 		apphandler.NewPermissionHandler(apphandler.PermissionHandlerDeps{
 			Page:      rbacusecase.NewPagePermissionsUsecase(c.rbac.Admin),
-			Create:    rbacusecase.NewCreatePermissionUsecase(c.rbac.Admin),
+			Create:    rbacusecase.NewCreatePermissionUsecase(c.rbac.Admin, c.idem, c.tx),
 			Update:    rbacusecase.NewUpdatePermissionUsecase(c.rbac.Admin),
 			Delete:    rbacusecase.NewDeletePermissionUsecase(c.rbac.Admin, c.tx),
 			SetStatus: rbacusecase.NewSetPermissionStatusUsecase(c.rbac.Admin),
@@ -29,7 +29,7 @@ func newRbacRegistrars(c container) []router.Registrar {
 		apphandler.NewPermissionGroupHandler(apphandler.PermissionGroupHandlerDeps{
 			Page:            rbacusecase.NewPagePermissionGroupsUsecase(c.rbac.Admin),
 			Get:             rbacusecase.NewGetPermissionGroupUsecase(c.rbac.Admin),
-			Create:          rbacusecase.NewCreatePermissionGroupUsecase(c.rbac.Admin),
+			Create:          rbacusecase.NewCreatePermissionGroupUsecase(c.rbac.Admin, c.idem, c.tx),
 			Update:          rbacusecase.NewUpdatePermissionGroupUsecase(c.rbac.Admin),
 			Delete:          rbacusecase.NewDeletePermissionGroupUsecase(c.rbac.Admin, c.tx),
 			SetStatus:       rbacusecase.NewSetPermissionGroupStatusUsecase(c.rbac.Admin),

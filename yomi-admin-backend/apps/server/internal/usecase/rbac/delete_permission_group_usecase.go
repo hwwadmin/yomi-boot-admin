@@ -28,16 +28,21 @@ func NewDeletePermissionGroupUsecase(rbac rbaccontract.RbacAdminService, tx dbtx
 	return &DeletePermissionGroupUsecase{rbac: rbac, tx: tx}
 }
 
-// Execute 在事务中硬删除权限组
+// Execute 在事务中硬删除权限组；重复删除按成功处理
 func (uc *DeletePermissionGroupUsecase) Execute(ctx context.Context, in *DeletePermissionGroupInput) error {
 	id := in.ID.Int64()
 	if id <= 0 {
 		return errors.Sentinel(rbaccontract.ErrInvalidInput)
 	}
-	return uc.tx.Run(ctx, func(txCtx context.Context) error {
+	err := uc.tx.Run(ctx, func(txCtx context.Context) error {
 		return uc.rbac.DeletePermissionGroup(txCtx, &rbacinput.DeletePermissionGroupInput{
 			ID:         id,
 			OperatorID: in.OperatorID,
 		})
 	})
+	// 首次删除已提交后重试（超时重放、双击）不应再报 NOT_FOUND
+	if errors.Is(err, rbaccontract.ErrPermissionGroupNotFound) {
+		return nil
+	}
+	return err
 }

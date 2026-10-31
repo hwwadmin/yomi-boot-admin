@@ -13,6 +13,9 @@ import (
 	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
 )
 
+// OperationChangePassword 是改密的幂等操作类型；幂等边界在 Handler 层（需同时包住审计写入）
+const OperationChangePassword = "CHANGE_PASSWORD"
+
 // ChangePasswordInput HTTP 修改自身密码入参
 type ChangePasswordInput struct {
 	OldPassword string `json:"oldPassword"`
@@ -45,9 +48,9 @@ func (uc *ChangePasswordUsecase) Execute(ctx context.Context, in *ChangePassword
 	}
 
 	if err := support.RevokeUserTokens(ctx, uc.token, operatorID); err != nil {
-		// 密码已经生效，重试改密没有意义，把提示换成"重新登录"
-		return errors.WrapBiz(err, support.ErrPasswordChangedTokenRevokeFailed.Code,
-			support.ErrPasswordChangedTokenRevokeFailed.Message)
+		// 调用方在幂等事务内执行本用例：撤销失败会让密码更新一并回滚，提示按"改密未完成"处理
+		return errors.WrapBiz(err, support.ErrPasswordChangeTokenRevokeFailed.Code,
+			support.ErrPasswordChangeTokenRevokeFailed.Message)
 	}
 	return nil
 }

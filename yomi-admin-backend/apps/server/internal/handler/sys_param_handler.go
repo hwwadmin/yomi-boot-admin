@@ -86,6 +86,7 @@ func (h *SysParamHandler) create(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
+	in.IdempotencyKey = idempotencyKey(c)
 	handle(c, func(ctx context.Context) (*sysparamusecase.ParamItem, error) {
 		return h.createUC.Execute(ctx, &in)
 	})

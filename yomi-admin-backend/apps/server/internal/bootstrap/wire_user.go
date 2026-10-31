@@ -13,7 +13,7 @@ import (
 func newUserRegistrar(c container, guard *superadmin.Guard) router.Registrar {
 	return apphandler.NewUserHandler(apphandler.UserHandlerDeps{
 		Page:          userusecase.NewPageUsersUsecase(c.users.Users, c.rbac.Admin),
-		Create:        userusecase.NewCreateUserUsecase(c.users.Users, c.tx),
+		Create:        userusecase.NewCreateUserUsecase(c.users.Users, c.idem, c.tx),
 		Update:        userusecase.NewUpdateUserUsecase(c.users.Users, guard, c.tx, c.token),
 		Delete:        userusecase.NewDeleteUserUsecase(c.users.Users, c.rbac.Admin, guard, c.tx, c.token),
 		ResetPassword: userusecase.NewResetUserPasswordUsecase(c.users.Users, guard, c.token),

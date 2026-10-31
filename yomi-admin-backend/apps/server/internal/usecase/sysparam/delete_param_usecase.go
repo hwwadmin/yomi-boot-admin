@@ -26,14 +26,19 @@ func NewDeleteParamUsecase(sysparam sysparamcontract.SysParamAdminService) *Dele
 	return &DeleteParamUsecase{sysparam: sysparam}
 }
 
-// Execute 物理删除参数
+// Execute 物理删除参数；重复删除按成功处理
 func (uc *DeleteParamUsecase) Execute(ctx context.Context, in *DeleteParamInput) error {
 	id := in.ID.Int64()
 	if id <= 0 {
 		return errors.Sentinel(sysparamcontract.ErrInvalidInput)
 	}
-	return uc.sysparam.DeleteParam(ctx, &sysparaminput.DeleteParamInput{
+	err := uc.sysparam.DeleteParam(ctx, &sysparaminput.DeleteParamInput{
 		ID:         id,
 		OperatorID: in.OperatorID,
 	})
+	// 首次删除已提交后重试（超时重放、双击）不应再报 NOT_FOUND
+	if errors.Is(err, sysparamcontract.ErrParamNotFound) {
+		return nil
+	}
+	return err
 }

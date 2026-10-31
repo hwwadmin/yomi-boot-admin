@@ -89,6 +89,7 @@ func (h *PermissionGroupHandler) create(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
+	in.IdempotencyKey = idempotencyKey(c)
 	handle(c, func(ctx context.Context) (*rbacusecase.PermissionGroupItem, error) {
 		return h.createUC.Execute(ctx, &in)
 	})

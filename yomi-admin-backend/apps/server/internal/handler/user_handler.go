@@ -83,6 +83,7 @@ func (h *UserHandler) create(c *gin.Context) {
 		return
 	}
 	in.OperatorID = opID
+	in.IdempotencyKey = idempotencyKey(c)
 	handleVoid(c, func(ctx context.Context) error {
 		return h.createUC.Execute(ctx, &in)
 	})
@@ -135,7 +136,7 @@ func (h *UserHandler) resetPassword(c *gin.Context) {
 		Target:   audit.Target{Type: audit.TargetTypeUser, ID: in.ID.Int64()},
 	}
 	handleVoid(c, func(ctx context.Context) error {
-		return auditVoid(c, h.audit, start, func(error) audit.Spec {
+		return auditVoid(ctx, h.audit, start, func(error) audit.Spec {
 			return start
 		}, func(ctx context.Context) error {
 			return h.resetPwdUC.Execute(ctx, &in)

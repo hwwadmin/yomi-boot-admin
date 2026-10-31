@@ -22,6 +22,7 @@ import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
+import { newIdempotencyKey } from '@/utils/idempotency'
 
 defineOptions({ name: 'SystemRolePage' })
 
@@ -81,6 +82,8 @@ async function handleRefreshCache() {
 // ———————— 新增 / 编辑 ————————
 const dialogVisible = ref(false)
 const submitting = ref(false)
+/** 一次创建意图的幂等键：超时重试复用，成功后清空 */
+const submitKey = ref('')
 const editingId = ref<string | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive({
@@ -103,12 +106,14 @@ const rules = computed<FormRules>(() => ({
 
 function openCreate() {
   editingId.value = null
+  submitKey.value = ''
   Object.assign(form, { code: '', name: '', remark: '' })
   dialogVisible.value = true
 }
 
 function openEdit(row: RoleItem) {
   editingId.value = row.id
+  submitKey.value = ''
   Object.assign(form, { code: row.code, name: row.name, remark: row.remark })
   dialogVisible.value = true
 }
@@ -137,11 +142,16 @@ async function handleSubmit() {
   submitting.value = true
   try {
     if (editingId.value === null) {
-      await createRole({
-        code: form.code.trim(),
-        name: form.name.trim(),
-        remark: form.remark.trim(),
-      })
+      if (!submitKey.value) submitKey.value = newIdempotencyKey()
+      await createRole(
+        {
+          code: form.code.trim(),
+          name: form.name.trim(),
+          remark: form.remark.trim(),
+        },
+        submitKey.value,
+      )
+      submitKey.value = ''
       ElMessage.success(t('system.role.createSuccess'))
     } else {
       await updateRole(editingId.value, { name: form.name.trim(), remark: form.remark.trim() })

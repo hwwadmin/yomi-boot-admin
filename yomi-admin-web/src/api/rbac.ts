@@ -1,4 +1,5 @@
 import { request, requestPage } from '@/utils/request'
+import { idempotencyHeaders } from '@/utils/idempotency'
 import type {
   PageQuery,
   PageResult,
@@ -47,9 +48,14 @@ export function getRoleDetail(id: string) {
   return request<RoleDetail>({ url: '/system/role/detail', method: 'get', params: { id } })
 }
 
-/** 创建角色 */
-export function createRole(data: RolePayload) {
-  return request<RoleItem>({ url: '/system/role/create', method: 'post', data })
+/** 创建角色；idempotencyKey 由调用方在一次提交意图内保持稳定 */
+export function createRole(data: RolePayload, idempotencyKey: string) {
+  return request<RoleItem>({
+    url: '/system/role/create',
+    method: 'post',
+    data,
+    headers: idempotencyHeaders(idempotencyKey),
+  })
 }
 
 /** 更新角色资料 */
@@ -109,12 +115,13 @@ export async function listAllPermissionGroups(): Promise<PermissionGroupItem[]> 
   return items
 }
 
-/** 创建权限组 */
-export function createPermissionGroup(data: PermissionGroupPayload) {
+/** 创建权限组；idempotencyKey 由调用方在一次提交意图内保持稳定 */
+export function createPermissionGroup(data: PermissionGroupPayload, idempotencyKey: string) {
   return request<PermissionGroupItem>({
     url: '/system/permission-group/create',
     method: 'post',
     data,
+    headers: idempotencyHeaders(idempotencyKey),
   })
 }
 
@@ -174,9 +181,14 @@ export async function listAllPermissions(): Promise<PermissionItem[]> {
   return items
 }
 
-/** 创建权限 */
-export function createPermission(data: PermissionPayload) {
-  return request<PermissionItem>({ url: '/system/permission/create', method: 'post', data })
+/** 创建权限；idempotencyKey 由调用方在一次提交意图内保持稳定 */
+export function createPermission(data: PermissionPayload, idempotencyKey: string) {
+  return request<PermissionItem>({
+    url: '/system/permission/create',
+    method: 'post',
+    data,
+    headers: idempotencyHeaders(idempotencyKey),
+  })
 }
 
 /** 更新权限资料；编码与类型不可变 */

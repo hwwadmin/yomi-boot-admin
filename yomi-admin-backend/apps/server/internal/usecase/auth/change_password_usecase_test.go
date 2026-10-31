@@ -76,9 +76,9 @@ func TestChangePasswordRevokeFailureKeepsMessage(t *testing.T) {
 	uc := NewChangePasswordUsecase(users, tokens)
 
 	err := uc.Execute(context.Background(), &ChangePasswordInput{OldPassword: "old", NewPassword: "new"}, 7)
-	// 密码已生效、重试改密无意义：返回"请重新登录"语义的错误
-	if !errors.Is(err, support.ErrPasswordChangedTokenRevokeFailed) {
-		t.Fatalf("期望 ErrPasswordChangedTokenRevokeFailed，实际 %v", err)
+	// 调用方在幂等事务内执行：撤销失败会回滚密码更新，提示按"改密未完成"处理
+	if !errors.Is(err, support.ErrPasswordChangeTokenRevokeFailed) {
+		t.Fatalf("期望 ErrPasswordChangeTokenRevokeFailed，实际 %v", err)
 	}
 }
 

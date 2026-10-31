@@ -3,9 +3,12 @@ package handler
 
 import (
 	"context"
+	"yomi-admin-backend/apps/server/internal/support"
 	"yomi-admin-backend/apps/server/internal/support/audit"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 
+	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
+	frameworkidem "gitee.com/hq_project/yomi-boot/component/common/idempotency"
 	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
 	"gitee.com/hq_project/yomi-boot/component/core/utils/ginutil"
 
@@ -22,6 +25,8 @@ type AuthHandler struct {
 	passwordUC      *authusecase.ChangePasswordUsecase
 	configUC        *authusecase.LoginConfigUsecase
 	audit           audit.Recorder
+	idem            *frameworkidem.Guard
+	tx              dbtx.Runner
 }
 
 // AuthHandlerDeps 认证 Handler 依赖
@@ -34,6 +39,8 @@ type AuthHandlerDeps struct {
 	ChangePassword *authusecase.ChangePasswordUsecase
 	LoginConfig    *authusecase.LoginConfigUsecase
 	Audit          audit.Recorder
+	Idempotency    *frameworkidem.Guard
+	Tx             dbtx.Runner
 }
 
 // NewAuthHandler 创建认证 Handler
@@ -47,6 +54,8 @@ func NewAuthHandler(deps AuthHandlerDeps) *AuthHandler {
 		passwordUC:      deps.ChangePassword,
 		configUC:        deps.LoginConfig,
 		audit:           deps.Audit,
+		idem:            deps.Idempotency,
+		tx:              deps.Tx,
 	}
 }
 
@@ -95,7 +104,7 @@ func (h *AuthHandler) login(c *gin.Context) {
 		return audit.Spec{Event: audit.EventLogin, Operator: operator, ClientIP: clientIP}
 	}
 	handle(c, func(ctx context.Context) (*authusecase.LoginOutput, error) {
-		return auditRun(c, h.audit, start, finish, func(ctx context.Context) (*authusecase.LoginOutput, error) {
+		return auditRun(ctx, h.audit, start, finish, func(ctx context.Context) (*authusecase.LoginOutput, error) {
 			return h.loginUC.Execute(ctx, in, clientIP, userAgent)
 		})
 	})
@@ -138,16 +147,26 @@ func (h *AuthHandler) changePassword(c *gin.Context) {
 	if !ok {
 		return
 	}
+	// 幂等键在这里解析：改密的审计写在 Handler 层，幂等边界必须同时包住审计与业务，
+	// 否则重放会再写一对 STARTED/FINISHED 记录。
+	key, err := support.IdempotencyKey(idempotencyKey(c), authusecase.OperationChangePassword)
+	if err != nil {
+		corehandler.WriteBusinessError(c, err)
+		return
+	}
 	start := audit.Spec{
 		Event:    audit.EventChangePassword,
 		Operator: auditOperator(c.Request.Context()),
 		ClientIP: ginutil.ClientIP(c),
 	}
 	handleVoid(c, func(ctx context.Context) error {
-		return auditVoid(c, h.audit, start, func(error) audit.Spec {
-			return start
-		}, func(ctx context.Context) error {
-			return h.passwordUC.Execute(ctx, in, operatorID)
+		_, err := support.RunIdempotent(h.idem, h.tx, ctx, key, func(txCtx context.Context) (struct{}, error) {
+			return struct{}{}, auditVoid(txCtx, h.audit, start, func(error) audit.Spec {
+				return start
+			}, func(ctx context.Context) error {
+				return h.passwordUC.Execute(ctx, in, operatorID)
+			})
 		})
+		return err
 	})
 }

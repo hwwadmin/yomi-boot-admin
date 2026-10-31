@@ -1,4 +1,5 @@
 import { request, requestPage } from '@/utils/request'
+import { idempotencyHeaders } from '@/utils/idempotency'
 import type {
   PageResult,
   Status,
@@ -20,9 +21,14 @@ export async function getSysParamPage(params: SysParamQuery): Promise<PageResult
   return { list, total, page: params.page, pageSize: params.pageSize }
 }
 
-/** 创建系统参数；键创建后不可变 */
-export function createSysParam(data: SysParamCreatePayload) {
-  return request<SysParamItem>({ url: '/system/param/create', method: 'post', data })
+/** 创建系统参数；键创建后不可变；idempotencyKey 由调用方在一次提交意图内保持稳定 */
+export function createSysParam(data: SysParamCreatePayload, idempotencyKey: string) {
+  return request<SysParamItem>({
+    url: '/system/param/create',
+    method: 'post',
+    data,
+    headers: idempotencyHeaders(idempotencyKey),
+  })
 }
 
 /** 更新系统参数；键与值类型不可变 */

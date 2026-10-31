@@ -19,6 +19,7 @@ import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
+import { newIdempotencyKey } from '@/utils/idempotency'
 
 defineOptions({ name: 'SystemUserPage' })
 
@@ -56,6 +57,8 @@ onMounted(fetchList)
 // ———————— 新增 / 编辑 ————————
 const dialogVisible = ref(false)
 const submitting = ref(false)
+/** 一次创建意图的幂等键：超时重试复用，成功后清空 */
+const submitKey = ref('')
 const editingId = ref<string | null>(null)
 const editingOriginalStatus = ref<UserStatus | null>(null)
 const formRef = ref<FormInstance>()
@@ -86,6 +89,7 @@ const rules = computed<FormRules>(() => ({
 function openCreate() {
   editingId.value = null
   editingOriginalStatus.value = null
+  submitKey.value = ''
   Object.assign(form, {
     username: '',
     password: '',
@@ -100,6 +104,7 @@ function openCreate() {
 function openEdit(row: UserItem) {
   editingId.value = row.id
   editingOriginalStatus.value = row.status
+  submitKey.value = ''
   Object.assign(form, {
     username: row.username,
     password: '',
@@ -141,7 +146,9 @@ async function handleSubmit() {
       status: form.status,
     }
     if (editingId.value === null) {
-      await createUser({ ...payload, password: form.password })
+      if (!submitKey.value) submitKey.value = newIdempotencyKey()
+      await createUser({ ...payload, password: form.password }, submitKey.value)
+      submitKey.value = ''
       ElMessage.success(t('system.user.createSuccess'))
     } else {
       await updateUser(editingId.value, payload)

@@ -172,6 +172,8 @@ paths:
       description: |
         校验原密码后更新密码，成功后撤销该用户全部 token（含当前会话），需要用新密码重新登录。
         需携带有效 token（无需 API 权限）；重置他人密码请使用 `/api/system/user/reset-password`。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -207,6 +209,8 @@ paths:
       tags: [用户]
       operationId: createUser
       summary: 创建用户
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -232,7 +236,7 @@ paths:
       tags: [用户]
       operationId: deleteUser
       summary: 删除用户
-      description: 物理删除用户并清理角色绑定，撤销其全部 token；不能删除自己。
+      description: 物理删除用户并清理角色绑定，撤销其全部 token；不能删除自己；重复删除按成功处理。
       requestBody:
         required: true
         content:
@@ -399,6 +403,8 @@ paths:
       tags: [角色]
       operationId: createRole
       summary: 创建角色
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -436,6 +442,7 @@ paths:
       tags: [角色]
       operationId: deleteRole
       summary: 删除角色
+      description: 硬删除角色并清理权限组绑定；重复删除按成功处理。
       requestBody:
         required: true
         content:
@@ -506,6 +513,8 @@ paths:
       tags: [权限]
       operationId: createPermission
       summary: 创建权限
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -543,6 +552,7 @@ paths:
       tags: [权限]
       operationId: deletePermission
       summary: 删除权限
+      description: 硬删除权限并清理权限组绑定；重复删除按成功处理。
       requestBody:
         required: true
         content:
@@ -616,6 +626,8 @@ paths:
       tags: [权限组]
       operationId: createPermissionGroup
       summary: 创建权限组
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -653,6 +665,7 @@ paths:
       tags: [权限组]
       operationId: deletePermissionGroup
       summary: 删除权限组
+      description: 硬删除权限组并清理权限绑定；重复删除按成功处理。
       requestBody:
         required: true
         content:
@@ -834,6 +847,8 @@ paths:
       operationId: createParam
       summary: 创建系统参数
       description: 参数键全局唯一且创建后不可变；参数保存后对业务立即生效。
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -871,6 +886,7 @@ paths:
       tags: [系统参数]
       operationId: deleteParam
       summary: 删除系统参数（物理删除）
+      description: 物理删除参数；重复删除按成功处理。
       requestBody:
         required: true
         content:
@@ -982,6 +998,14 @@ components:
       required: true
       description: 用户雪花 ID
       schema: { type: string, description: 雪花 ID }
+    IdempotencyKey:
+      name: X-Idempotency-Key
+      in: header
+      required: false
+      description: |
+        幂等键：同一次提交意图（含超时重试）复用同一个值，服务端只执行一次并回放首次结果；
+        缺省时不做幂等保护。建议使用 UUID，最长 100 字符。
+      schema: { type: string, maxLength: 100 }
   responses:
     VoidResult:
       description: 无数据业务结果（恒 200）：成功时 code=OK 且无 data 字段；失败时 code 为业务错误码

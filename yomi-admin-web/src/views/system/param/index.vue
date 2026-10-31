@@ -17,6 +17,7 @@ import PageCard from '@/components/PageCard.vue'
 import { useParamValueTypeLabels } from '@/composables/useParamValueTypeLabels'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
+import { newIdempotencyKey } from '@/utils/idempotency'
 
 defineOptions({ name: 'SystemParamPage' })
 
@@ -67,6 +68,8 @@ onMounted(fetchList)
 // ———————— 新增 / 编辑 ————————
 const dialogVisible = ref(false)
 const submitting = ref(false)
+/** 一次创建意图的幂等键：超时重试复用，成功后清空 */
+const submitKey = ref('')
 const editingId = ref<string | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive({
@@ -120,12 +123,14 @@ const rules = computed<FormRules>(() => ({
 
 function openCreate() {
   editingId.value = null
+  submitKey.value = ''
   Object.assign(form, { key: '', value: '', valueType: 'STRING', name: '', remark: '' })
   dialogVisible.value = true
 }
 
 function openEdit(row: SysParamItem) {
   editingId.value = row.id
+  submitKey.value = ''
   Object.assign(form, {
     key: row.key,
     value: row.value,
@@ -142,13 +147,18 @@ async function handleSubmit() {
   submitting.value = true
   try {
     if (editingId.value === null) {
-      await createSysParam({
-        key: form.key.trim(),
-        value: form.value,
-        valueType: form.valueType,
-        name: form.name.trim(),
-        remark: form.remark.trim(),
-      })
+      if (!submitKey.value) submitKey.value = newIdempotencyKey()
+      await createSysParam(
+        {
+          key: form.key.trim(),
+          value: form.value,
+          valueType: form.valueType,
+          name: form.name.trim(),
+          remark: form.remark.trim(),
+        },
+        submitKey.value,
+      )
+      submitKey.value = ''
       ElMessage.success(t('system.param.createSuccess'))
     } else {
       await updateSysParam(editingId.value, {

@@ -19,6 +19,7 @@ import (
 	"gitee.com/hq_project/yomi-boot/component/common/captcha"
 	"gitee.com/hq_project/yomi-boot/component/common/db/tx"
 	"gitee.com/hq_project/yomi-boot/component/common/distlock"
+	frameworkidem "gitee.com/hq_project/yomi-boot/component/common/idempotency"
 	"gitee.com/hq_project/yomi-boot/component/common/token"
 	"gitee.com/hq_project/yomi-boot/component/core/appctx"
 	"gitee.com/hq_project/yomi-boot/component/core/config"
@@ -58,6 +59,7 @@ type container struct {
 	sysparam      sysparamprovider.Module
 	tx            tx.Executor
 	token         token.TokenService
+	idem          *frameworkidem.Guard
 	captcha       *authusecase.CaptchaUsecase
 	loginGuard    *loginguard.Guard
 	loginConfig   *authusecase.LoginConfigUsecase
@@ -88,6 +90,14 @@ func load(slot *plugin.PluginSlot) container {
 			redisPlugin.DistLockFactory() == nil {
 			panic("yomi-admin: 需要启用 db、redis、token、snowflake 插件")
 		}
+
+		// 业务幂等守卫：sys_biz 为真源、Redis 结果缓存为快路径、分布式锁串行同键请求
+		idemGuard := frameworkidem.NewGuard(
+			frameworkidem.NewRepository(db.DB()),
+			snowflakePlugin.Generator(),
+			redisPlugin.Service(),
+			redisPlugin.DistLockFactory(),
+		)
 
 		bizCfg := config.MustSection[svcconfig.BootConfig](slot.Config, svcconfig.SectionKey)
 		rateLimitCfg := config.MustSection[redisratelimitplugin.BootConfig](slot.Config, redisratelimitplugin.SectionKey)
@@ -155,6 +165,7 @@ func load(slot *plugin.PluginSlot) container {
 			}),
 			tx:    txPlugin.Executor(),
 			token: tokenPlugin.Service(),
+			idem:  idemGuard,
 			captcha: authusecase.NewCaptchaUsecase(
 				captcha.MustNew(captchaStore, bizCfg.Captcha.ToConfig()),
 				rateLimitPlugin.Limiter(),

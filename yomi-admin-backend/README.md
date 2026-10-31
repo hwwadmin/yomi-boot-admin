@@ -17,14 +17,17 @@ mysql -uroot -p < script/sql/020_rbac.sql
 mysql -uroot -p < script/sql/030_http_record.sql
 mysql -uroot -p < script/sql/040_sys_param.sql
 mysql -uroot -p < script/sql/050_audit_log.sql
+# 平台表 sys_biz（业务幂等）由 yomi-boot 维护，不在本仓 script/sql 复制
+mysql -uroot -p yomi_admin < "$(go list -m -f '{{.Dir}}' gitee.com/hq_project/yomi-boot)/sql/mysql/sys_biz.sql"
 ```
 
 `020_rbac.sql` 会建 RBAC 表、写权限目录与种子权限组，并把 `admin` 设成内置超管。
 `040_sys_param.sql` 建系统参数表（`t_sys_param`），参数管理页与业务读参数都依赖它。
 `050_audit_log.sql` 建操作审计表（`t_audit_log`），登录、改密、重置密码的审计写入与审计日志页都依赖它。
+`sys_biz` 是创建用户/角色/权限/权限组/参数与改密的幂等记录表，缺表时携带 `X-Idempotency-Key` 的请求会报错。
 **先执行 SQL 再启动服务**，否则受保护接口会因为缺表报错。
 
-已有环境升级时：补执行 `050_audit_log.sql`，并重跑一次 `020_rbac.sql`（新增了审计日志的菜单与接口权限）；
+已有环境升级时：补执行 `050_audit_log.sql` 与 `sys_biz` 平台表，并重跑一次 `020_rbac.sql`（新增了审计日志的菜单与接口权限）；
 审计表缺失时写入是"尽力而为"降级——业务照常跑，只在服务日志里打"审计写入失败"告警，审计日志页会报错。
 
 2. 配置：

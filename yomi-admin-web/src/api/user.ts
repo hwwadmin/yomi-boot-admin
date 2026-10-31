@@ -1,4 +1,5 @@
 import { request, requestPage } from '@/utils/request'
+import { idempotencyHeaders } from '@/utils/idempotency'
 import type {
   CreateUserPayload,
   PageQuery,
@@ -22,9 +23,14 @@ export async function getUserPage(params: UserQuery): Promise<PageResult<UserIte
   return { list, total, page: params.page, pageSize: params.pageSize }
 }
 
-/** 新增用户 */
-export function createUser(data: CreateUserPayload) {
-  return request<null>({ url: '/system/user/create', method: 'post', data })
+/** 新增用户；idempotencyKey 由调用方在一次提交意图内保持稳定 */
+export function createUser(data: CreateUserPayload, idempotencyKey: string) {
+  return request<null>({
+    url: '/system/user/create',
+    method: 'post',
+    data,
+    headers: idempotencyHeaders(idempotencyKey),
+  })
 }
 
 /** 编辑用户 */
@@ -39,7 +45,11 @@ export function deleteUser(id: string) {
 
 /** 重置用户密码（仅超级管理员）；成功后该用户全部会话失效 */
 export function resetUserPassword(id: string, newPassword: string) {
-  return request<null>({ url: '/system/user/reset-password', method: 'post', data: { id, newPassword } })
+  return request<null>({
+    url: '/system/user/reset-password',
+    method: 'post',
+    data: { id, newPassword },
+  })
 }
 
 /** 查询用户在线会话；sessionId 是令牌摘要，不是明文令牌 */

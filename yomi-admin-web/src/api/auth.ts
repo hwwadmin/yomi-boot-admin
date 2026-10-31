@@ -1,4 +1,5 @@
 import { request } from '@/utils/request'
+import { idempotencyHeaders } from '@/utils/idempotency'
 import type {
   CaptchaChallenge,
   ChangePasswordPayload,
@@ -40,6 +41,11 @@ export function logout() {
 }
 
 /** 修改当前登录用户密码；成功后所有会话失效，需要重新登录 */
-export function changePassword(data: ChangePasswordPayload) {
-  return request<null>({ url: '/auth/password', method: 'post', data })
+export function changePassword(data: ChangePasswordPayload, idempotencyKey: string) {
+  return request<null>({
+    url: '/auth/password',
+    method: 'post',
+    data,
+    headers: idempotencyHeaders(idempotencyKey),
+  })
 }

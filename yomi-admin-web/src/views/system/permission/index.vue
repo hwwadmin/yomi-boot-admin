@@ -16,6 +16,7 @@ import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
+import { newIdempotencyKey } from '@/utils/idempotency'
 
 defineOptions({ name: 'SystemPermissionPage' })
 
@@ -61,6 +62,8 @@ onMounted(fetchList)
 // ———————— 新增 / 编辑 ————————
 const dialogVisible = ref(false)
 const submitting = ref(false)
+/** 一次创建意图的幂等键：超时重试复用，成功后清空 */
+const submitKey = ref('')
 const editingId = ref<string | null>(null)
 const formRef = ref<FormInstance>()
 const form = reactive({
@@ -125,6 +128,7 @@ const rules = computed<FormRules>(() => ({
 
 function openCreate() {
   editingId.value = null
+  submitKey.value = ''
   Object.assign(form, {
     code: '',
     name: '',
@@ -139,6 +143,7 @@ function openCreate() {
 
 function openEdit(row: PermissionItem) {
   editingId.value = row.id
+  submitKey.value = ''
   Object.assign(form, {
     code: row.code,
     name: row.name,
@@ -162,7 +167,12 @@ async function handleSubmit() {
         : { uiPath: '', httpMethod: form.httpMethod, httpPath: form.httpPath.trim() }
     const payload = { name: form.name.trim(), ...resource, remark: form.remark.trim() }
     if (editingId.value === null) {
-      await createPermission({ code: form.code.trim(), type: form.type, ...payload })
+      if (!submitKey.value) submitKey.value = newIdempotencyKey()
+      await createPermission(
+        { code: form.code.trim(), type: form.type, ...payload },
+        submitKey.value,
+      )
+      submitKey.value = ''
       ElMessage.success(t('system.permission.createSuccess'))
     } else {
       await updatePermission(editingId.value, payload)

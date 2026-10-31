@@ -289,8 +289,8 @@ func TestDeleteUserRevokesTokenWhenAlreadyDeleted(t *testing.T) {
 	uc := NewDeleteUserUsecase(users, rbacAdmin, guard, fakeExecutor{}, tokens)
 
 	err := uc.Execute(context.Background(), &DeleteUserInput{ID: dto.JSONInt64(8), OperatorID: 1})
-	if !errors.Is(err, service_contract.ErrUserNotFound) {
-		t.Fatalf("期望 ErrUserNotFound，实际 %v", err)
+	if err != nil {
+		t.Fatalf("重复删除应按成功处理，实际 %v", err)
 	}
 	if tokens.attempts != 1 || len(tokens.revoked) != 1 || tokens.revoked[0] != 8 {
 		t.Fatalf("已删除用户也应补撤令牌: attempts=%d revoked=%v", tokens.attempts, tokens.revoked)

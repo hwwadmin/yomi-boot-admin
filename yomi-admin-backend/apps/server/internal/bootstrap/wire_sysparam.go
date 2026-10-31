@@ -12,7 +12,7 @@ func newSysParamRegistrar(c container) router.Registrar {
 	return apphandler.NewSysParamHandler(apphandler.SysParamHandlerDeps{
 		Page:      sysparamusecase.NewPageParamsUsecase(c.sysparam.Admin),
 		Get:       sysparamusecase.NewGetParamUsecase(c.sysparam.Admin),
-		Create:    sysparamusecase.NewCreateParamUsecase(c.sysparam.Admin),
+		Create:    sysparamusecase.NewCreateParamUsecase(c.sysparam.Admin, c.idem, c.tx),
 		Update:    sysparamusecase.NewUpdateParamUsecase(c.sysparam.Admin),
 		Delete:    sysparamusecase.NewDeleteParamUsecase(c.sysparam.Admin),
 		SetStatus: sysparamusecase.NewSetParamStatusUsecase(c.sysparam.Admin),

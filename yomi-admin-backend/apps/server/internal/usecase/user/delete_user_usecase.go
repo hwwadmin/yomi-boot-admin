@@ -66,5 +66,6 @@ func (uc *DeleteUserUsecase) Execute(ctx context.Context, in *DeleteUserInput) e
 	if revokeErr := support.RevokeUserTokens(ctx, uc.token, id); revokeErr != nil {
 		return revokeErr
 	}
-	return err
+	// 首次删除已提交后重试（超时重放、双击）不应再报 NOT_FOUND
+	return nil
 }
