@@ -54,6 +54,10 @@ func findAuditLogs(t *testing.T, token string, filter auditLogFilter) []auditLog
 	query.Set("result", filter.Result)
 	query.Set("auditId", filter.AuditID)
 	query.Set("startTime", filter.StartTime)
+	// 列表查询必须带完整时间范围；只按 auditId 点查时不需要
+	if filter.StartTime != "" {
+		query.Set("endTime", fmt.Sprintf("%d", time.Now().Add(time.Minute).UnixMilli()))
+	}
 
 	body, ok := testclient.Get(API("/system/audit-log?"+query.Encode()), token)
 	if !ok {

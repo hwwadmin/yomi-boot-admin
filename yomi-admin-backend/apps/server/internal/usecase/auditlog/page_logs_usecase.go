@@ -4,7 +4,6 @@ package auditlog
 import (
 	"context"
 	"strings"
-	"time"
 	"yomi-admin-backend/apps/server/internal/support/audit"
 	"yomi-admin-backend/domains/auditlog/pkg/shared/enums"
 	domaininput "yomi-admin-backend/domains/auditlog/pkg/shared/input"
@@ -59,22 +58,14 @@ func NewPageLogsUsecase(logs domaincontract.AuditLogReader, users usercontract.U
 func (uc *PageLogsUsecase) Execute(ctx context.Context, in *PageLogsInput) (dto.PageOutput[LogItem], error) {
 	in.ValiPage()
 
-	// 不给时间范围就只看今天：审计表只增不减，不设下界时关键字检索与 count 都要扫全表。
-	// 调用方明确给了任一端就按调用方的来，不再自作主张补另一端。
-	// 按单个事件 ID 精确查时不套默认窗口：那是"找这一条"，跨天也得查得到。
-	startTime, endTime := in.StartTime, in.EndTime
-	if startTime <= 0 && endTime <= 0 && in.AuditID <= 0 {
-		startTime, endTime = todayRange(time.Now())
-	}
-
 	out, err := uc.logs.Page(ctx, &domaininput.PageInput{
 		Keyword:   in.Keyword,
 		EventCode: strings.TrimSpace(in.EventCode),
 		Phase:     in.Phase,
 		Result:    in.Result,
 		AuditID:   in.AuditID,
-		StartTime: startTime,
-		EndTime:   endTime,
+		StartTime: in.StartTime,
+		EndTime:   in.EndTime,
 		Page:      in.Page,
 		PageSize:  in.PageSize,
 	})
@@ -88,14 +79,6 @@ func (uc *PageLogsUsecase) Execute(ctx context.Context, in *PageLogsInput) (dto.
 	}
 	uc.fillTargetNames(ctx, items)
 	return dto.NewPageOutput(items, out.Total), nil
-}
-
-// todayRange 返回 now 所在时区"今天"的毫秒时间戳区间（含首尾）。
-// 用运行环境的本地时区而不是 UTC：列表是给人看的，前端也按本地时区展示，
-// 按 UTC 切天会让早上 8 点前看到的"今天"少掉 8 小时。
-func todayRange(now time.Time) (start int64, end int64) {
-	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	return startOfDay.UnixMilli(), startOfDay.AddDate(0, 0, 1).Add(-time.Millisecond).UnixMilli()
 }
 
 // fillTargetNames 按本页出现的目标用户 ID 批量回填用户名；

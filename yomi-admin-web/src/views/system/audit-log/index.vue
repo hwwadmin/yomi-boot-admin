@@ -66,6 +66,8 @@ const auditIdSearching = computed(() => (query.auditId ?? '').trim() !== '')
 async function fetchList() {
   loading.value = true
   try {
+    // 列表查询后端要求必带时间范围；选择器被清空时兜底回今天
+    const range = timeRange.value ?? todayRange()
     const result = await getAuditLogPage({
       page: query.page,
       pageSize: query.pageSize,
@@ -74,8 +76,8 @@ async function fetchList() {
       phase: query.phase || undefined,
       result: query.result || undefined,
       auditId: query.auditId?.trim() || undefined,
-      startTime: auditIdSearching.value ? undefined : timeRange.value?.[0]?.getTime(),
-      endTime: auditIdSearching.value ? undefined : timeRange.value?.[1]?.getTime(),
+      startTime: auditIdSearching.value ? undefined : range[0].getTime(),
+      endTime: auditIdSearching.value ? undefined : range[1].getTime(),
     })
     list.value = result.list
     total.value = result.total
@@ -223,6 +225,7 @@ function targetText(row: AuditLogItem): string {
               v-model="timeRange"
               class="page-toolbar__range"
               type="datetimerange"
+              :clearable="false"
               :disabled="auditIdSearching"
               :range-separator="t('common.to')"
               :start-placeholder="t('system.auditLog.startTime')"

@@ -108,6 +108,11 @@ func (s *AuditLogService) Page(ctx context.Context, in *input.PageInput) (*outpu
 	if in.AuditID < 0 {
 		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
 	}
+	// 列表查询必须带时间范围：审计表只增不减，没有窗口的翻页与统计会随表增长退化。
+	// 按单个事件 ID 精确查是点查（走 audit_id 索引、最多命中两条），不受此限。
+	if in.AuditID <= 0 && (in.StartTime <= 0 || in.EndTime <= 0) {
+		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	}
 	if in.StartTime > 0 && in.EndTime > 0 && in.StartTime > in.EndTime {
 		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
 	}

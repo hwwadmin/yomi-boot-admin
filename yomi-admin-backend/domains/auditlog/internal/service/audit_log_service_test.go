@@ -185,10 +185,30 @@ func TestPageRejectsInvalidFilters(t *testing.T) {
 		{AuditID: -1},
 		{StartTime: 200, EndTime: 100},
 		{EventCode: strings.Repeat("x", 65)},
+		// 列表查询必须带完整时间范围
+		{},
+		{StartTime: 100},
+		{EndTime: 200},
+		{StartTime: 100, EventCode: "auth.login"},
 	}
 	for _, in := range cases {
 		if _, err := svc.Page(context.Background(), in); !errors.Is(err, service_contract.ErrInvalidInput) {
 			t.Fatalf("Page(%+v) error = %v, want ErrInvalidInput", in, err)
 		}
+	}
+}
+
+// TestPageAllowsAuditIDWithoutRange 验证按事件 ID 点查时不受"必须带时间范围"约束
+func TestPageAllowsAuditIDWithoutRange(t *testing.T) {
+	svc, repo := newService()
+	repo.pageItems = nil
+	repo.pageTotal = 0
+
+	if _, err := svc.Page(context.Background(), &input.PageInput{AuditID: 123, Page: 1, PageSize: 10}); err != nil {
+		t.Fatalf("Page(auditId only) error = %v", err)
+	}
+	if repo.gotFilter == nil || repo.gotFilter.AuditID != 123 ||
+		repo.gotFilter.StartTime != 0 || repo.gotFilter.EndTime != 0 {
+		t.Fatalf("auditId 查询过滤条件错误: %+v", repo.gotFilter)
 	}
 }

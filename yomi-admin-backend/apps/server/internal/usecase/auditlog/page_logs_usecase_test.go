@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 	"yomi-admin-backend/apps/server/internal/support/audit"
 	"yomi-admin-backend/domains/auditlog/pkg/shared/entity"
 	"yomi-admin-backend/domains/auditlog/pkg/shared/enums"
@@ -39,27 +38,8 @@ func (f *fakeUserService) GetNamesByIDs(_ context.Context, ids []int64) (map[int
 	return f.names, f.err
 }
 
-// TestPageLogsDefaultsToTodayRange 验证不给时间范围时默认只查今天
-func TestPageLogsDefaultsToTodayRange(t *testing.T) {
-	reader := &fakeLogReader{}
-	uc := NewPageLogsUsecase(reader, &fakeUserService{})
-
-	if _, err := uc.Execute(context.Background(), &PageLogsInput{}); err != nil {
-		t.Fatalf("Execute() error = %v", err)
-	}
-
-	wantStart, wantEnd := todayRange(time.Now())
-	if reader.got.StartTime != wantStart || reader.got.EndTime != wantEnd {
-		t.Fatalf("默认时间范围 = [%d,%d], want [%d,%d]",
-			reader.got.StartTime, reader.got.EndTime, wantStart, wantEnd)
-	}
-	if wantEnd-wantStart != 24*time.Hour.Milliseconds()-1 {
-		t.Fatalf("默认窗口长度 = %d 毫秒, want 一天减 1 毫秒", wantEnd-wantStart)
-	}
-}
-
-// TestPageLogsKeepsExplicitRange 验证调用方给了时间范围就原样透传，不套默认
-func TestPageLogsKeepsExplicitRange(t *testing.T) {
+// TestPageLogsPassesRangeThrough 验证时间范围原样透传，用例层不做任何补全
+func TestPageLogsPassesRangeThrough(t *testing.T) {
 	reader := &fakeLogReader{}
 	uc := NewPageLogsUsecase(reader, &fakeUserService{})
 
@@ -67,23 +47,7 @@ func TestPageLogsKeepsExplicitRange(t *testing.T) {
 		t.Fatalf("Execute() error = %v", err)
 	}
 	if reader.got.StartTime != 1000 || reader.got.EndTime != 2000 {
-		t.Fatalf("显式时间范围被改写: [%d,%d]", reader.got.StartTime, reader.got.EndTime)
-	}
-}
-
-// TestPageLogsAuditIDSkipsTodayDefault 验证按事件 ID 精确查历史记录时不套今天窗口
-func TestPageLogsAuditIDSkipsTodayDefault(t *testing.T) {
-	reader := &fakeLogReader{}
-	uc := NewPageLogsUsecase(reader, &fakeUserService{})
-
-	if _, err := uc.Execute(context.Background(), &PageLogsInput{AuditID: 123}); err != nil {
-		t.Fatalf("Execute() error = %v", err)
-	}
-	if reader.got.StartTime != 0 || reader.got.EndTime != 0 {
-		t.Fatalf("按 auditId 查询不应套默认时间窗: [%d,%d]", reader.got.StartTime, reader.got.EndTime)
-	}
-	if reader.got.AuditID != 123 {
-		t.Fatalf("auditId 未透传: %d", reader.got.AuditID)
+		t.Fatalf("时间范围被改写: [%d,%d]", reader.got.StartTime, reader.got.EndTime)
 	}
 }
 
@@ -98,7 +62,7 @@ func TestPageLogsFillsTargetName(t *testing.T) {
 		{ID: 2, AuditID: 1002, Phase: enums.PhaseFinished, EventCode: "auth.login"},
 	}}, users)
 
-	out, err := uc.Execute(context.Background(), &PageLogsInput{})
+	out, err := uc.Execute(context.Background(), &PageLogsInput{StartTime: 1000, EndTime: 2000})
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -120,7 +84,7 @@ func TestPageLogsKeepsItemsWhenNameLookupFails(t *testing.T) {
 		},
 	}}, users)
 
-	out, err := uc.Execute(context.Background(), &PageLogsInput{})
+	out, err := uc.Execute(context.Background(), &PageLogsInput{StartTime: 1000, EndTime: 2000})
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
