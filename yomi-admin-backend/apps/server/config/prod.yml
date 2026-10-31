@@ -158,6 +158,8 @@ http_record:
   skip_paths:
     - /api/v1/health
     - /api/v1/health/ops
+    - /api/system/http-record # 忽略访问记录页面自身，避免翻页即产生新记录
+    - /api/system/http-record/detail
   max_request_body_size: 4096
   max_response_body_size: 8192
   record_request_body: true

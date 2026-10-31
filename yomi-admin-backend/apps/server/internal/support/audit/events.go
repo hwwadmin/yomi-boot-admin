@@ -54,6 +54,7 @@ type Outcome struct {
 }
 
 // Recorder 是两段式审计写入契约；实现必须 best-effort，失败不得影响业务。
+// 实现可以是异步投递（允许队列满时丢弃），调用方不得依赖"返回即已落库"。
 type Recorder interface {
 	// Start 生成 audit_id 并写 STARTED 记录
 	Start(ctx context.Context, spec Spec) Ref

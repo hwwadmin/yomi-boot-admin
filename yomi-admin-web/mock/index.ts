@@ -1043,8 +1043,7 @@ const routes: MockRoute[] = [
         const matchKeyword =
           !keyword ||
           item.operatorName.toLowerCase().includes(keyword) ||
-          item.clientIp.includes(keyword) ||
-          item.auditId.includes(keyword)
+          item.clientIp.includes(keyword)
         const matchTime =
           (!startTime || item.createTime >= startTime) && (!endTime || item.createTime <= endTime)
         return (

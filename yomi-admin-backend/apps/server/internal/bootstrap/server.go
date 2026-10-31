@@ -129,7 +129,10 @@ func load(slot *plugin.PluginSlot) container {
 		})
 		var auditRecorder audit.Recorder
 		if bizCfg.Audit.EnabledOrDefault() {
-			auditRecorder = audit.NewTwoPhaseRecorder(auditModule.Writer, snowflakePlugin.Generator())
+			recorder := audit.NewTwoPhaseRecorder(auditModule.Writer, snowflakePlugin.Generator())
+			// 异步落库：启动消费协程，进程退出时冲刷队列后停止
+			recorder.StartBackground(slot.RuntimeContext())
+			auditRecorder = recorder
 		}
 
 		appContainer = container{

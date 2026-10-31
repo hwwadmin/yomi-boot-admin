@@ -16,7 +16,7 @@ const loading = ref(false)
 const list = ref<AuditLogItem[]>([])
 const total = ref(0)
 
-/** 默认时间范围是"今天"：与后端缺省口径保持一致，避免界面看着没过滤、实际只查了今天 */
+/** 列表查询后端要求必带时间范围，界面默认给"今天"，避免打开页面就报参数错误 */
 function todayRange(): [Date, Date] {
   const start = new Date()
   start.setHours(0, 0, 0, 0)

@@ -41,7 +41,13 @@ type auditLogFilter struct {
 	StartTime string
 }
 
-// findAuditLogs 按条件查询审计日志
+// auditQueryTimeout 是等待异步审计落库的最长时间
+const auditQueryTimeout = 2 * time.Second
+
+// findAuditLogs 按条件查询审计日志。
+//
+// 审计写入是异步投递：业务动作返回时记录可能还在队列里，所以这里轮询到结果条数
+// 连续两次一致（最多等 auditQueryTimeout）再返回，避免"动作完成立刻查"的时序抖动。
 func findAuditLogs(t *testing.T, token string, filter auditLogFilter) []auditLogItem {
 	t.Helper()
 
@@ -58,12 +64,25 @@ func findAuditLogs(t *testing.T, token string, filter auditLogFilter) []auditLog
 	if filter.StartTime != "" {
 		query.Set("endTime", fmt.Sprintf("%d", time.Now().Add(time.Minute).UnixMilli()))
 	}
+	endpoint := API("/system/audit-log?" + query.Encode())
 
-	body, ok := testclient.Get(API("/system/audit-log?"+query.Encode()), token)
-	if !ok {
-		t.Fatalf("审计日志接口不可达: %s", body)
+	deadline := time.Now().Add(auditQueryTimeout)
+	var last []auditLogItem
+	for {
+		body, ok := testclient.Get(endpoint, token)
+		if !ok {
+			t.Fatalf("审计日志接口不可达: %s", body)
+		}
+		items := parsePage[auditLogItem](t, body).Items
+		if len(items) > 0 && len(items) == len(last) {
+			return items
+		}
+		last = items
+		if time.Now().After(deadline) {
+			return items
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
-	return parsePage[auditLogItem](t, body).Items
 }
 
 // auditStartTime 返回一分钟前的时间戳，作为审计查询下界
