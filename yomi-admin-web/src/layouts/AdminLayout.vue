@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import logoUrl from '@/assets/logo.svg'
 import { useAppStore } from '@/stores/app'
 import Sidebar from './components/Sidebar.vue'
 import Navbar from './components/Navbar.vue'
@@ -19,7 +20,7 @@ const appVersion = __APP_VERSION__
   <el-container class="admin-layout">
     <el-aside class="layout-aside" :width="sidebarWidth">
       <div class="layout-logo" :class="{ 'is-collapsed': appStore.sidebarCollapsed }">
-        <span class="logo-badge">Y</span>
+        <img class="logo-badge" :src="logoUrl" alt="" aria-hidden="true" />
         <span v-show="!appStore.sidebarCollapsed" class="logo-text">Yomi Admin</span>
       </div>
       <Sidebar />
@@ -111,17 +112,11 @@ const appVersion = __APP_VERSION__
 }
 
 .logo-badge {
-  display: flex;
   flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #4a9bff 0%, #2b6fe0 100%);
-  box-shadow: 0 6px 14px -8px rgb(64 158 255 / 90%);
-  font-size: 15px;
-  font-weight: 600;
+  /* 深青图标压深色侧边栏，靠亮青渐变区与白色字母辨识，微提亮避免沉底 */
+  filter: brightness(1.12) drop-shadow(0 2px 5px rgb(0 0 0 / 40%));
 }
 
 .logo-text {

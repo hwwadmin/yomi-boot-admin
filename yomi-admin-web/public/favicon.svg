@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-label="Yomi Admin">
+  <defs>
+    <!-- 方块底色：左上亮青 → 右下深藏青的深海渐变 -->
+    <linearGradient id="sq" x1="0.08" y1="0" x2="0.92" y2="1">
+      <stop stop-color="#2e837e"/>
+      <stop offset="0.5" stop-color="#1c5a62"/>
+      <stop offset="1" stop-color="#0f2f44"/>
+    </linearGradient>
+    <!-- 字母白：极轻的上下明暗，保持纸感 -->
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f3f6f5"/>
+    </linearGradient>
+    <filter id="yshadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="13" flood-color="#061a29" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- 圆角方块 -->
+  <rect x="52" y="52" width="408" height="408" rx="94" fill="url(#sq)"/>
+
+  <g filter="url(#yshadow)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 左臂：45° 伸向右下，尾端塞入缎带之下 -->
+    <path d="M140 150 L228 150 L273 195 L243 253 Z" fill="url(#paper)" stroke="url(#paper)" stroke-width="7"/>
+    <!-- 右缎带：一条干净的斜带，自右上折向左下 -->
+    <path d="M296 150 L384 150 L278 358 L190 358 Z" fill="url(#paper)" stroke="url(#paper)" stroke-width="7"/>
+    <!-- 折叠下翼：折痕上方贴着的一条深色翻边，暗示纸面翻转 -->
+    <path d="M243 253 C272 234 310 224 347 223 L344 206 C308 208 272 219 240 237 Z" fill="#e2ebe7"/>
+    <!-- 折痕曲线 -->
+    <path d="M243 253 C272 234 310 224 347 223" stroke="#d9e4df" stroke-width="3" fill="none"/>
+  </g>
+</svg>

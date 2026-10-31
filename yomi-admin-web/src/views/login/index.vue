@@ -6,6 +6,7 @@ import { ArrowRight, Key, Lock, User } from '@element-plus/icons-vue'
 import { getCaptcha, getLoginConfig } from '@/api/auth'
 import type { CaptchaChallenge } from '@/api/types'
 import illustration from '@/assets/login-illustration.svg'
+import logoUrl from '@/assets/logo.svg'
 import { useUserStore } from '@/stores/user'
 
 defineOptions({ name: 'LoginPage' })
@@ -103,7 +104,7 @@ onMounted(async () => {
       <!-- 左侧品牌区 -->
       <section class="login-intro">
         <div class="intro-brand">
-          <span class="intro-badge">Y</span>
+          <img class="intro-badge" :src="logoUrl" alt="" aria-hidden="true" />
           <h1 class="intro-title">Yomi Admin</h1>
         </div>
         <p class="intro-slogan">{{ t('auth.slogan') }}</p>
@@ -113,7 +114,7 @@ onMounted(async () => {
       <!-- 右侧登录卡片 -->
       <section class="login-panel">
         <div class="login-card">
-          <span class="card-badge">Y</span>
+          <img class="card-badge" :src="logoUrl" alt="" aria-hidden="true" />
           <div class="card-title">Yomi Admin</div>
           <div class="card-subtitle">{{ t('auth.subtitle') }}</div>
 
@@ -280,17 +281,10 @@ onMounted(async () => {
 }
 
 .intro-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-shrink: 0;
   width: 56px;
   height: 56px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #4a9bff 0%, #2b6fe0 100%);
-  box-shadow: 0 14px 28px -14px rgb(43 111 224 / 85%);
-  color: #fff;
-  font-size: 28px;
-  font-weight: 700;
+  filter: drop-shadow(0 6px 12px rgb(15 47 68 / 30%)) drop-shadow(0 20px 36px rgb(15 47 68 / 26%));
 }
 
 .intro-title {
@@ -336,18 +330,11 @@ onMounted(async () => {
 }
 
 .card-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 46px;
   height: 46px;
   margin: 0 auto;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #4a9bff 0%, #2b6fe0 100%);
-  box-shadow: 0 12px 24px -12px rgb(43 111 224 / 85%);
-  color: #fff;
-  font-size: 22px;
-  font-weight: 700;
+  filter: drop-shadow(0 5px 10px rgb(15 47 68 / 28%)) drop-shadow(0 16px 28px rgb(15 47 68 / 24%));
 }
 
 .card-title {
