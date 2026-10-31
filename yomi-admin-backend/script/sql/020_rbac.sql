@@ -116,6 +116,12 @@ INSERT IGNORE INTO `t_rbac_role` (`id`, `code`, `name`, `builtin`, `status`, `re
 VALUES (100000000000000101, 'super_admin', '超级管理员', 1, 'ENABLED', '内置角色，拥有全部权限');
 
 -- 接口权限目录与权限组：种子只负责初始化，管理端可继续维护
+-- 目录权限：只作分组节点，路由守卫与侧栏展开不依赖它，授予后可在权限目录中显式管理目录层级
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000000981, 'system', '系统管理', 'MENU', '/system', NULL, NULL, 'ENABLED');
+INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
+VALUES (100000000000000982, 'system:rbac', '权限管理', 'MENU', '/system/rbac', NULL, NULL, 'ENABLED');
+
 -- 菜单权限，名称与前端导航（权限管理下的 角色 / 权限组 / 权限）保持一致
 INSERT IGNORE INTO `t_rbac_permission` (`id`, `code`, `name`, `permission_type`, `ui_path`, `http_method`, `http_path`, `status`)
 VALUES (100000000000001001, 'system:user', '系统用户', 'MENU', '/system/user', NULL, NULL, 'ENABLED');
@@ -355,6 +361,24 @@ INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_
 VALUES (100000000000005071, 100000000000003006, 100000000000001007);
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
 VALUES (100000000000005072, 100000000000003006, 100000000000001091);
+
+-- 种子组补挂目录权限：组内叶子菜单挂在哪个目录，就一并授予该目录链，权限组作为完整菜单包使用
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005111, 100000000000003001, 100000000000000981);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005112, 100000000000003002, 100000000000000981);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005113, 100000000000003002, 100000000000000982);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005114, 100000000000003003, 100000000000000981);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005115, 100000000000003003, 100000000000000982);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005116, 100000000000003004, 100000000000000981);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005117, 100000000000003005, 100000000000000981);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005118, 100000000000003006, 100000000000000981);
 
 -- 内置管理员绑定超管角色
 INSERT IGNORE INTO `t_rbac_user_role_rel` (`id`, `user_id`, `role_id`, `create_by`, `update_by`)

@@ -33,13 +33,40 @@ function resolvePath(parentPath: string, path: string): string {
 }
 
 /**
+ * 目录分组路由的路径集合。
+ * 目录权限（如 系统管理 /system）只作为可授权的分组节点下发，
+ * 路由守卫仍按叶子页面路径匹配，避免授予目录后放行整个分支的未授权页面。
+ * routes ↔ 布局 ↔ 本模块存在循环依赖，模块求值期 staticRoutes 可能尚未初始化，
+ * 因此在 store 首次创建时再计算。
+ */
+function buildGroupRoutePaths(): Set<string> {
+  const paths = new Set<string>()
+  const walk = (routes: readonly RouteRecordRaw[], parentPath: string) => {
+    for (const route of routes) {
+      const fullPath = resolvePath(parentPath, route.path)
+      if (route.children?.length) {
+        paths.add(fullPath)
+        walk(route.children, fullPath)
+      }
+    }
+  }
+  walk(staticRoutes, '')
+  return paths
+}
+
+/**
  * 菜单权限：后端下发可见菜单，前端过滤静态路由。
  * 页面是否存在由静态路由决定，后端菜单只控制可见性。
  */
 export const usePermissionStore = defineStore('permission', () => {
   const userStore = useUserStore()
+  const groupRoutePaths = buildGroupRoutePaths()
 
-  const menuPaths = computed(() => (userStore.userInfo?.menus ?? []).map((menu) => menu.uiPath))
+  const menuPaths = computed(() =>
+    (userStore.userInfo?.menus ?? [])
+      .map((menu) => menu.uiPath)
+      .filter((path) => !groupRoutePaths.has(path)),
+  )
 
   function canAccess(pathname: string): boolean {
     if (implicitPaths.some((path) => covers(pathname, path))) {
