@@ -1,4 +1,5 @@
 {
+  "subtitle": "管理权限分组并聚合权限项",
   "searchPlaceholder": "权限组编码 / 名称",
   "add": "新增权限组",
   "columns": {

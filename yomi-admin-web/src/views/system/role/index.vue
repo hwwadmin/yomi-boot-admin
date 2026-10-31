@@ -20,6 +20,7 @@ import type { RoleQuery } from '@/api/rbac'
 import type { PermissionGroupItem, PermissionItem, RoleItem, Status } from '@/api/types'
 import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 import { newIdempotencyKey } from '@/utils/idempotency'
@@ -250,6 +251,19 @@ async function saveGroups() {
 
 <template>
   <div class="system-role">
+    <PageHeader :title="t('menu.systemRole')" :subtitle="t('system.role.subtitle')">
+      <template #actions>
+        <el-button
+          v-permission="'system:role:create'"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          {{ t('system.role.add') }}
+        </el-button>
+      </template>
+    </PageHeader>
+
     <PageCard>
       <template #toolbar>
         <div class="page-toolbar">
@@ -280,14 +294,6 @@ async function saveGroups() {
             </el-button>
           </div>
           <div class="page-toolbar__actions">
-            <el-button
-              v-permission="'system:role:create'"
-              type="primary"
-              :icon="Plus"
-              @click="openCreate"
-            >
-              {{ t('system.role.add') }}
-            </el-button>
             <el-button
               v-permission="'system:rbac_cache:refresh'"
               :icon="Refresh"

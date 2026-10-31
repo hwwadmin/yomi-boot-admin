@@ -1,4 +1,5 @@
 {
+  "subtitle": "Group permissions for easier granting",
   "searchPlaceholder": "Permission group code / name",
   "add": "Add permission group",
   "columns": {

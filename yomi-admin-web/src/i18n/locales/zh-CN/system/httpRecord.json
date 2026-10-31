@@ -1,4 +1,5 @@
 {
+  "subtitle": "查看接口访问记录与响应结果",
   "searchPlaceholder": "路径 / TraceID / 客户端 IP",
   "allMethods": "全部方法",
   "allStatus": "全部状态",

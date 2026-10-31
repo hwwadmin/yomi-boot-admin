@@ -14,6 +14,7 @@ import type { PermissionQuery } from '@/api/rbac'
 import type { PermissionItem, PermissionType, Status } from '@/api/types'
 import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 import { newIdempotencyKey } from '@/utils/idempotency'
@@ -232,6 +233,19 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
 
 <template>
   <div class="system-permission">
+    <PageHeader :title="t('menu.systemPermission')" :subtitle="t('system.permission.subtitle')">
+      <template #actions>
+        <el-button
+          v-permission="'system:permission:create'"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          {{ t('system.permission.add') }}
+        </el-button>
+      </template>
+    </PageHeader>
+
     <PageCard>
       <template #toolbar>
         <div class="page-toolbar">
@@ -268,16 +282,6 @@ async function handleStatusChange(row: PermissionItem, status: Status) {
             </el-button>
             <el-button :icon="Refresh" @click="handleReset">
               {{ t('common.action.reset') }}
-            </el-button>
-          </div>
-          <div class="page-toolbar__actions">
-            <el-button
-              v-permission="'system:permission:create'"
-              type="primary"
-              :icon="Plus"
-              @click="openCreate"
-            >
-              {{ t('system.permission.add') }}
             </el-button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 {
+  "subtitle": "管理系统角色与授权配置",
   "searchPlaceholder": "角色编码 / 名称",
   "add": "新增角色",
   "refreshCache": "刷新缓存",

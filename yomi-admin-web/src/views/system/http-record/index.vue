@@ -5,6 +5,7 @@ import { Refresh, Search } from '@element-plus/icons-vue'
 import { getHttpRecordDetail, getHttpRecordPage } from '@/api/httpRecord'
 import type { HttpRecordDetail, HttpRecordItem, HttpRecordQuery } from '@/api/types'
 import PageCard from '@/components/PageCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemHttpRecordPage' })
@@ -134,6 +135,8 @@ async function openDetail(row: HttpRecordItem) {
 
 <template>
   <div class="system-http-record">
+    <PageHeader :title="t('menu.systemHttpRecord')" :subtitle="t('system.httpRecord.subtitle')" />
+
     <PageCard>
       <template #toolbar>
         <div class="page-toolbar">

@@ -1,4 +1,5 @@
 {
+  "subtitle": "Inspect API access records and results",
   "searchPlaceholder": "Path / TraceID / client IP",
   "allMethods": "All methods",
   "allStatus": "All statuses",

@@ -14,6 +14,7 @@ import type { SysParamQuery } from '@/api/sysparam'
 import type { ParamValueType, Status, SysParamItem } from '@/api/types'
 import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useParamValueTypeLabels } from '@/composables/useParamValueTypeLabels'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
@@ -221,6 +222,19 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
 
 <template>
   <div class="system-param">
+    <PageHeader :title="t('menu.systemParam')" :subtitle="t('system.param.subtitle')">
+      <template #actions>
+        <el-button
+          v-permission="'system:param:create'"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          {{ t('system.param.add') }}
+        </el-button>
+      </template>
+    </PageHeader>
+
     <PageCard>
       <template #toolbar>
         <div class="page-toolbar">
@@ -261,16 +275,6 @@ async function handleStatusChange(row: SysParamItem, status: Status) {
             </el-button>
             <el-button :icon="Refresh" @click="handleReset">
               {{ t('common.action.reset') }}
-            </el-button>
-          </div>
-          <div class="page-toolbar__actions">
-            <el-button
-              v-permission="'system:param:create'"
-              type="primary"
-              :icon="Plus"
-              @click="openCreate"
-            >
-              {{ t('system.param.add') }}
             </el-button>
           </div>
         </div>

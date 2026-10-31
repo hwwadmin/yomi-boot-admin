@@ -1,4 +1,5 @@
 {
+  "subtitle": "管理系统用户及其权限信息",
   "searchPlaceholder": "用户名 / 昵称",
   "add": "新增用户",
   "columns": {

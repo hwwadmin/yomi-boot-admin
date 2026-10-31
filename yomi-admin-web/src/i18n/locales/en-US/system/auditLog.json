@@ -1,4 +1,5 @@
 {
+  "subtitle": "Review sensitive operations such as sign-ins",
   "searchPlaceholder": "Operator / source IP",
   "allEvents": "All events",
   "allPhases": "All phases",

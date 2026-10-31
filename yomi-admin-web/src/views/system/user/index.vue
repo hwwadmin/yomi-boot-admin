@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { Plus, Monitor, Refresh, Search, User } from '@element-plus/icons-vue'
+import { Plus, Refresh, Search, User } from '@element-plus/icons-vue'
 
 import { bindUserRoles, getUserRoles } from '@/api/rbac'
 import {
@@ -17,6 +17,7 @@ import {
 import type { RoleItem, UserItem, UserSessionItem, UserStatus } from '@/api/types'
 import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 import { newIdempotencyKey } from '@/utils/idempotency'
@@ -323,6 +324,19 @@ async function handleRevokeAllSessions() {
 
 <template>
   <div class="system-user">
+    <PageHeader :title="t('menu.systemUser')" :subtitle="t('system.user.subtitle')">
+      <template #actions>
+        <el-button
+          v-permission="'system:user:create'"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          {{ t('system.user.add') }}
+        </el-button>
+      </template>
+    </PageHeader>
+
     <PageCard>
       <template #toolbar>
         <div class="page-toolbar">
@@ -331,7 +345,7 @@ async function handleRevokeAllSessions() {
               v-model="query.keyword"
               class="page-toolbar__input"
               :placeholder="t('system.user.searchPlaceholder')"
-              :suffix-icon="Search"
+              :prefix-icon="Search"
               clearable
               @keyup.enter="handleSearch"
               @clear="handleSearch"
@@ -343,27 +357,17 @@ async function handleRevokeAllSessions() {
               {{ t('common.action.reset') }}
             </el-button>
           </div>
-          <div class="page-toolbar__actions">
-            <el-button
-              v-permission="'system:user:create'"
-              type="primary"
-              :icon="Plus"
-              @click="openCreate"
-            >
-              {{ t('system.user.add') }}
-            </el-button>
-          </div>
         </div>
       </template>
 
       <el-table v-loading="loading" :data="list">
-        <el-table-column :label="t('common.field.username')" min-width="180">
+        <el-table-column :label="t('common.field.username')" min-width="150">
           <template #default="{ row }">
             <NameCell :label="(row as UserItem).username" :icon="User" tone="blue" />
           </template>
         </el-table-column>
-        <el-table-column prop="nickname" :label="t('common.field.nickname')" min-width="130" />
-        <el-table-column :label="t('system.user.columns.roles')" min-width="150">
+        <el-table-column prop="nickname" :label="t('common.field.nickname')" min-width="110" />
+        <el-table-column :label="t('system.user.columns.roles')" min-width="120">
           <template #default="{ row }">
             <el-tag
               v-for="role in (row as UserItem).roles"
@@ -379,13 +383,16 @@ async function handleRevokeAllSessions() {
         <el-table-column
           prop="email"
           :label="t('common.field.email')"
-          min-width="160"
+          min-width="140"
           show-overflow-tooltip
         />
-        <el-table-column prop="phone" :label="t('common.field.phone')" min-width="110" />
-        <el-table-column :label="t('common.field.status')" width="90" align="center">
+        <el-table-column prop="phone" :label="t('common.field.phone')" min-width="130" />
+        <el-table-column :label="t('common.field.status')" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'ENABLED' ? 'success' : 'danger'">
+            <el-tag
+              class="table-status-tag"
+              :type="row.status === 'ENABLED' ? 'success' : 'danger'"
+            >
               {{
                 row.status === 'ENABLED'
                   ? t('system.user.status.normal')
@@ -394,12 +401,12 @@ async function handleRevokeAllSessions() {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.createdAt')" width="170" class-name="table-time">
+        <el-table-column :label="t('common.field.createdAt')" width="160" class-name="table-time">
           <template #default="{ row }">
             {{ formatDateTime((row as UserItem).createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column :label="t('common.field.actions')" width="350" fixed="right">
+        <el-table-column :label="t('common.field.actions')" width="360">
           <template #default="{ row }">
             <div class="table-actions">
               <el-button
@@ -422,7 +429,6 @@ async function handleRevokeAllSessions() {
                 v-permission="'system:user:session:list'"
                 link
                 type="primary"
-                :icon="Monitor"
                 @click="openSessions(row as UserItem)"
               >
                 {{ t('system.user.actions.sessions') }}

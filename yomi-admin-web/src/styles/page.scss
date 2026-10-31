@@ -88,6 +88,22 @@
   letter-spacing: 0;
 }
 
+/* 状态标签：前置同色圆点，弱化色块、强化状态语义 */
+.table-status-tag.el-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.table-status-tag.el-tag::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 /* 时间列 */
 .table-time .cell {
   color: var(--app-text-3);

@@ -28,6 +28,7 @@ import type { PermissionGroupQuery } from '@/api/rbac'
 import type { PermissionGroupItem, PermissionItem, Status } from '@/api/types'
 import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 import { newIdempotencyKey } from '@/utils/idempotency'
@@ -272,6 +273,22 @@ async function savePermissions() {
 
 <template>
   <div class="system-permission-group">
+    <PageHeader
+      :title="t('menu.systemPermissionGroup')"
+      :subtitle="t('system.permissionGroup.subtitle')"
+    >
+      <template #actions>
+        <el-button
+          v-permission="'system:permission-group:create'"
+          type="primary"
+          :icon="Plus"
+          @click="openCreate"
+        >
+          {{ t('system.permissionGroup.add') }}
+        </el-button>
+      </template>
+    </PageHeader>
+
     <PageCard>
       <template #toolbar>
         <div class="page-toolbar">
@@ -299,16 +316,6 @@ async function savePermissions() {
             </el-button>
             <el-button :icon="Refresh" @click="handleReset">
               {{ t('common.action.reset') }}
-            </el-button>
-          </div>
-          <div class="page-toolbar__actions">
-            <el-button
-              v-permission="'system:permission-group:create'"
-              type="primary"
-              :icon="Plus"
-              @click="openCreate"
-            >
-              {{ t('system.permissionGroup.add') }}
             </el-button>
           </div>
         </div>

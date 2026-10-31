@@ -5,6 +5,7 @@ import { Refresh, Search } from '@element-plus/icons-vue'
 import { getAuditLogPage } from '@/api/auditLog'
 import type { AuditLogItem, AuditLogQuery } from '@/api/types'
 import PageCard from '@/components/PageCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemAuditLogPage' })
@@ -155,12 +156,16 @@ function operatorHint(row: AuditLogItem): string {
 
 function targetText(row: AuditLogItem): string {
   if (!row.targetType) return t('system.auditLog.noTarget')
-  return row.targetName || (row.targetId !== '0' ? `#${row.targetId}` : t('system.auditLog.noTarget'))
+  return (
+    row.targetName || (row.targetId !== '0' ? `#${row.targetId}` : t('system.auditLog.noTarget'))
+  )
 }
 </script>
 
 <template>
   <div class="system-audit-log">
+    <PageHeader :title="t('menu.systemAuditLog')" :subtitle="t('system.auditLog.subtitle')" />
+
     <PageCard>
       <template #toolbar>
         <div class="page-toolbar">

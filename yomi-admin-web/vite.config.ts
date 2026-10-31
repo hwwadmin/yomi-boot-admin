@@ -7,6 +7,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
+import pkg from './package.json' with { type: 'json' }
 import { mockPlugin } from './mock/index.ts'
 
 // https://vite.dev/config/
@@ -14,6 +15,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
+    define: {
+      // 侧边栏底部展示的应用版本号，与 package.json 保持一致
+      __APP_VERSION__: JSON.stringify(pkg.version),
+    },
     plugins: [
       vue(),
       vueDevTools(),
