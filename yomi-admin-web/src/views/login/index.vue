@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { Key, Lock, User } from '@element-plus/icons-vue'
+import { ArrowRight, Key, Lock, User } from '@element-plus/icons-vue'
 
 import { getCaptcha, getLoginConfig } from '@/api/auth'
 import type { CaptchaChallenge } from '@/api/types'
+import illustration from '@/assets/login-illustration.svg'
 import { useUserStore } from '@/stores/user'
 
 defineOptions({ name: 'LoginPage' })
@@ -92,126 +93,288 @@ onMounted(async () => {
 
 <template>
   <div class="login-page">
-    <el-card class="login-card" shadow="never">
-      <div class="login-brand"><span class="login-brand__badge">Y</span></div>
-      <div class="login-title">Yomi Admin</div>
-      <div class="login-subtitle">{{ t('auth.subtitle') }}</div>
-      <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="handleLogin">
-        <el-form-item prop="username">
-          <el-input
-            v-model="form.username"
-            :placeholder="t('auth.usernamePlaceholder')"
-            :prefix-icon="User"
-            autocomplete="username"
-            maxlength="64"
-          />
-        </el-form-item>
-        <el-form-item prop="password">
-          <el-input
-            v-model="form.password"
-            type="password"
-            :placeholder="t('auth.passwordPlaceholder')"
-            :prefix-icon="Lock"
-            show-password
-            autocomplete="current-password"
-            maxlength="72"
-          />
-        </el-form-item>
-        <el-form-item v-if="captchaRequired" prop="captchaCode">
-          <div class="captcha-row">
-            <el-input
-              v-model="form.captchaCode"
-              :placeholder="t('auth.captchaPlaceholder')"
-              :prefix-icon="Key"
-              maxlength="8"
-              autocomplete="off"
-            />
-            <button
-              type="button"
-              class="captcha-image"
-              :title="t('auth.captchaRefreshTitle')"
-              :disabled="captchaLoading"
-              @click="refreshCaptcha()"
+    <!-- 背景装饰层 -->
+    <div class="bg-wash" aria-hidden="true"></div>
+    <div class="bg-dots" aria-hidden="true"></div>
+    <div class="bg-wave bg-wave--mid" aria-hidden="true"></div>
+    <div class="bg-wave bg-wave--deep" aria-hidden="true"></div>
+
+    <div class="login-body">
+      <!-- 左侧品牌区 -->
+      <section class="login-intro">
+        <div class="intro-brand">
+          <span class="intro-badge">Y</span>
+          <h1 class="intro-title">Yomi Admin</h1>
+        </div>
+        <p class="intro-slogan">{{ t('auth.slogan') }}</p>
+        <img class="intro-illustration" :src="illustration" :alt="t('auth.illustrationAlt')" />
+      </section>
+
+      <!-- 右侧登录卡片 -->
+      <section class="login-panel">
+        <div class="login-card">
+          <span class="card-badge">Y</span>
+          <div class="card-title">Yomi Admin</div>
+          <div class="card-subtitle">{{ t('auth.subtitle') }}</div>
+
+          <el-form
+            ref="formRef"
+            class="login-form"
+            :model="form"
+            :rules="rules"
+            size="large"
+            @keyup.enter="handleLogin"
+          >
+            <el-form-item prop="username">
+              <el-input
+                v-model="form.username"
+                :placeholder="t('auth.usernamePlaceholder')"
+                :prefix-icon="User"
+                autocomplete="username"
+                maxlength="64"
+              />
+            </el-form-item>
+            <el-form-item prop="password">
+              <el-input
+                v-model="form.password"
+                type="password"
+                :placeholder="t('auth.passwordPlaceholder')"
+                :prefix-icon="Lock"
+                show-password
+                autocomplete="current-password"
+                maxlength="72"
+              />
+            </el-form-item>
+            <el-form-item v-if="captchaRequired" prop="captchaCode">
+              <div class="captcha-row">
+                <el-input
+                  v-model="form.captchaCode"
+                  :placeholder="t('auth.captchaPlaceholder')"
+                  :prefix-icon="Key"
+                  maxlength="8"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  class="captcha-image"
+                  :title="t('auth.captchaRefreshTitle')"
+                  :disabled="captchaLoading"
+                  @click="refreshCaptcha()"
+                >
+                  <img v-if="captcha" :src="captcha.image" :alt="t('auth.captchaAlt')" />
+                  <span v-else>
+                    {{ captchaLoading ? t('auth.captchaLoading') : t('auth.captchaLoad') }}
+                  </span>
+                  <span v-if="captcha && captchaStale" class="captcha-stale-tip">
+                    {{ t('auth.captchaStale.line1') }}<br />{{ t('auth.captchaStale.line2') }}
+                  </span>
+                </button>
+              </div>
+            </el-form-item>
+            <el-button
+              class="login-btn"
+              type="primary"
+              size="large"
+              :loading="loading"
+              @click="handleLogin"
             >
-              <img v-if="captcha" :src="captcha.image" :alt="t('auth.captchaAlt')" />
-              <span v-else>
-                {{ captchaLoading ? t('auth.captchaLoading') : t('auth.captchaLoad') }}
-              </span>
-              <span v-if="captcha && captchaStale" class="captcha-stale-tip">
-                {{ t('auth.captchaStale.line1') }}<br />{{ t('auth.captchaStale.line2') }}
-              </span>
-            </button>
-          </div>
-        </el-form-item>
-        <el-button
-          class="login-btn"
-          type="primary"
-          size="large"
-          :loading="loading"
-          @click="handleLogin"
-        >
-          {{ t('auth.submit') }}
-        </el-button>
-        <div v-if="showMockTip" class="mock-tip">{{ t('auth.mockTip') }}</div>
-      </el-form>
-    </el-card>
+              {{ t('auth.submit') }}
+              <el-icon v-if="!loading" class="login-btn__arrow"><ArrowRight /></el-icon>
+            </el-button>
+          </el-form>
+
+          <div v-if="showMockTip" class="mock-tip">{{ t('auth.mockTip') }}</div>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 
 <style scoped>
+/* ———————— 页面与背景装饰 ———————— */
 .login-page {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
   height: 100%;
-  background:
-    radial-gradient(900px 480px at 10% -10%, rgb(64 158 255 / 16%), transparent 62%),
-    radial-gradient(760px 420px at 100% 108%, rgb(34 184 207 / 12%), transparent 62%), var(--app-bg);
+  /* clip 禁止一切滚动（含 scrollIntoView），防止装饰层溢出把整页"平移"走；不支持 clip 的旧浏览器回退 hidden */
+  overflow: hidden;
+  overflow: clip;
+  background: linear-gradient(158deg, #f3f7fd 0%, #e9f0fb 48%, #dfe9fa 100%);
 }
 
-.login-card {
-  width: 400px;
-  border: 1px solid var(--app-border);
-  border-radius: 12px;
-  box-shadow: var(--app-shadow-pop);
+/* 左上柔光 */
+.bg-wash {
+  position: absolute;
+  top: -28%;
+  left: -14%;
+  width: 64%;
+  height: 72%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 80%), rgb(255 255 255 / 0%) 74%);
+  pointer-events: none;
 }
 
-.login-brand {
+/* 右上点阵，向左下淡出 */
+.bg-dots {
+  position: absolute;
+  top: 52px;
+  right: 64px;
+  width: 236px;
+  height: 118px;
+  background-image: radial-gradient(rgb(122 156 216 / 55%) 2.2px, transparent 2.6px);
+  background-size: 28px 28px;
+  -webkit-mask-image: linear-gradient(215deg, #000 30%, transparent 88%);
+  mask-image: linear-gradient(215deg, #000 30%, transparent 88%);
+  pointer-events: none;
+}
+
+/* 底部两层波浪 */
+.bg-wave {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.bg-wave--mid {
+  bottom: -42%;
+  left: -16%;
+  width: 130%;
+  height: 68%;
+  background: rgb(205 222 248 / 78%);
+  transform: rotate(-5deg);
+}
+
+.bg-wave--deep {
+  bottom: -46%;
+  right: -22%;
+  width: 128%;
+  height: 64%;
+  background: rgb(184 208 244 / 62%);
+  transform: rotate(4deg);
+}
+
+/* ———————— 主体两栏 ———————— */
+.login-body {
+  position: relative;
+  z-index: 1;
   display: flex;
+  flex: 1;
+  align-items: center;
   justify-content: center;
-  margin-top: 4px;
+  gap: clamp(48px, 7vw, 120px);
+  padding: 48px clamp(24px, 6vw, 110px);
 }
 
-.login-brand__badge {
+/* 左侧品牌区 */
+.login-intro {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  align-items: flex-start;
+  max-width: 560px;
+}
+
+.intro-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.intro-badge {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #4a9bff 0%, #2b6fe0 100%);
-  box-shadow: 0 10px 24px -12px rgb(43 111 224 / 85%);
+  box-shadow: 0 14px 28px -14px rgb(43 111 224 / 85%);
   color: #fff;
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 700;
 }
 
-.login-title {
-  margin-top: 16px;
-  color: var(--app-text-1);
+.intro-title {
+  margin: 0;
+  color: #17233d;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.intro-slogan {
+  margin: 14px 0 0 2px;
+  color: #5f7396;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+
+.intro-illustration {
+  width: min(440px, 92%);
+  margin: 40px 0 0 6px;
+  filter: drop-shadow(0 20px 32px rgb(43 111 224 / 10%));
+}
+
+/* ———————— 右侧登录卡片 ———————— */
+.login-panel {
+  display: flex;
+  flex: 0 1 470px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.login-card {
+  --el-component-size-large: 44px;
+
+  width: 100%;
+  max-width: 470px;
+  padding: 44px 44px 36px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow:
+    0 24px 60px -32px rgb(43 92 176 / 35%),
+    0 2px 6px rgb(43 92 176 / 6%);
+}
+
+.card-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin: 0 auto;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4a9bff 0%, #2b6fe0 100%);
+  box-shadow: 0 12px 24px -12px rgb(43 111 224 / 85%);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.card-title {
+  margin-top: 14px;
+  color: #1c2b4a;
   font-size: 22px;
   font-weight: 700;
   text-align: center;
   letter-spacing: 0.5px;
 }
 
-.login-subtitle {
+.card-subtitle {
   margin: 6px 0 26px;
   color: var(--app-text-3);
   font-size: 13px;
   text-align: center;
 }
 
+.login-form :deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+.login-form :deep(.el-input__wrapper) {
+  border-radius: 8px;
+}
+
+/* ———————— 验证码 ———————— */
 .captcha-row {
   display: flex;
   gap: 12px;
@@ -221,17 +384,17 @@ onMounted(async () => {
 .captcha-image {
   position: relative;
   display: flex;
-  flex: 0 0 120px;
+  flex: 0 0 122px;
   align-items: center;
   justify-content: center;
-  height: 42px;
+  height: 44px;
   padding: 0;
   overflow: hidden;
   color: var(--app-text-3);
   font-size: 12px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color);
-  border-radius: var(--app-radius-base);
+  border-radius: 8px;
   cursor: pointer;
 }
 
@@ -258,17 +421,102 @@ onMounted(async () => {
   background: rgb(0 0 0 / 45%);
 }
 
+/* ———————— 登录按钮 ———————— */
 .login-btn {
+  position: relative;
   width: 100%;
-  margin-top: 4px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  text-indent: 6px;
+
+  --el-button-bg-color: #2e7cf6;
+  --el-button-border-color: #2e7cf6;
+  --el-button-hover-bg-color: #4a90f8;
+  --el-button-hover-border-color: #4a90f8;
+  --el-button-active-bg-color: #2b6fe0;
+  --el-button-active-border-color: #2b6fe0;
+}
+
+.login-btn__arrow {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  font-size: 17px;
+  transform: translateY(-50%);
 }
 
 .mock-tip {
-  margin: 14px 0 4px;
+  margin: 14px 0 0;
   color: var(--app-text-3);
   font-size: 12px;
   text-align: center;
+}
+
+/* ———————— 暗色主题 ———————— */
+html.dark .login-page {
+  background: linear-gradient(158deg, #0b1220 0%, #0d1526 52%, #101c30 100%);
+}
+
+html.dark .bg-wash {
+  background: radial-gradient(closest-side, rgb(64 158 255 / 10%), rgb(64 158 255 / 0%) 74%);
+}
+
+html.dark .bg-dots {
+  background-image: radial-gradient(rgb(124 170 255 / 30%) 2.2px, transparent 2.6px);
+}
+
+html.dark .bg-wave--mid {
+  background: rgb(64 158 255 / 7%);
+}
+
+html.dark .bg-wave--deep {
+  background: rgb(64 158 255 / 5%);
+}
+
+html.dark .login-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow-pop);
+}
+
+html.dark .intro-title {
+  color: #e6eaf2;
+}
+
+html.dark .card-title {
+  color: #e6eaf2;
+}
+
+html.dark .intro-slogan {
+  color: #8a97ad;
+}
+
+/* ———————— 响应式 ———————— */
+@media (max-width: 1280px) {
+  .intro-illustration {
+    width: min(380px, 92%);
+  }
+}
+
+@media (max-width: 992px) {
+  .login-intro {
+    display: none;
+  }
+
+  .bg-dots {
+    right: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-body {
+    padding: 24px 16px;
+  }
+
+  .login-card {
+    padding: 34px 24px 28px;
+  }
 }
 </style>

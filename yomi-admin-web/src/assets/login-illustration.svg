@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="340" viewBox="0 0 480 340" fill="none" role="img" aria-label="Yomi Admin illustration">
+  <defs>
+    <linearGradient id="loginIllBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5CA2FF"/>
+      <stop offset="1" stop-color="#2B6FE0"/>
+    </linearGradient>
+    <linearGradient id="loginIllShield" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#6FB0FF"/>
+      <stop offset="1" stop-color="#2E6FDD"/>
+    </linearGradient>
+    <linearGradient id="loginIllScreen" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FBFDFF"/>
+      <stop offset="1" stop-color="#EFF6FF"/>
+    </linearGradient>
+    <filter id="loginIllShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#2B6FE0" flood-opacity="0.16"/>
+    </filter>
+    <filter id="loginIllBlur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+
+  <!-- 地面光晕与椭圆环 -->
+  <ellipse cx="240" cy="272" rx="168" ry="24" fill="#2B6FE0" opacity="0.10" filter="url(#loginIllBlur)"/>
+  <ellipse cx="240" cy="256" rx="198" ry="58" stroke="#AECBF3" stroke-opacity="0.6" stroke-width="1.5"/>
+  <ellipse cx="240" cy="256" rx="148" ry="41" stroke="#C7DBF7" stroke-opacity="0.7" stroke-width="1.2"/>
+
+  <!-- 层叠平台：蓝色侧边 + 白色台面 -->
+  <g>
+    <rect x="100" y="247" width="280" height="34" rx="12" fill="#CBDFF9"/>
+    <rect x="100" y="240" width="280" height="34" rx="12" fill="#F6FAFF" stroke="#DCE8FA" stroke-width="1.5"/>
+    <rect x="130" y="215" width="220" height="32" rx="11" fill="#BFD7F8"/>
+    <rect x="130" y="208" width="220" height="32" rx="11" fill="#FFFFFF" stroke="#D9E6FB" stroke-width="1.5"/>
+    <rect x="160" y="185" width="160" height="30" rx="10" fill="#AECBF6"/>
+    <rect x="160" y="178" width="160" height="30" rx="10" fill="url(#loginIllScreen)" stroke="#D2E2F9" stroke-width="1.5"/>
+  </g>
+
+  <!-- 后方窗口 -->
+  <g opacity="0.9">
+    <rect x="118" y="52" width="150" height="96" rx="10" fill="#F1F7FF" stroke="#D8E6FA" stroke-width="1.5"/>
+    <rect x="132" y="68" width="52" height="8" rx="4" fill="#A9C9FB"/>
+    <rect x="132" y="86" width="86" height="6" rx="3" fill="#D9E6FB"/>
+    <rect x="132" y="100" width="72" height="6" rx="3" fill="#D9E6FB"/>
+    <rect x="132" y="114" width="80" height="6" rx="3" fill="#E4EEFB"/>
+    <rect x="132" y="128" width="58" height="6" rx="3" fill="#E4EEFB"/>
+  </g>
+
+  <!-- 主窗口：标题栏、侧栏、柱状图、列表 -->
+  <g filter="url(#loginIllShadow)">
+    <rect x="150" y="74" width="220" height="130" rx="12" fill="#FFFFFF" stroke="#D8E6FA" stroke-width="1.5"/>
+  </g>
+  <circle cx="166" cy="90" r="3.2" fill="#8FB8F0"/>
+  <circle cx="178" cy="90" r="3.2" fill="#B9D2F6"/>
+  <circle cx="190" cy="90" r="3.2" fill="#D5E4F9"/>
+  <path d="M150 102h220" stroke="#EBF2FC" stroke-width="1.5"/>
+  <rect x="162" y="112" width="40" height="80" rx="6" fill="#EFF5FE"/>
+  <rect x="170" y="122" width="24" height="6" rx="3" fill="#A9C9FB"/>
+  <rect x="170" y="136" width="24" height="6" rx="3" fill="#C7DBF7"/>
+  <rect x="170" y="150" width="24" height="6" rx="3" fill="#C7DBF7"/>
+  <rect x="170" y="164" width="18" height="6" rx="3" fill="#DCE8FA"/>
+  <rect x="212" y="148" width="14" height="44" rx="4" fill="#7FB0F7"/>
+  <rect x="232" y="132" width="14" height="60" rx="4" fill="#3E86F6"/>
+  <rect x="252" y="158" width="14" height="34" rx="4" fill="#A9C9FB"/>
+  <rect x="272" y="122" width="14" height="70" rx="4" fill="#2E7CF6"/>
+  <rect x="298" y="114" width="46" height="8" rx="4" fill="#C7DBF7"/>
+  <rect x="298" y="128" width="60" height="5" rx="2.5" fill="#E7EFFB"/>
+  <rect x="298" y="142" width="46" height="8" rx="4" fill="#C7DBF7"/>
+  <rect x="298" y="156" width="60" height="5" rx="2.5" fill="#E7EFFB"/>
+  <rect x="298" y="170" width="46" height="8" rx="4" fill="#C7DBF7"/>
+  <rect x="298" y="184" width="44" height="5" rx="2.5" fill="#E7EFFB"/>
+
+  <!-- 盾牌 -->
+  <g filter="url(#loginIllShadow)">
+    <path d="M352 190l27 10v21c0 19-12.5 29.5-27 36-14.5-6.5-27-17-27-36v-21z" fill="url(#loginIllShield)"/>
+  </g>
+  <path d="M340 222l9 9.5 18-19" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 人物 -->
+  <g>
+    <circle cx="416" cy="138" r="11" fill="#F4F9FF" stroke="#D8E6FA" stroke-width="2"/>
+    <path d="M402 188v-20c0-8 6.5-14 14-14s14 6 14 14v20z" fill="url(#loginIllBlue)"/>
+    <circle cx="441" cy="116" r="8" fill="#F4F9FF" stroke="#D8E6FA" stroke-width="2"/>
+    <path d="M431 154v-14c0-6 4.5-10.5 10-10.5s10 4.5 10 10.5v14z" fill="#A9C9FB"/>
+  </g>
+
+  <!-- 点缀 -->
+  <circle cx="66" cy="64" r="4" fill="#A9C9FB"/>
+  <path d="M52 118v16M44 126h16" stroke="#8FB8F0" stroke-opacity="0.6" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="40" cy="220" r="3" fill="#8FB8F0" opacity="0.7"/>
+  <circle cx="444" cy="240" r="5" fill="#C7DBF7"/>
+  <circle cx="430" cy="58" r="12" stroke="#C7DBF7" stroke-width="2"/>
+</svg>
