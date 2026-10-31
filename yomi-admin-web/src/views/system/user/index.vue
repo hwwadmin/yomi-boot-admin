@@ -176,8 +176,8 @@ async function openRoleDialog(row: UserItem) {
   roleDialogLoading.value = true
   try {
     const binding = await getUserRoles(row.id)
-    roleOptions.value = binding.roles
-    selectedRoleIds.value = binding.roleIds
+    roleOptions.value = binding.roles ?? []
+    selectedRoleIds.value = binding.roleIds ?? []
   } finally {
     roleDialogLoading.value = false
   }

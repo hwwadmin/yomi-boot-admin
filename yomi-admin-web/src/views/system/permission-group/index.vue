@@ -252,7 +252,7 @@ async function openPermissionDrawer(row: PermissionGroupItem) {
       listAllPermissions(),
     ])
     permissions.value = allPermissions
-    selectedPermissionIds.value = detail.permissionIds
+    selectedPermissionIds.value = detail.permissionIds ?? []
   } finally {
     permissionLoading.value = false
   }

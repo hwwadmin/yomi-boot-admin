@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"context"
+	"yomi-admin-backend/apps/server/internal/support"
 	"yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
@@ -37,7 +38,7 @@ func (uc *GetPermissionGroupUsecase) Execute(ctx context.Context, id int64) (*Pe
 	}
 	return &PermissionGroupDetailOutput{
 		PermissionGroupItem: toPermissionGroupItem(detail.Group),
-		PermissionIDs:       dto.NewJSONInt64Slice(detail.PermissionIDs),
+		PermissionIDs:       support.NonNilIDs(dto.NewJSONInt64Slice(detail.PermissionIDs)),
 	}, nil
 }
 

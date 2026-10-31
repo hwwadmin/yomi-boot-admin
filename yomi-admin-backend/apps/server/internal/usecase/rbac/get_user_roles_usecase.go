@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"context"
+	"yomi-admin-backend/apps/server/internal/support"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 	usercontract "yomi-admin-backend/domains/user/service_contract"
 
@@ -46,6 +47,6 @@ func (uc *GetUserRolesUsecase) Execute(ctx context.Context, userID int64) (*User
 	}
 	return &UserRolesOutput{
 		Roles:   roles,
-		RoleIDs: dto.NewJSONInt64Slice(out.RoleIDs),
+		RoleIDs: support.NonNilIDs(dto.NewJSONInt64Slice(out.RoleIDs)),
 	}, nil
 }

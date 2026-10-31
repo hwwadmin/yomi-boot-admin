@@ -2,6 +2,7 @@ package rbac
 
 import (
 	"context"
+	"yomi-admin-backend/apps/server/internal/support"
 	"yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
@@ -39,9 +40,9 @@ func (uc *GetRoleUsecase) Execute(ctx context.Context, id int64) (*RoleDetailOut
 	}
 	return &RoleDetailOutput{
 		RoleItem:               toRoleItem(detail.Role),
-		GroupIDs:               dto.NewJSONInt64Slice(detail.GroupIDs),
-		PermissionIDs:          dto.NewJSONInt64Slice(detail.PermissionIDs),
-		EffectivePermissionIDs: dto.NewJSONInt64Slice(detail.EffectivePermissionIDs),
+		GroupIDs:               support.NonNilIDs(dto.NewJSONInt64Slice(detail.GroupIDs)),
+		PermissionIDs:          support.NonNilIDs(dto.NewJSONInt64Slice(detail.PermissionIDs)),
+		EffectivePermissionIDs: support.NonNilIDs(dto.NewJSONInt64Slice(detail.EffectivePermissionIDs)),
 	}, nil
 }
 

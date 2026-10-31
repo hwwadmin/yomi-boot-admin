@@ -228,8 +228,9 @@ async function openGroupDrawer(row: RoleItem) {
     ])
     groups.value = allGroups
     permissions.value = allPermissions
-    selectedGroupIds.value = detail.groupIds
-    aggregatedPermissionIds.value = detail.permissionIds
+    // 后端契约保证数组字段不为 null，这里兜底防御，避免异常响应冻结 loading 遮罩
+    selectedGroupIds.value = detail.groupIds ?? []
+    aggregatedPermissionIds.value = detail.permissionIds ?? []
     effectivePermissionIds.value = detail.effectivePermissionIds ?? []
   } finally {
     groupLoading.value = false
