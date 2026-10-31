@@ -116,7 +116,11 @@ func (s *RecordService) Page(ctx context.Context, in *input.PageRecordsInput) (*
 	if statusClass != "" && !enums.IsValidStatusClass(statusClass) {
 		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
 	}
-	if in.StartTime > 0 && in.EndTime > 0 && in.StartTime > in.EndTime {
+	// 列表查询必须带时间范围：访问记录只增不减，没有窗口的翻页与统计会随表增长退化。
+	if in.StartTime <= 0 || in.EndTime <= 0 {
+		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
+	}
+	if in.StartTime > in.EndTime {
 		return nil, errors.Sentinel(service_contract.ErrInvalidInput)
 	}
 

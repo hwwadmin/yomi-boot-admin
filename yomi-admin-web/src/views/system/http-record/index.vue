@@ -15,7 +15,18 @@ const { t } = useI18n()
 const loading = ref(false)
 const list = ref<HttpRecordItem[]>([])
 const total = ref(0)
-const timeRange = ref<[Date, Date] | null>(null)
+
+/** 默认时间范围是"今天"：后端要求列表查询必带时间范围，避免界面看着没过滤 */
+function todayRange(): [Date, Date] {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+  end.setMilliseconds(end.getMilliseconds() - 1)
+  return [start, end]
+}
+
+const timeRange = ref<[Date, Date]>(todayRange())
 const query = reactive<HttpRecordQuery>({
   page: 1,
   pageSize: 10,
@@ -34,14 +45,16 @@ const statusClassOptions = computed(() => [
 async function fetchList() {
   loading.value = true
   try {
+    // 选择器被清空时兜底回今天，保证请求始终带完整时间范围
+    const range = timeRange.value ?? todayRange()
     const result = await getHttpRecordPage({
       page: query.page,
       pageSize: query.pageSize,
       keyword: query.keyword?.trim() || undefined,
       method: query.method || undefined,
       statusClass: query.statusClass || undefined,
-      startTime: timeRange.value?.[0]?.getTime(),
-      endTime: timeRange.value?.[1]?.getTime(),
+      startTime: range[0].getTime(),
+      endTime: range[1].getTime(),
     })
     list.value = result.list
     total.value = result.total
@@ -59,7 +72,7 @@ function handleReset() {
   query.keyword = ''
   query.method = ''
   query.statusClass = ''
-  timeRange.value = null
+  timeRange.value = todayRange()
   handleSearch()
 }
 
@@ -164,6 +177,7 @@ async function openDetail(row: HttpRecordItem) {
               v-model="timeRange"
               class="page-toolbar__range"
               type="datetimerange"
+              :clearable="false"
               :range-separator="t('common.to')"
               :start-placeholder="t('system.httpRecord.startTime')"
               :end-placeholder="t('system.httpRecord.endTime')"

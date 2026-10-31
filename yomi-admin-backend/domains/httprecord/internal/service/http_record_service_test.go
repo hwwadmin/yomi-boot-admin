@@ -133,8 +133,12 @@ func TestRecordServicePageValidation(t *testing.T) {
 		name string
 		in   *input.PageRecordsInput
 	}{
-		{name: "非法方法", in: &input.PageRecordsInput{Method: "TRACE"}},
-		{name: "非法状态分段", in: &input.PageRecordsInput{StatusClass: "6xx"}},
+		{name: "非法方法", in: &input.PageRecordsInput{Method: "TRACE", StartTime: 1, EndTime: 2}},
+		{name: "非法状态分段", in: &input.PageRecordsInput{StatusClass: "6xx", StartTime: 1, EndTime: 2}},
+		// 列表查询必须带完整时间范围
+		{name: "缺少时间范围", in: &input.PageRecordsInput{}},
+		{name: "只有起始时间", in: &input.PageRecordsInput{StartTime: 1}},
+		{name: "只有结束时间", in: &input.PageRecordsInput{EndTime: 2}},
 		{name: "时间区间倒置", in: &input.PageRecordsInput{StartTime: 2, EndTime: 1}},
 	}
 
@@ -158,6 +162,8 @@ func TestRecordServicePageNormalizesFilter(t *testing.T) {
 	if _, err := svc.Page(context.Background(), &input.PageRecordsInput{
 		Method:      "get",
 		StatusClass: "4XX",
+		StartTime:   1,
+		EndTime:     2,
 	}); err != nil {
 		t.Fatalf("Page() error = %v", err)
 	}

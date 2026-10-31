@@ -711,13 +711,13 @@ paths:
           schema: { type: string, description: 雪花 ID }
         - name: startTime
           in: query
-          required: false
-          description: 起始时间（Unix 毫秒，含）
+          required: true
+          description: 起始时间（Unix 毫秒，含），必填且须与 endTime 同时给
           schema: { type: integer, format: int64 }
         - name: endTime
           in: query
-          required: false
-          description: 结束时间（Unix 毫秒，含）
+          required: true
+          description: 结束时间（Unix 毫秒，含），必填且须与 startTime 同时给
           schema: { type: integer, format: int64 }
       responses:
         '200':

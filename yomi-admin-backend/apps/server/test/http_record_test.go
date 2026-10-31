@@ -3,6 +3,7 @@ package test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"strings"
 	"testing"
@@ -27,11 +28,14 @@ func TestHttpRecordPageAndDetail(t *testing.T) {
 	adminToken := login(t, adminUsername, adminPassword)
 
 	keyword := url.QueryEscape("/api/system/http-record")
+	// 列表查询必须带完整时间范围；刚落库的记录就在当前时刻
+	rangeQuery := "&startTime=" + fmt.Sprint(time.Now().Add(-time.Hour).UnixMilli()) +
+		"&endTime=" + fmt.Sprint(time.Now().Add(time.Minute).UnixMilli())
 	deadline := time.Now().Add(5 * time.Second)
 	var record httpRecordItem
 
 	for {
-		body, ok := testclient.Get(API("/system/http-record?page=1&pageSize=10&keyword="+keyword), adminToken)
+		body, ok := testclient.Get(API("/system/http-record?page=1&pageSize=10&keyword="+keyword+rangeQuery), adminToken)
 		if !ok {
 			t.Fatalf("访问记录列表接口不可达: %s", body)
 		}
@@ -79,7 +83,9 @@ func TestHttpRecordPageRejectsInvalidStatusClass(t *testing.T) {
 	requireServer(t)
 	adminToken := login(t, adminUsername, adminPassword)
 
-	body, ok := testclient.Get(API("/system/http-record?statusClass=6xx"), adminToken)
+	rangeQuery := fmt.Sprintf("&startTime=%d&endTime=%d",
+		time.Now().Add(-time.Hour).UnixMilli(), time.Now().Add(time.Minute).UnixMilli())
+	body, ok := testclient.Get(API("/system/http-record?statusClass=6xx"+rangeQuery), adminToken)
 	if !ok {
 		t.Fatalf("访问记录列表接口不可达: %s", body)
 	}
