@@ -16,14 +16,6 @@
   gap: 12px;
 }
 
-.page-toolbar__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
 .page-toolbar .page-toolbar__input {
   width: 260px;
 }
@@ -126,9 +118,5 @@
     --el-date-editor-width: 100%;
     width: 100%;
     flex: 1 1 100%;
-  }
-
-  .page-toolbar__actions {
-    margin-left: 0;
   }
 }

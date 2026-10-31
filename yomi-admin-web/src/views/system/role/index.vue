@@ -262,6 +262,14 @@ async function saveGroups() {
         >
           {{ t('system.role.add') }}
         </el-button>
+        <el-button
+          v-permission="'system:rbac_cache:refresh'"
+          :icon="Refresh"
+          :loading="refreshingCache"
+          @click="handleRefreshCache"
+        >
+          {{ t('system.role.refreshCache') }}
+        </el-button>
       </template>
     </PageHeader>
 
@@ -292,16 +300,6 @@ async function saveGroups() {
             </el-button>
             <el-button :icon="Refresh" @click="handleReset">
               {{ t('common.action.reset') }}
-            </el-button>
-          </div>
-          <div class="page-toolbar__actions">
-            <el-button
-              v-permission="'system:rbac_cache:refresh'"
-              :icon="Refresh"
-              :loading="refreshingCache"
-              @click="handleRefreshCache"
-            >
-              {{ t('system.role.refreshCache') }}
             </el-button>
           </div>
         </div>
