@@ -81,7 +81,8 @@ token:
   allow_multi_login: true
 
 snowflake:
-  worker_id: 1
+  # 多实例部署时每实例必须唯一（0~1023），否则雪花 ID 跨实例重复
+  worker_id: ${YOMI_ADMIN_SNOWFLAKE_WORKER_ID:1}
 
 # 业务配置段
 biz:
