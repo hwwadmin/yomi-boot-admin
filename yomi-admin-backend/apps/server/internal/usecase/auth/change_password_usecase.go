@@ -8,9 +8,9 @@ import (
 
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	sharederr "github.com/hwwadmin/yomi-boot/component/core/shared/error"
 )
 
 // OperationChangePassword 是改密的幂等操作类型；幂等边界在 Handler 层（需同时包住审计写入）

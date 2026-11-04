@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/testclient"
-	"gitee.com/hq_project/yomi-boot/component/core/response"
+	"github.com/hwwadmin/yomi-boot/component/common/testclient"
+	"github.com/hwwadmin/yomi-boot/component/core/response"
 )
 
 type userSessionItem struct {

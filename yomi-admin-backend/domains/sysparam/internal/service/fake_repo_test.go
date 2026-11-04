@@ -7,7 +7,7 @@ import (
 	"yomi-admin-backend/domains/sysparam/pkg/shared/entity"
 	"yomi-admin-backend/domains/sysparam/pkg/shared/enums"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // fakeRepo 内存版参数仓储：按存储顺序维护，支持注入查询故障

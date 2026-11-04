@@ -15,8 +15,8 @@ import (
 	"yomi-admin-backend/domains/sysparam/pkg/shared/output"
 	"yomi-admin-backend/domains/sysparam/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/common/snowflake"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/common/snowflake"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 const (

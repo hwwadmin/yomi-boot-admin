@@ -7,8 +7,8 @@ import (
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 	"yomi-admin-backend/domains/user/service_contract"
 
-	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
-	frameworkidem "gitee.com/hq_project/yomi-boot/component/common/idempotency"
+	dbtx "github.com/hwwadmin/yomi-boot/component/common/db/tx"
+	frameworkidem "github.com/hwwadmin/yomi-boot/component/common/idempotency"
 )
 
 // operationCreateUser 是创建用户的幂等操作类型

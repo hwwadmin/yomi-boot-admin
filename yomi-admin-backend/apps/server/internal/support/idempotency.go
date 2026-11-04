@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
-	frameworkidem "gitee.com/hq_project/yomi-boot/component/common/idempotency"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	dbtx "github.com/hwwadmin/yomi-boot/component/common/db/tx"
+	frameworkidem "github.com/hwwadmin/yomi-boot/component/common/idempotency"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 const (

@@ -4,9 +4,9 @@ import (
 	"context"
 	httprecoreusecase "yomi-admin-backend/apps/server/internal/usecase/httprecord"
 
-	"gitee.com/hq_project/yomi-boot/component/common/httprecord"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
+	"github.com/hwwadmin/yomi-boot/component/common/httprecord"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/logger"
 )
 
 // recordSaver 保存一条访问记录；由 usecase/httprecord.SaveRecordUsecase 实现。

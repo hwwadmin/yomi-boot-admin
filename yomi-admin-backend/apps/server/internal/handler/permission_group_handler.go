@@ -6,8 +6,8 @@ import (
 	rbacusecase "yomi-admin-backend/apps/server/internal/usecase/rbac"
 	rbacenums "yomi-admin-backend/domains/rbac/pkg/shared/enums"
 
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	corehandler "github.com/hwwadmin/yomi-boot/component/core/handler"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 
 	"github.com/gin-gonic/gin"
 )

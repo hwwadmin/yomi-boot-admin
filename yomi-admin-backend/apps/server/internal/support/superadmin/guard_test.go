@@ -11,7 +11,7 @@ import (
 	rbacentity "yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	rbacenums "yomi-admin-backend/domains/rbac/pkg/shared/enums"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // fakeUserGetter 是用户查询测试桩

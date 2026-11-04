@@ -1,7 +1,7 @@
 // Package service_contract HTTP 访问记录域服务契约
 package service_contract
 
-import "gitee.com/hq_project/yomi-boot/component/core/errors"
+import "github.com/hwwadmin/yomi-boot/component/core/errors"
 
 var (
 	// ErrRecordNotFound 访问记录不存在

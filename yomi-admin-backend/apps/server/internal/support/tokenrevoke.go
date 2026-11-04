@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/logger"
 )
 
 // TokenRevokeAttempts 是撤销令牌的最大尝试次数

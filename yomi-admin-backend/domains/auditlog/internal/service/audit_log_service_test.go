@@ -10,7 +10,7 @@ import (
 	"yomi-admin-backend/domains/auditlog/pkg/shared/input"
 	"yomi-admin-backend/domains/auditlog/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // fakeRepo 记录仓储调用，供服务单测断言

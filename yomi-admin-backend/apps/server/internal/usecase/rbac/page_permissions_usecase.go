@@ -7,7 +7,7 @@ import (
 	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // PagePermissionsInput HTTP 权限分页入参

@@ -4,7 +4,7 @@ package main
 import (
 	"yomi-admin-backend/apps/server/internal/bootstrap"
 
-	"gitee.com/hq_project/yomi-boot/boot"
+	"github.com/hwwadmin/yomi-boot/boot"
 )
 
 func main() {

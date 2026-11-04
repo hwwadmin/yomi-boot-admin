@@ -10,7 +10,7 @@ import (
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 	usercontract "yomi-admin-backend/domains/user/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // fakeUpdateProfileUser 只实现编排会调用到的更新资料契约方法

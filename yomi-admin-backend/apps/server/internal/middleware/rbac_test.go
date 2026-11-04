@@ -9,8 +9,8 @@ import (
 
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/response"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/response"
 
 	"github.com/gin-gonic/gin"
 )

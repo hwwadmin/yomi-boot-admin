@@ -4,7 +4,7 @@ import (
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
 	rbacusecase "yomi-admin-backend/apps/server/internal/usecase/rbac"
 
-	"gitee.com/hq_project/yomi-boot/component/core/router"
+	"github.com/hwwadmin/yomi-boot/component/core/router"
 )
 
 // newRbacRegistrars 组装 RBAC 模块：角色、权限目录、权限组与鉴权缓存维护

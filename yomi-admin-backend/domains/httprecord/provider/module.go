@@ -6,7 +6,7 @@ import (
 	"yomi-admin-backend/domains/httprecord/internal/service"
 	"yomi-admin-backend/domains/httprecord/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/common/snowflake"
+	"github.com/hwwadmin/yomi-boot/component/common/snowflake"
 
 	"gorm.io/gorm"
 )

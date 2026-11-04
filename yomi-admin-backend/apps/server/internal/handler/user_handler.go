@@ -7,9 +7,9 @@ import (
 	rbacusecase "yomi-admin-backend/apps/server/internal/usecase/rbac"
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
-	"gitee.com/hq_project/yomi-boot/component/core/utils/ginutil"
+	corehandler "github.com/hwwadmin/yomi-boot/component/core/handler"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/utils/ginutil"
 
 	"github.com/gin-gonic/gin"
 )

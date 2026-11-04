@@ -9,7 +9,7 @@ import (
 
 	httprecoreusecase "yomi-admin-backend/apps/server/internal/usecase/httprecord"
 
-	"gitee.com/hq_project/yomi-boot/component/common/httprecord"
+	"github.com/hwwadmin/yomi-boot/component/common/httprecord"
 )
 
 // fakeRecordSaver 记录用例入参并返回预设错误

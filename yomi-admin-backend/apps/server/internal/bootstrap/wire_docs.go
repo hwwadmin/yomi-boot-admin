@@ -6,11 +6,11 @@ import (
 
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
 
-	"gitee.com/hq_project/yomi-boot/component/core/config"
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
-	"gitee.com/hq_project/yomi-boot/component/core/router"
-	"gitee.com/hq_project/yomi-boot/plugin"
-	routerplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/router"
+	"github.com/hwwadmin/yomi-boot/component/core/config"
+	"github.com/hwwadmin/yomi-boot/component/core/logger"
+	"github.com/hwwadmin/yomi-boot/component/core/router"
+	"github.com/hwwadmin/yomi-boot/plugin"
+	routerplugin "github.com/hwwadmin/yomi-boot/plugin/builtin/router"
 )
 
 // newDocsRegistrars 按 biz.docs.enabled 决定是否挂载 API 文档；生产默认关闭。

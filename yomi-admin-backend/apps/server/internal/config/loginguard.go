@@ -5,7 +5,7 @@ import (
 	"time"
 	"yomi-admin-backend/apps/server/internal/support/loginguard"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // LoginGuardConfig 是 biz.login_guard 配置；零值字段按默认值处理

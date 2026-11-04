@@ -9,7 +9,7 @@ import (
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 	"yomi-admin-backend/domains/user/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // PageUsersInput HTTP 分页入参

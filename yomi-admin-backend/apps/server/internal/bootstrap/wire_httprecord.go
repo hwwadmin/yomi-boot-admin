@@ -4,9 +4,9 @@ import (
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
 	httprecoreusecase "yomi-admin-backend/apps/server/internal/usecase/httprecord"
 
-	"gitee.com/hq_project/yomi-boot/component/core/router"
-	"gitee.com/hq_project/yomi-boot/plugin"
-	httprecordplugin "gitee.com/hq_project/yomi-boot/plugin/builtin/httprecord"
+	"github.com/hwwadmin/yomi-boot/component/core/router"
+	"github.com/hwwadmin/yomi-boot/plugin"
+	httprecordplugin "github.com/hwwadmin/yomi-boot/plugin/builtin/httprecord"
 )
 
 // registerHttpRecordConsumer 向 httprecord 插件注册消费适配器。

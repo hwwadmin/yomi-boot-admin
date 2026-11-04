@@ -6,8 +6,8 @@ import (
 	"time"
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 
-	"gitee.com/hq_project/yomi-boot/component/common/testclient"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/common/testclient"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // TestAuditResetPassword 覆盖重置他人密码的两段式审计

@@ -5,8 +5,8 @@ import (
 	"context"
 	"yomi-admin-backend/domains/auditlog/pkg/shared/enums"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	sharederr "github.com/hwwadmin/yomi-boot/component/core/shared/error"
 )
 
 // 审计事件编码，落库后是前端契约；新增事件在此追加编码。

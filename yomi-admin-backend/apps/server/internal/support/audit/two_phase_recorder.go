@@ -9,8 +9,8 @@ import (
 	auditloginput "yomi-admin-backend/domains/auditlog/pkg/shared/input"
 	auditlogcontract "yomi-admin-backend/domains/auditlog/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/common/snowflake"
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
+	"github.com/hwwadmin/yomi-boot/component/common/snowflake"
+	"github.com/hwwadmin/yomi-boot/component/core/logger"
 )
 
 const (

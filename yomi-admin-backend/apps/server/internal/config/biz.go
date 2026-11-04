@@ -4,7 +4,7 @@
 package config
 
 import (
-	"gitee.com/hq_project/yomi-boot/component/core/config"
+	"github.com/hwwadmin/yomi-boot/component/core/config"
 )
 
 // SectionKey 是业务配置段 YAML 根 key

@@ -8,8 +8,8 @@ import (
 	sysparaminput "yomi-admin-backend/domains/sysparam/pkg/shared/input"
 	sysparamcontract "yomi-admin-backend/domains/sysparam/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // fakeParamAdmin 只实现创建与删除，其余方法由嵌入接口兜底

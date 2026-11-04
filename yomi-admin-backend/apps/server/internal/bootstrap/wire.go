@@ -6,10 +6,10 @@ import (
 	superadminredislock "yomi-admin-backend/apps/server/internal/support/superadmin/redislock"
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
-	"gitee.com/hq_project/yomi-boot/component/core/router"
-	"gitee.com/hq_project/yomi-boot/plugin"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	corehandler "github.com/hwwadmin/yomi-boot/component/core/handler"
+	"github.com/hwwadmin/yomi-boot/component/core/router"
+	"github.com/hwwadmin/yomi-boot/plugin"
 )
 
 // Wire 根据插件插槽装配 HTTP 服务。

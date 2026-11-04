@@ -2,8 +2,6 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
-gitee.com/hq_project/yomi-boot v1.2.2-rc.1 h1:BfdqWf+/QqkShb6r4sb6YDAE34hRQByLYvKGIq+FadE=
-gitee.com/hq_project/yomi-boot v1.2.2-rc.1/go.mod h1:f3HxonJ67mjrDNlvP2hYY62IfVOECSJ+Ifvt/sgEdFc=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
@@ -192,6 +190,8 @@ github.com/hedon954/go-mysql-mocker v1.0.7 h1:I9bBDJILhp1xnx0B7HITohuwtnoQr6sEes
 github.com/hedon954/go-mysql-mocker v1.0.7/go.mod h1:05B4TUfFKFiRW5VC11VF+ys+pCav2km0Zk1Ht2kYR4A=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/hudl/fargo v1.3.0/go.mod h1:y3CKSmjA+wD2gak7sUSXTAoopbhU08POFhmITJgmKTg=
+github.com/hwwadmin/yomi-boot v1.0.1 h1:/ktL+S5o0ORXqk4lzWZ/2nX9DfFyL43dB9WXUvzHMCo=
+github.com/hwwadmin/yomi-boot v1.0.1/go.mod h1:6J/pJW9jo7njrXGWlmyYQzf2gIofhxny/1dfjojJyzQ=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=

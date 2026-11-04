@@ -4,7 +4,7 @@ package httprecord
 import (
 	"yomi-admin-backend/domains/httprecord/pkg/shared/entity"
 
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // RecordDetail 访问记录详情

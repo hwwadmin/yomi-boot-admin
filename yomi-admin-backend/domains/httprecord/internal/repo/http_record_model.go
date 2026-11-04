@@ -4,7 +4,7 @@ package repo
 import (
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/db/orm"
+	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
 )
 
 // tableName 是 HTTP 访问记录表名

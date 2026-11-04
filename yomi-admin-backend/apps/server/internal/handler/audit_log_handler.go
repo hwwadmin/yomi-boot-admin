@@ -6,10 +6,10 @@ import (
 	auditlogusecase "yomi-admin-backend/apps/server/internal/usecase/auditlog"
 	auditlogenums "yomi-admin-backend/domains/auditlog/pkg/shared/enums"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
-	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	corehandler "github.com/hwwadmin/yomi-boot/component/core/handler"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
+	sharederr "github.com/hwwadmin/yomi-boot/component/core/shared/error"
 
 	"github.com/gin-gonic/gin"
 )

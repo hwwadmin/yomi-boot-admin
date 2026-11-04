@@ -10,8 +10,8 @@ import (
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 	userenums "yomi-admin-backend/domains/user/pkg/shared/enums"
 
-	"gitee.com/hq_project/yomi-boot/component/common/testclient"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/common/testclient"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // auditLogItem 是审计日志列表项

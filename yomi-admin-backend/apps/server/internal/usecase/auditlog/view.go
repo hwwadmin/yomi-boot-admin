@@ -3,7 +3,7 @@ package auditlog
 import (
 	"yomi-admin-backend/domains/auditlog/pkg/shared/entity"
 
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // toLogItem 将审计日志实体转换为列表项；目标用户名不落库，由 fillTargetNames 回填

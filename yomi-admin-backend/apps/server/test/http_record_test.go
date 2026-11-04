@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/testclient"
+	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 // httpRecordItem 是访问记录列表项

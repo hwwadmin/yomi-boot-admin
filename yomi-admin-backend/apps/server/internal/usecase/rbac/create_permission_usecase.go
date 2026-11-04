@@ -8,8 +8,8 @@ import (
 	rbacinput "yomi-admin-backend/domains/rbac/pkg/shared/input"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
-	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
-	frameworkidem "gitee.com/hq_project/yomi-boot/component/common/idempotency"
+	dbtx "github.com/hwwadmin/yomi-boot/component/common/db/tx"
+	frameworkidem "github.com/hwwadmin/yomi-boot/component/common/idempotency"
 )
 
 // operationCreatePermission 是创建权限的幂等操作类型

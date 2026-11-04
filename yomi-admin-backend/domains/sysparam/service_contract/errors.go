@@ -1,7 +1,7 @@
 // Package service_contract 系统参数域服务契约（共享内核：零域间依赖，业务域可直接依赖）
 package service_contract
 
-import "gitee.com/hq_project/yomi-boot/component/core/errors"
+import "github.com/hwwadmin/yomi-boot/component/core/errors"
 
 var (
 	// ErrParamNotFound 参数不存在

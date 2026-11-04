@@ -12,8 +12,8 @@ import (
 	"yomi-admin-backend/domains/user/pkg/shared/input"
 	"yomi-admin-backend/domains/user/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/bc/passwd"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/bc/passwd"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 type fakeUserRepo struct {

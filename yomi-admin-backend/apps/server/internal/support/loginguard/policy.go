@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // DefaultKeyPrefix 是登录保护状态默认 Redis 键前缀

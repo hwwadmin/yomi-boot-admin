@@ -1,7 +1,7 @@
 // Package service_contract 用户域服务契约
 package service_contract
 
-import "gitee.com/hq_project/yomi-boot/component/core/errors"
+import "github.com/hwwadmin/yomi-boot/component/core/errors"
 
 var (
 	// ErrInvalidCredential 登录凭证不合法（不区分用户不存在与密码错误）

@@ -8,7 +8,7 @@ import (
 	sysparaminput "yomi-admin-backend/domains/sysparam/pkg/shared/input"
 	sysparamcontract "yomi-admin-backend/domains/sysparam/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // PageParamsInput HTTP 参数分页入参

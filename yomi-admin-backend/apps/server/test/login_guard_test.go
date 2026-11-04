@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/testclient"
-	"gitee.com/hq_project/yomi-boot/component/core/response"
+	"github.com/hwwadmin/yomi-boot/component/common/testclient"
+	"github.com/hwwadmin/yomi-boot/component/core/response"
 )
 
 // TestLoginGuardLocksRepeatedFailures 验证连续凭证失败后触发临时锁定。

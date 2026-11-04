@@ -6,8 +6,8 @@ import (
 	"yomi-admin-backend/domains/rbac/internal/repo_contract"
 	"yomi-admin-backend/domains/rbac/pkg/shared/entity"
 
-	"gitee.com/hq_project/yomi-boot/component/common/db/tx"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/common/db/tx"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 var _ repo_contract.AuthGraphReader = (*RbacRepo)(nil)

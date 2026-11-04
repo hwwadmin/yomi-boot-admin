@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/redisratelimit"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/common/redisratelimit"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // scriptCall 记录一次 Lua 脚本调用的入参

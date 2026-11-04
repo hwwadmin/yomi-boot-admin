@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/captcha"
-	"gitee.com/hq_project/yomi-boot/component/common/redisratelimit"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/common/captcha"
+	"github.com/hwwadmin/yomi-boot/component/common/redisratelimit"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // fakeCaptchaService 是验证码服务测试桩

@@ -12,9 +12,9 @@ import (
 	"yomi-admin-backend/domains/auditlog/pkg/shared/output"
 	"yomi-admin-backend/domains/auditlog/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/common/snowflake"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/utils/utf8util"
+	"github.com/hwwadmin/yomi-boot/component/common/snowflake"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/utils/utf8util"
 )
 
 // 字段写入上限（字节），超出按 UTF-8 边界截断

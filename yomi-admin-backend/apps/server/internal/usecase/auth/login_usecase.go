@@ -9,10 +9,10 @@ import (
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/bc/passwd"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/bc/passwd"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/logger"
 )
 
 const (

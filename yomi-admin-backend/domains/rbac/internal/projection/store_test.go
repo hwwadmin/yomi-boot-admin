@@ -9,10 +9,10 @@ import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	"yomi-admin-backend/domains/rbac/pkg/shared/enums"
 
-	"gitee.com/hq_project/yomi-boot/component/common/distlock"
-	"gitee.com/hq_project/yomi-boot/component/common/redis"
-	"gitee.com/hq_project/yomi-boot/component/common/redis/redistest"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/common/distlock"
+	"github.com/hwwadmin/yomi-boot/component/common/redis"
+	"github.com/hwwadmin/yomi-boot/component/common/redis/redistest"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 
 	redisv9 "github.com/redis/go-redis/v9"
 )

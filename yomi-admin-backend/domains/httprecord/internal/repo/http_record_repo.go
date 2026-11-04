@@ -9,9 +9,9 @@ import (
 	"yomi-admin-backend/domains/httprecord/pkg/shared/entity"
 	"yomi-admin-backend/domains/httprecord/pkg/shared/enums"
 
-	"gitee.com/hq_project/yomi-boot/component/common/db/orm"
-	"gitee.com/hq_project/yomi-boot/component/common/db/tx"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
+	"github.com/hwwadmin/yomi-boot/component/common/db/tx"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

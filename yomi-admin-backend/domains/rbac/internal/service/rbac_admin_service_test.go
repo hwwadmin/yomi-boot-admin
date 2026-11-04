@@ -10,7 +10,7 @@ import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/input"
 	"yomi-admin-backend/domains/rbac/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // seqIDGenerator 是测试用递增 ID 生成器

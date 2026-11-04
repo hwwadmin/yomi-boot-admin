@@ -5,7 +5,7 @@ import (
 	"context"
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
+	corehandler "github.com/hwwadmin/yomi-boot/component/core/handler"
 
 	"github.com/gin-gonic/gin"
 )

@@ -6,8 +6,8 @@ import (
 	"yomi-admin-backend/domains/sysparam/internal/service"
 	"yomi-admin-backend/domains/sysparam/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/common/snowflake"
-	sharedenums "gitee.com/hq_project/yomi-boot/component/core/shared/enums"
+	"github.com/hwwadmin/yomi-boot/component/common/snowflake"
+	sharedenums "github.com/hwwadmin/yomi-boot/component/core/shared/enums"
 
 	"gorm.io/gorm"
 )

@@ -7,9 +7,9 @@ import (
 	"yomi-admin-backend/domains/user/pkg/shared/entity"
 	"yomi-admin-backend/domains/user/pkg/shared/enums"
 
-	"gitee.com/hq_project/yomi-boot/component/common/db/dbtest"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	sharedenums "gitee.com/hq_project/yomi-boot/component/core/shared/enums"
+	"github.com/hwwadmin/yomi-boot/component/common/db/dbtest"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	sharedenums "github.com/hwwadmin/yomi-boot/component/core/shared/enums"
 )
 
 func TestUserRepoCRUD(t *testing.T) {

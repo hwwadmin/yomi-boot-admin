@@ -4,7 +4,7 @@ package auth
 import (
 	"context"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
 )
 
 // LogoutUsecase 登出编排：撤销当前 Token

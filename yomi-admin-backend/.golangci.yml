@@ -396,10 +396,11 @@ linters:
             - "!**/pkg/shared/**"
           allow:
             - $gostd
+            # 覆盖第三方与 yomi-boot（github.com/hwwadmin/yomi-boot）；
+            # 不再单列 yomi-boot：depguard 仅匹配排序后最大的前缀项，单列会遮蔽其他 github.com 依赖
             - github.com
             - golang.org
             - gorm.io
-            - gitee.com/hq_project/yomi-boot
             - yomi-admin-backend
 
         tests:
@@ -408,10 +409,10 @@ linters:
             - "$test"
           allow:
             - $gostd
+            # 含 yomi-boot，理由同上：单列 github.com/hwwadmin/yomi-boot 会遮蔽其他 github.com 依赖
             - github.com
             - golang.org
             - gorm.io
-            - gitee.com/hq_project/yomi-boot
             - yomi-admin-backend
 
 formatters:

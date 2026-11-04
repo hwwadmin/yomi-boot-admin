@@ -4,7 +4,7 @@ package repo
 import (
 	"yomi-admin-backend/domains/user/pkg/shared/entity"
 
-	"gitee.com/hq_project/yomi-boot/component/core/utils/ptrutil"
+	"github.com/hwwadmin/yomi-boot/component/core/utils/ptrutil"
 )
 
 // toUserEntity 将持久化模型转换为领域实体

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/captcha"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/common/captcha"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // defaultCaptchaKeyPrefix 是登录验证码默认 Redis 键前缀

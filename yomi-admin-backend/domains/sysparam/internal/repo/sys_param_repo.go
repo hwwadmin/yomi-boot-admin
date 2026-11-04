@@ -8,12 +8,12 @@ import (
 	"yomi-admin-backend/domains/sysparam/pkg/shared/entity"
 	"yomi-admin-backend/domains/sysparam/pkg/shared/enums"
 
-	yomidb "gitee.com/hq_project/yomi-boot/component/common/db"
-	"gitee.com/hq_project/yomi-boot/component/common/db/orm"
-	"gitee.com/hq_project/yomi-boot/component/common/db/tx"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	sharedenums "gitee.com/hq_project/yomi-boot/component/core/shared/enums"
-	"gitee.com/hq_project/yomi-boot/component/core/utils/ptrutil"
+	yomidb "github.com/hwwadmin/yomi-boot/component/common/db"
+	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
+	"github.com/hwwadmin/yomi-boot/component/common/db/tx"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	sharedenums "github.com/hwwadmin/yomi-boot/component/core/shared/enums"
+	"github.com/hwwadmin/yomi-boot/component/core/utils/ptrutil"
 
 	"gorm.io/gorm"
 )

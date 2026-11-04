@@ -1,7 +1,7 @@
 package support
 
 import (
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // NonNilIDs 将 nil 切片规范化为空切片。

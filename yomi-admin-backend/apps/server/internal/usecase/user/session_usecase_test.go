@@ -7,11 +7,11 @@ import (
 	"yomi-admin-backend/apps/server/internal/support"
 	"yomi-admin-backend/apps/server/internal/support/superadmin"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/bc/hash"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
-	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/bc/hash"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
+	sharederr "github.com/hwwadmin/yomi-boot/component/core/shared/error"
 )
 
 // fakeSessionTokens 是会话令牌服务测试桩

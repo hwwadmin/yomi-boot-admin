@@ -1,7 +1,7 @@
 // Package superadmin 供 usecase 复用的超管安全策略：超管角色的授予、回收，以及超管账号的停用、删除与最后一名启用超管保护。
 package superadmin
 
-import "gitee.com/hq_project/yomi-boot/component/core/errors"
+import "github.com/hwwadmin/yomi-boot/component/core/errors"
 
 var (
 	// ErrGrantSuperDenied 只有超管可以变更超管角色

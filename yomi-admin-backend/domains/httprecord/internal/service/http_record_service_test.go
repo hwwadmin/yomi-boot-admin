@@ -11,7 +11,7 @@ import (
 	"yomi-admin-backend/domains/httprecord/pkg/shared/input"
 	"yomi-admin-backend/domains/httprecord/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // fakeRecordRepo 是内存访问记录仓储

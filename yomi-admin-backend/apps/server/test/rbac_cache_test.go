@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/testclient"
+	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 // cacheRefreshResult 是刷新鉴权缓存的返回结构

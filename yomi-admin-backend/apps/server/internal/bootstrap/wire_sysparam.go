@@ -4,7 +4,7 @@ import (
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
 	sysparamusecase "yomi-admin-backend/apps/server/internal/usecase/sysparam"
 
-	"gitee.com/hq_project/yomi-boot/component/core/router"
+	"github.com/hwwadmin/yomi-boot/component/core/router"
 )
 
 // newSysParamRegistrar 组装系统参数模块

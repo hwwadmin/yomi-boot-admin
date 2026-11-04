@@ -5,7 +5,7 @@ import (
 	"context"
 	httprecoreusecase "yomi-admin-backend/apps/server/internal/usecase/httprecord"
 
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 
 	"github.com/gin-gonic/gin"
 )

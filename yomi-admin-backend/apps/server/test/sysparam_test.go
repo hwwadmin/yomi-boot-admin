@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/hq_project/yomi-boot/component/common/testclient"
+	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 // paramItem 是参数列表项

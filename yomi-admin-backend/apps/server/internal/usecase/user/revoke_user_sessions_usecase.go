@@ -4,10 +4,10 @@ import (
 	"context"
 	"yomi-admin-backend/apps/server/internal/support"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
-	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/logger"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
+	sharederr "github.com/hwwadmin/yomi-boot/component/core/shared/error"
 )
 
 // RevokeUserSessionsInput HTTP 强制下线用户全部会话入参

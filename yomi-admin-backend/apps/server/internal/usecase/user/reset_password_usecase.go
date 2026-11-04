@@ -7,9 +7,9 @@ import (
 
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // ResetUserPasswordInput HTTP 重置他人密码入参

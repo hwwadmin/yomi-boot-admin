@@ -4,7 +4,7 @@ import (
 	"testing"
 	"yomi-admin-backend/domains/auditlog/pkg/shared/enums"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // TestOutcomeFromError 校验业务结果映射

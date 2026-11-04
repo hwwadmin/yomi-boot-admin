@@ -4,7 +4,7 @@ import (
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 
-	"gitee.com/hq_project/yomi-boot/component/core/router"
+	"github.com/hwwadmin/yomi-boot/component/core/router"
 )
 
 // newAuthRegistrar 组装认证模块：验证码、登录、个人资料与改密

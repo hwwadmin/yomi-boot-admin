@@ -6,8 +6,8 @@ import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // PermissionGroupDetailOutput 权限组详情（含已绑权限 ID）

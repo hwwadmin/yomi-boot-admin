@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	frameworkidem "gitee.com/hq_project/yomi-boot/component/common/idempotency"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	frameworkidem "github.com/hwwadmin/yomi-boot/component/common/idempotency"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // fakeRunner 在当前协程执行事务闭包并记录调用次数

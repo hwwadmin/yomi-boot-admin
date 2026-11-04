@@ -7,7 +7,7 @@ import (
 	domaininput "yomi-admin-backend/domains/httprecord/pkg/shared/input"
 	domaincontract "yomi-admin-backend/domains/httprecord/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // PageRecordsInput 访问记录分页入参

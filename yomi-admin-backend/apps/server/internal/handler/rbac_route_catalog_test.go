@@ -12,9 +12,9 @@ import (
 	"testing"
 	svcconfig "yomi-admin-backend/apps/server/internal/config"
 
-	"gitee.com/hq_project/yomi-boot/component/core/appctx"
-	coreconfig "gitee.com/hq_project/yomi-boot/component/core/config"
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
+	"github.com/hwwadmin/yomi-boot/component/core/appctx"
+	coreconfig "github.com/hwwadmin/yomi-boot/component/core/config"
+	corehandler "github.com/hwwadmin/yomi-boot/component/core/handler"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"

@@ -8,8 +8,8 @@ import (
 	sysparaminput "yomi-admin-backend/domains/sysparam/pkg/shared/input"
 	sysparamcontract "yomi-admin-backend/domains/sysparam/service_contract"
 
-	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
-	frameworkidem "gitee.com/hq_project/yomi-boot/component/common/idempotency"
+	dbtx "github.com/hwwadmin/yomi-boot/component/common/db/tx"
+	frameworkidem "github.com/hwwadmin/yomi-boot/component/common/idempotency"
 )
 
 // operationCreateParam 是创建系统参数的幂等操作类型

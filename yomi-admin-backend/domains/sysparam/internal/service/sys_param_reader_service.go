@@ -14,7 +14,7 @@ import (
 	"yomi-admin-backend/domains/sysparam/pkg/shared/enums"
 	"yomi-admin-backend/domains/sysparam/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
+	"github.com/hwwadmin/yomi-boot/component/core/logger"
 )
 
 const (

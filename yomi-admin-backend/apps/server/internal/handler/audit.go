@@ -4,8 +4,8 @@ import (
 	"context"
 	"yomi-admin-backend/apps/server/internal/support/audit"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // auditOperator 从令牌会话读取操作者快照；取不到时返回零值

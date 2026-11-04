@@ -4,7 +4,7 @@ package repo
 import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/entity"
 
-	"gitee.com/hq_project/yomi-boot/component/core/utils/ptrutil"
+	"github.com/hwwadmin/yomi-boot/component/core/utils/ptrutil"
 )
 
 // toRoleEntity 将角色持久化模型转换为领域实体

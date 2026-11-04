@@ -7,7 +7,7 @@ import (
 	"yomi-admin-backend/domains/sysparam/pkg/shared/input"
 	"yomi-admin-backend/domains/sysparam/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 func newAdminService(t *testing.T) (*SysParamAdminService, *fakeRepo) {

@@ -7,7 +7,7 @@ import (
 	"yomi-admin-backend/domains/httprecord/internal/repo_contract"
 	"yomi-admin-backend/domains/httprecord/pkg/shared/entity"
 
-	"gitee.com/hq_project/yomi-boot/component/common/db/dbtest"
+	"github.com/hwwadmin/yomi-boot/component/common/db/dbtest"
 )
 
 func TestRecordRepoCreateAndPage(t *testing.T) {

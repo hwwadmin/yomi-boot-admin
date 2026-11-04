@@ -4,7 +4,7 @@ import (
 	apphandler "yomi-admin-backend/apps/server/internal/handler"
 	auditlogusecase "yomi-admin-backend/apps/server/internal/usecase/auditlog"
 
-	"gitee.com/hq_project/yomi-boot/component/core/router"
+	"github.com/hwwadmin/yomi-boot/component/core/router"
 )
 
 // newAuditLogRegistrar 组装操作审计日志查询模块

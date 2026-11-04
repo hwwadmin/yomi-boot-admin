@@ -5,7 +5,7 @@ import (
 
 	sysparamcontract "yomi-admin-backend/domains/sysparam/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // GetParamUsecase 参数详情编排

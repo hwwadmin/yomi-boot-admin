@@ -6,7 +6,7 @@
 
 | 目录 | 说明 |
 |---|---|
-| `yomi-admin-backend/` | 后端，Go + [yomi-boot](https://gitee.com/hq_project/yomi-boot) |
+| `yomi-admin-backend/` | 后端，Go + [yomi-boot](https://github.com/hwwadmin/yomi-boot) |
 | `yomi-admin-web/` | 前端，Vue 3 + TypeScript |
 
 

@@ -6,8 +6,8 @@ import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // RoleDetailOutput 角色详情：已绑权限组、组内权限的去重聚合，以及实际生效的权限子集

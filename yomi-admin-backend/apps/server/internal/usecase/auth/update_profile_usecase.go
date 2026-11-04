@@ -8,8 +8,8 @@ import (
 
 	userinput "yomi-admin-backend/domains/user/pkg/shared/input"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	sharederr "github.com/hwwadmin/yomi-boot/component/core/shared/error"
 )
 
 // UpdateProfileInput HTTP 更新自身资料入参

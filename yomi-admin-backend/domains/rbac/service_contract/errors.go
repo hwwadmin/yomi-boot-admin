@@ -1,7 +1,7 @@
 // Package service_contract RBAC 域服务契约
 package service_contract
 
-import "gitee.com/hq_project/yomi-boot/component/core/errors"
+import "github.com/hwwadmin/yomi-boot/component/core/errors"
 
 var (
 	// ErrPermissionDenied 没有访问权限

@@ -3,8 +3,8 @@ package user
 import (
 	"context"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/bc/hash"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/bc/hash"
 )
 
 // SessionTokens 是会话管理需要的令牌能力：基础库的 TokenService 加上按用户列举。

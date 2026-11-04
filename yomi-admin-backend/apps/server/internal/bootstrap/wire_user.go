@@ -6,7 +6,7 @@ import (
 	rbacusecase "yomi-admin-backend/apps/server/internal/usecase/rbac"
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 
-	"gitee.com/hq_project/yomi-boot/component/core/router"
+	"github.com/hwwadmin/yomi-boot/component/core/router"
 )
 
 // newUserRegistrar 组装系统用户模块：用户 CRUD、重置密码与角色绑定

@@ -6,7 +6,7 @@ import (
 	"time"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 
-	"gitee.com/hq_project/yomi-boot/component/common/testclient"
+	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 // TestAuditChangePassword 覆盖修改密码失败与成功的两段式审计

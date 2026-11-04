@@ -10,8 +10,8 @@ import (
 	domaincontract "yomi-admin-backend/domains/auditlog/service_contract"
 	usercontract "yomi-admin-backend/domains/user/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/logger"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
+	"github.com/hwwadmin/yomi-boot/component/core/logger"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
 // PageLogsInput 审计日志分页入参

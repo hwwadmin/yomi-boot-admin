@@ -9,7 +9,7 @@ import (
 	domaininput "yomi-admin-backend/domains/httprecord/pkg/shared/input"
 	domaincontract "yomi-admin-backend/domains/httprecord/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // fakeRecordService 只实现 Save，其余契约方法由嵌入接口兜底

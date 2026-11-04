@@ -7,7 +7,7 @@ import (
 	domaininput "yomi-admin-backend/domains/httprecord/pkg/shared/input"
 	domaincontract "yomi-admin-backend/domains/httprecord/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // ErrInvalidRecord 表示记录内容本身不合法；消费适配器应丢弃消息而不是重投。

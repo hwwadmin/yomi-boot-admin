@@ -6,9 +6,9 @@ import (
 	"strings"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	corehandler "github.com/hwwadmin/yomi-boot/component/core/handler"
 
 	"github.com/gin-gonic/gin"
 )

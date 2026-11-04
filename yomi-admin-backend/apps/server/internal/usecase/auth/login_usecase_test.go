@@ -14,8 +14,8 @@ import (
 	useroutput "yomi-admin-backend/domains/user/pkg/shared/output"
 	usercontract "yomi-admin-backend/domains/user/service_contract"
 
-	"gitee.com/hq_project/yomi-boot/component/common/token"
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/common/token"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // fakeUserService 是用户领域服务测试桩

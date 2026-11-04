@@ -3,7 +3,7 @@ package config
 import (
 	"strings"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
 
 // publicRouteMethods 是公开路由允许声明的 HTTP 方法（本服务对外只用 GET / POST）

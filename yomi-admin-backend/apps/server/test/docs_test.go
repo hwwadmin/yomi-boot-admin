@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitee.com/hq_project/yomi-boot/component/common/testclient"
+	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 func TestApiDocSchema(t *testing.T) {

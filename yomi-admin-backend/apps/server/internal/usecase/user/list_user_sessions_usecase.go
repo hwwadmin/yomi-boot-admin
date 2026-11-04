@@ -3,9 +3,9 @@ package user
 import (
 	"context"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	"gitee.com/hq_project/yomi-boot/component/core/shared/dto"
-	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
+	sharederr "github.com/hwwadmin/yomi-boot/component/core/shared/error"
 )
 
 // UserSessionItem 是用户在线会话列表项

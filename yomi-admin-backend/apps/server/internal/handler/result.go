@@ -3,9 +3,9 @@ package handler
 import (
 	"context"
 
-	"gitee.com/hq_project/yomi-boot/component/core/errors"
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
-	sharederr "gitee.com/hq_project/yomi-boot/component/core/shared/error"
+	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	corehandler "github.com/hwwadmin/yomi-boot/component/core/handler"
+	sharederr "github.com/hwwadmin/yomi-boot/component/core/shared/error"
 
 	"github.com/gin-gonic/gin"
 )

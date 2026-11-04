@@ -7,10 +7,10 @@ import (
 	"yomi-admin-backend/apps/server/internal/support/audit"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
 
-	dbtx "gitee.com/hq_project/yomi-boot/component/common/db/tx"
-	frameworkidem "gitee.com/hq_project/yomi-boot/component/common/idempotency"
-	corehandler "gitee.com/hq_project/yomi-boot/component/core/handler"
-	"gitee.com/hq_project/yomi-boot/component/core/utils/ginutil"
+	dbtx "github.com/hwwadmin/yomi-boot/component/common/db/tx"
+	frameworkidem "github.com/hwwadmin/yomi-boot/component/common/idempotency"
+	corehandler "github.com/hwwadmin/yomi-boot/component/core/handler"
+	"github.com/hwwadmin/yomi-boot/component/core/utils/ginutil"
 
 	"github.com/gin-gonic/gin"
 )

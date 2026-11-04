@@ -1,6 +1,6 @@
 # yomi-admin-backend
 
-Yomi 管理后台后端，Go 1.26 + [yomi-boot](https://gitee.com/hq_project/yomi-boot)。
+Yomi 管理后台后端，Go 1.26 + [yomi-boot](https://github.com/hwwadmin/yomi-boot)。
 前端在 `../yomi-admin-web`。
 
 分层约定见同目录的 [清洁架构与DDD-light方法论.md](./清洁架构与DDD-light方法论.md)，这里只写怎么用、怎么跑。
@@ -141,5 +141,5 @@ make cross-build  # 交叉编译
 ## 依赖
 
 - Go 1.26。
-- yomi-boot v1.2.2-rc.1。
+- yomi-boot v1.0.1（github.com/hwwadmin/yomi-boot）。
 - `go.work` 包含 `apps/server` 和五个 domain module。
