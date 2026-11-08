@@ -3,7 +3,8 @@
 Yomi 管理后台后端，Go 1.26 + [yomi-boot](https://github.com/hwwadmin/yomi-boot)。
 前端在 `../yomi-admin-web`。
 
-分层约定见同目录的 [清洁架构与DDD-light方法论.md](./清洁架构与DDD-light方法论.md)，这里只写怎么用、怎么跑。
+分层与业务边界的方法论见 [clean-architecture-ddd-light](../_prompts/skills/clean-architecture-ddd-light/SKILL.md)（不绑定语言与项目类型）；
+本工程的具体目录骨架与新增模块步骤见同目录的 [新增业务模块流程.md](./新增业务模块流程.md)，这里只写怎么用、怎么跑。
 
 
 ## 本地启动
