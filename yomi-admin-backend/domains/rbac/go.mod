@@ -3,7 +3,7 @@ module yomi-admin-backend/domains/rbac
 go 1.26.0
 
 require (
-	github.com/hwwadmin/yomi-boot v1.0.2-rc.1
+	github.com/hwwadmin/yomi-boot v1.0.2-rc.2
 	github.com/redis/go-redis/v9 v9.20.0
 	gorm.io/gorm v1.31.1
 	yomi-admin-backend/persist v0.0.0

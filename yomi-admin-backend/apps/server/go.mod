@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/getkin/kin-openapi v0.152.0
 	github.com/gin-gonic/gin v1.12.0
-	github.com/hwwadmin/yomi-boot v1.0.2-rc.1
+	github.com/hwwadmin/yomi-boot v1.0.2-rc.2
 	github.com/spf13/viper v1.20.1
 	yomi-admin-backend/domains/auditlog v0.0.0
 	yomi-admin-backend/domains/httprecord v0.0.0

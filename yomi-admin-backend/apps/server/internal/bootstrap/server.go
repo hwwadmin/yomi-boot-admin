@@ -87,7 +87,7 @@ func load(slot *plugin.PluginSlot) container {
 			panic("yomi-admin: 需要启用 db、redis、token、snowflake 插件")
 		}
 
-		// 业务幂等守卫：sys_biz 为真源、Redis 结果缓存为快路径、分布式锁串行同键请求
+		// 业务幂等守卫：t_sys_biz 为真源、Redis 结果缓存为快路径、分布式锁串行同键请求
 		idemGuard := frameworkidem.NewGuard(
 			frameworkidem.NewRepository(db.DB()),
 			snowflakePlugin.Generator(),

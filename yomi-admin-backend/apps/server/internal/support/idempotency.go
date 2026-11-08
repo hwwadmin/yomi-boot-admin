@@ -19,7 +19,7 @@ const (
 	//
 	// 同一次提交意图（含超时重试）复用同一个值；缺省时不做幂等保护。
 	IdempotencyKeyHeader = "X-Idempotency-Key"
-	// maxIdempotencyKeyBytes 与 sys_biz.biz_id 列宽（VARCHAR(100)）一致
+	// maxIdempotencyKeyBytes 与 t_sys_biz.biz_id 列宽（VARCHAR(100)）一致
 	maxIdempotencyKeyBytes = 100
 )
 
@@ -45,7 +45,7 @@ func IdempotencyKey(raw, operation string) (frameworkidem.Key, error) {
 }
 
 // RunIdempotent 执行幂等保护：提供了幂等键时走框架 idempotency.Execute，
-// 未提供时退化为一次性事务执行（不写 sys_biz，保持原有语义）。
+// 未提供时退化为一次性事务执行（不写 t_sys_biz，保持原有语义）。
 //
 // fn 内的所有写操作必须使用传入的 txCtx，才能与幂等抢占记录同事务提交。
 func RunIdempotent[T any](

@@ -27,6 +27,6 @@ var ErrPasswordChangeTokenRevokeFailed = errors.NewBiz("ADMIN_PASSWORD_CHANGE_TO
 var ErrSessionRevokeFailed = errors.NewBiz("ADMIN_SESSION_REVOKE_FAILED",
 	"会话未撤销成功，请重试")
 
-// ErrIdempotencyKeyInvalid 幂等键超过 sys_biz.biz_id 列宽，无法作为幂等记录保存。
+// ErrIdempotencyKeyInvalid 幂等键超过 t_sys_biz.biz_id 列宽，无法作为幂等记录保存。
 var ErrIdempotencyKeyInvalid = errors.NewBiz("ADMIN_IDEMPOTENCY_KEY_INVALID",
 	"幂等键不合法，请刷新页面后重试")

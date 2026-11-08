@@ -1,4 +1,4 @@
--- 业务幂等表（sys_biz）
+-- 业务幂等表（t_sys_biz）
 -- 表名与 yomi-boot 的 idempotency 组件保持一致；权威 DDL 由本仓维护，框架升级改表结构时同步修改这里。
 SET NAMES utf8mb4;
 USE yomi_admin;
@@ -6,7 +6,7 @@ USE yomi_admin;
 -- 后端统一使用 UTC，默认时间也按 UTC 写入
 SET time_zone = '+00:00';
 
-CREATE TABLE IF NOT EXISTS `sys_biz` (
+CREATE TABLE IF NOT EXISTS `t_sys_biz` (
     `id`                  BIGINT       NOT NULL COMMENT '主键（雪花ID）',
     `biz_id`              VARCHAR(100) NOT NULL COMMENT '业务全局ID（一次 Saga/业务意图）',
     `biz_sub_id`          VARCHAR(100) NOT NULL COMMENT '业务子ID（单次领域写调用）',
