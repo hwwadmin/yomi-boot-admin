@@ -10,7 +10,6 @@ import (
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 	userenums "yomi-admin-backend/domains/user/pkg/shared/enums"
 
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
@@ -69,7 +68,7 @@ func findAuditLogs(t *testing.T, token string, filter auditLogFilter) []auditLog
 	deadline := time.Now().Add(auditQueryTimeout)
 	var last []auditLogItem
 	for {
-		body, ok := testclient.Get(endpoint, token)
+		body, ok := Get(endpoint, token)
 		if !ok {
 			t.Fatalf("审计日志接口不可达: %s", body)
 		}
@@ -129,7 +128,7 @@ func createAuditUser(t *testing.T, adminToken string, suffix int64) (int64, stri
 
 	username := fmt.Sprintf("audit_user_%d", suffix)
 	password := "auditpass1"
-	body, ok := testclient.Post(API("/system/user/create"), adminToken, userusecase.CreateUserInput{
+	body, ok := Post(API("/system/user/create"), adminToken, userusecase.CreateUserInput{
 		Username: username,
 		Password: password,
 		Nickname: "审计测试用户",
@@ -146,7 +145,7 @@ func createAuditUser(t *testing.T, adminToken string, suffix int64) (int64, stri
 		t.Fatalf("解析用户 ID 失败: %v", err)
 	}
 	t.Cleanup(func() {
-		_, _ = testclient.Post(API("/system/user/delete"), adminToken, userusecase.DeleteUserInput{
+		_, _ = Post(API("/system/user/delete"), adminToken, userusecase.DeleteUserInput{
 			ID: dto.JSONInt64(userID),
 		})
 	})

@@ -26,7 +26,7 @@ func toRecordItem(record *entity.Record) RecordItem {
 		ID:             dto.JSONInt64(record.ID),
 		ServiceType:    record.ServiceType,
 		ServiceVersion: record.ServiceVersion,
-		TraceID:        record.TraceID,
+		TraceParent:    record.TraceParent,
 		RequestAt:      record.RequestAt,
 		DurationMS:     record.DurationMS,
 		Method:         record.Method,

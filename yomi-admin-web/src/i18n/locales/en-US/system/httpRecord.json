@@ -1,6 +1,6 @@
 {
   "subtitle": "Inspect API access records and results",
-  "searchPlaceholder": "Path / TraceID / client IP",
+  "searchPlaceholder": "Path / Traceparent / client IP",
   "allMethods": "All methods",
   "allStatus": "All statuses",
   "statusClass": {
@@ -36,7 +36,7 @@
     "userId": "User ID",
     "anonymous": "Anonymous",
     "createdAt": "Recorded at",
-    "traceId": "TraceID",
+    "traceParent": "Traceparent",
     "path": "Path",
     "route": "Route template",
     "query": "Query",

@@ -1307,12 +1307,12 @@ components:
     RecordItem:
       type: object
       description: HTTP 访问记录列表项
-      required: [id, serviceType, serviceVersion, traceId, requestAt, durationMs, method, path, route, clientIp, userId, clientType, statusCode, bizCode, bizMsg]
+      required: [id, serviceType, serviceVersion, traceParent, requestAt, durationMs, method, path, route, clientIp, userId, clientType, statusCode, bizCode, bizMsg]
       properties:
         id: { type: string, description: 雪花 ID }
         serviceType: { type: string, description: 服务标识 }
         serviceVersion: { type: string, description: 服务版本 }
-        traceId: { type: string, description: 链路追踪 ID }
+        traceParent: { type: string, description: 本跳 W3C traceparent }
         requestAt: { type: integer, format: int64, description: 请求时间（Unix 毫秒） }
         durationMs: { type: integer, format: int64, description: 耗时（毫秒） }
         method: { type: string, description: 请求方法 }

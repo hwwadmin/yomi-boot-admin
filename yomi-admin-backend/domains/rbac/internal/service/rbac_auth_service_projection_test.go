@@ -108,12 +108,13 @@ func (g *parityIDs) NextID() (int64, error) {
 	return g.next, nil
 }
 
-// redisClient 连接指定地址的 Redis
-func redisClient(t *testing.T, addr string) *redisv9.Client {
+// redisClient 连接指定库号的 Redis。
+func redisClient(t *testing.T, addr string, db int) *redisv9.Client {
 	t.Helper()
-	// 关闭重试并缩短拨号超时：Redis 停机场景应快速失败，避免拖慢用例
+	// 关闭重试并缩短拨号超时：Redis 故障场景应快速失败，避免拖慢用例。
 	return redisv9.NewClient(&redisv9.Options{
 		Addr:        addr,
+		DB:          db,
 		MaxRetries:  -1,
 		DialTimeout: 200 * time.Millisecond,
 	})
@@ -174,8 +175,8 @@ func TestAuthServiceFallsBackToSQLWhenRedisUnavailable(t *testing.T) {
 	ctx := context.Background()
 	repo := seedParityRepo()
 
-	addr, stopRedis := redistest.NewServer(t)
-	client := redisClient(t, addr)
+	addr, db, _ := redistest.NewServer(t)
+	client := redisClient(t, addr, db)
 	t.Cleanup(func() { _ = client.Close() })
 
 	factory, err := distlock.NewFactory(client)
@@ -196,7 +197,8 @@ func TestAuthServiceFallsBackToSQLWhenRedisUnavailable(t *testing.T) {
 		t.Fatalf("Redis 正常时应放行: allowed=%v err=%v", allowed, err)
 	}
 
-	stopRedis()
+	// redistest 不再提供可关闭的进程内 Redis，关闭客户端模拟不可用。
+	_ = client.Close()
 
 	allowed, err := svc.CanAccessAPI(ctx, 2, "GET", "/api/system/user")
 	if err != nil || !allowed {

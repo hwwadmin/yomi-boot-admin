@@ -6,7 +6,6 @@ import (
 	"time"
 	userusecase "yomi-admin-backend/apps/server/internal/usecase/user"
 
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 	"github.com/hwwadmin/yomi-boot/component/core/shared/dto"
 )
 
@@ -18,7 +17,7 @@ func TestAuditResetPassword(t *testing.T) {
 	suffix := time.Now().UnixNano()
 
 	userID, targetUsername, _ := createAuditUser(t, adminToken, suffix)
-	body, _ := testclient.Post(API("/system/user/reset-password"), adminToken, userusecase.ResetUserPasswordInput{
+	body, _ := Post(API("/system/user/reset-password"), adminToken, userusecase.ResetUserPasswordInput{
 		ID:          dto.JSONInt64(userID),
 		NewPassword: "auditpass3",
 	})

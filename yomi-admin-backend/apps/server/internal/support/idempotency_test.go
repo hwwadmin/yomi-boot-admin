@@ -44,6 +44,13 @@ func TestIdempotencyKey(t *testing.T) {
 		}
 	})
 
+	t.Run("含冒号的键拒绝", func(t *testing.T) {
+		_, err := IdempotencyKey("biz:1", "CREATE_ROLE")
+		if !errors.Is(err, ErrIdempotencyKeyInvalid) {
+			t.Fatalf("含冒号的幂等键应返回 ErrIdempotencyKeyInvalid, got %v", err)
+		}
+	})
+
 	t.Run("超长键拒绝", func(t *testing.T) {
 		long := make([]byte, maxIdempotencyKeyBytes+1)
 		for i := range long {

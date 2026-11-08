@@ -34,16 +34,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// envPrefix 是配置环境变量前缀
-const envPrefix = "YOMI_ADMIN"
-
-// Options 返回启动选项：中间件链与业务配置段统一在组合根登记
+// Options 返回启动选项：中间件链与业务配置段统一在组合根登记。
 func Options() boot.Options {
 	var pluginOpts plugin.PluginOptions
 	pluginOpts.AddConfigSection(svcconfig.ConfigSection())
 
 	return boot.Options{
-		EnvPrefix:   envPrefix,
 		Middlewares: Middlewares,
 		Plugin:      pluginOpts,
 	}

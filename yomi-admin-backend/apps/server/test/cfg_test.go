@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 	"github.com/hwwadmin/yomi-boot/component/core/response"
 )
 
@@ -30,7 +29,7 @@ func API(path string) string {
 // requireServer 服务不可达时跳过集成测试
 func requireServer(t *testing.T) {
 	t.Helper()
-	if _, ok := testclient.Get(API("/v1/health"), ""); !ok {
+	if _, ok := Get(API("/v1/health"), ""); !ok {
 		t.Skip("服务未启动或不可达，跳过集成测试")
 	}
 }
@@ -46,7 +45,7 @@ var captchaFailureCodes = map[string]struct{}{
 func login(t *testing.T, username, password string) string {
 	t.Helper()
 
-	body, ok := testclient.Post(API("/auth/login"), "", map[string]string{
+	body, ok := Post(API("/auth/login"), "", map[string]string{
 		"username": username,
 		"password": password,
 	})

@@ -4,7 +4,7 @@ package repo
 import (
 	"yomi-admin-backend/domains/sysparam/pkg/shared/enums"
 
-	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
+	"yomi-admin-backend/persist/orm"
 )
 
 // tableName 是系统参数表名

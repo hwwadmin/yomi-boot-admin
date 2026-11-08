@@ -3,6 +3,7 @@
 # 用法: source script/dev/workspace-modules.sh
 
 WORKSPACE_MODULES=(
+  "persist"
   "apps/server"
   "domains/auditlog"
   "domains/httprecord"

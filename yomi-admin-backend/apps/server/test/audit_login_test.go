@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
-
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 // TestAuditLogin 覆盖登录失败与成功的两段式审计
@@ -19,7 +17,7 @@ func TestAuditLogin(t *testing.T) {
 
 	// 登录失败：开始/结束都记录尝试的用户名
 	ghost := fmt.Sprintf("audit_ghost_%d", suffix)
-	body, _ := testclient.Post(API("/auth/login"), "", authusecase.LoginInput{
+	body, _ := Post(API("/auth/login"), "", authusecase.LoginInput{
 		Username: ghost,
 		Password: "wrong-password",
 	})

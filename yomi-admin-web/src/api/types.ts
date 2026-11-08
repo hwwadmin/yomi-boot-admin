@@ -283,7 +283,7 @@ export interface HttpRecordItem {
   id: string
   serviceType: string
   serviceVersion: string
-  traceId: string
+  traceParent: string
   /** Unix 毫秒时间戳 */
   requestAt: number
   durationMs: number

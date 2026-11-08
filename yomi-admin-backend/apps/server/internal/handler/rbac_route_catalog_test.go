@@ -108,9 +108,14 @@ func readPublicRoutes(t *testing.T) (string, map[string]struct{}) {
 		t.Fatalf("读取开发配置失败: %v", err)
 	}
 
+	expanded, err := coreconfig.ExpandEnvDefaults(string(raw))
+	if err != nil {
+		t.Fatalf("展开配置占位符失败: %v", err)
+	}
+
 	v := viper.New()
 	v.SetConfigType("yml")
-	if err := v.ReadConfig(strings.NewReader(coreconfig.ExpandEnvDefaults(string(raw)))); err != nil {
+	if err := v.ReadConfig(strings.NewReader(expanded)); err != nil {
 		t.Fatalf("解析开发配置失败: %v", err)
 	}
 

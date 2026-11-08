@@ -15,7 +15,7 @@ func toRecordEntity(row *httpRecordModel) *entity.Record {
 		ID:                    row.ID,
 		ServiceType:           row.ServiceType,
 		ServiceVersion:        row.ServiceVersion,
-		TraceID:               row.TraceID,
+		TraceParent:           row.TraceParent,
 		RequestAt:             row.RequestAt.UnixMilli(),
 		DurationMS:            row.DurationMS,
 		Method:                row.Method,
@@ -46,7 +46,7 @@ func toRecordModel(record *entity.Record) *httpRecordModel {
 	row := &httpRecordModel{
 		ServiceType:           record.ServiceType,
 		ServiceVersion:        record.ServiceVersion,
-		TraceID:               record.TraceID,
+		TraceParent:           record.TraceParent,
 		RequestAt:             time.UnixMilli(record.RequestAt),
 		DurationMS:            record.DurationMS,
 		Method:                record.Method,

@@ -26,7 +26,7 @@ type RecordItem struct {
 	ID             dto.JSONInt64 `json:"id"`
 	ServiceType    string        `json:"serviceType"`
 	ServiceVersion string        `json:"serviceVersion"`
-	TraceID        string        `json:"traceId"`
+	TraceParent    string        `json:"traceParent"`
 	RequestAt      int64         `json:"requestAt"`
 	DurationMS     int64         `json:"durationMs"`
 	Method         string        `json:"method"`

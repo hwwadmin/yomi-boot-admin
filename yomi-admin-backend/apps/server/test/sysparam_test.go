@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 // paramItem 是参数列表项
@@ -24,7 +22,7 @@ type paramItem struct {
 // findParamByKey 在分页结果中按 key 查找参数
 func findParamByKey(t *testing.T, token, key string) *paramItem {
 	t.Helper()
-	body, ok := testclient.Get(API("/system/param?page=1&pageSize=100&keyword="+key), token)
+	body, ok := Get(API("/system/param?page=1&pageSize=100&keyword="+key), token)
 	if !ok {
 		t.Fatalf("参数列表接口不可达: %s", body)
 	}
@@ -45,12 +43,12 @@ func TestSysParamFlow(t *testing.T) {
 
 	t.Cleanup(func() {
 		if item := findParamByKey(t, adminToken, paramKey); item != nil {
-			_, _ = testclient.Post(API("/system/param/delete"), adminToken, map[string]any{"id": item.ID})
+			_, _ = Post(API("/system/param/delete"), adminToken, map[string]any{"id": item.ID})
 		}
 	})
 
 	// 创建：启用态落库
-	body, ok := testclient.Post(API("/system/param/create"), adminToken, map[string]any{
+	body, ok := Post(API("/system/param/create"), adminToken, map[string]any{
 		"key":       paramKey,
 		"value":     "7",
 		"valueType": "INT",
@@ -80,19 +78,19 @@ func TestSysParamFlow(t *testing.T) {
 	}
 
 	// 重复键被拒绝
-	body, _ = testclient.Post(API("/system/param/create"), adminToken, map[string]any{
+	body, _ = Post(API("/system/param/create"), adminToken, map[string]any{
 		"key": paramKey, "value": "8", "valueType": "INT", "name": "重复键",
 	})
 	assertFailure(t, body)
 
 	// 非法取值被拒绝（INT 参数不接受布尔值）
-	body, _ = testclient.Post(API("/system/param/create"), adminToken, map[string]any{
+	body, _ = Post(API("/system/param/create"), adminToken, map[string]any{
 		"key": fmt.Sprintf("it.test.bad_%d", suffix), "value": "true", "valueType": "INT", "name": "非法值",
 	})
 	assertFailure(t, body)
 
 	// 详情
-	body, ok = testclient.Get(API("/system/param/detail?id="+param.ID), adminToken)
+	body, ok = Get(API("/system/param/detail?id="+param.ID), adminToken)
 	if !ok {
 		t.Fatalf("参数详情接口不可达: %s", body)
 	}
@@ -103,7 +101,7 @@ func TestSysParamFlow(t *testing.T) {
 	}
 
 	// 更新：只改取值与资料，键与类型不可变
-	body, ok = testclient.Post(API("/system/param/update"), adminToken, map[string]any{
+	body, ok = Post(API("/system/param/update"), adminToken, map[string]any{
 		"id": param.ID, "value": "14", "name": "集成测试参数（更新）", "remark": "更新后的备注",
 	})
 	if !ok {
@@ -119,7 +117,7 @@ func TestSysParamFlow(t *testing.T) {
 	}
 
 	// 禁用后读取过滤生效
-	body, ok = testclient.Post(API("/system/param/set-status"), adminToken, map[string]any{
+	body, ok = Post(API("/system/param/set-status"), adminToken, map[string]any{
 		"id": param.ID, "status": "DISABLED",
 	})
 	if !ok {
@@ -130,7 +128,7 @@ func TestSysParamFlow(t *testing.T) {
 	if disabled == nil || disabled.Status != "DISABLED" {
 		t.Fatalf("禁用未生效: %+v", disabled)
 	}
-	body, ok = testclient.Get(API("/system/param?status=ENABLED&page=1&pageSize=100&keyword="+paramKey), adminToken)
+	body, ok = Get(API("/system/param?status=ENABLED&page=1&pageSize=100&keyword="+paramKey), adminToken)
 	if !ok {
 		t.Fatalf("参数列表接口不可达: %s", body)
 	}
@@ -141,7 +139,7 @@ func TestSysParamFlow(t *testing.T) {
 	}
 
 	// 小写状态同样可用：query 与请求体的枚举口径一致，不应报参数不合法
-	body, ok = testclient.Get(API("/system/param?status=enabled&valueType=int&page=1&pageSize=100&keyword="+paramKey), adminToken)
+	body, ok = Get(API("/system/param?status=enabled&valueType=int&page=1&pageSize=100&keyword="+paramKey), adminToken)
 	if !ok {
 		t.Fatalf("小写过滤参数接口不可达: %s", body)
 	}
@@ -150,7 +148,7 @@ func TestSysParamFlow(t *testing.T) {
 	}
 
 	// 删除（物理删除）→ 查不到
-	body, ok = testclient.Post(API("/system/param/delete"), adminToken, map[string]any{"id": param.ID})
+	body, ok = Post(API("/system/param/delete"), adminToken, map[string]any{"id": param.ID})
 	if !ok {
 		t.Fatalf("删除参数接口不可达: %s", body)
 	}
@@ -178,7 +176,7 @@ func TestSysParamValidation(t *testing.T) {
 	for _, tt := range cases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			body, _ := testclient.Post(API("/system/param/create"), adminToken, tt.body)
+			body, _ := Post(API("/system/param/create"), adminToken, tt.body)
 			assertFailure(t, body)
 		})
 	}

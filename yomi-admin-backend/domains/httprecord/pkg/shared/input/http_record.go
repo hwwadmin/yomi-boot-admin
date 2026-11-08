@@ -5,7 +5,7 @@ package input
 type SaveRecordInput struct {
 	ServiceType    string
 	ServiceVersion string
-	TraceID        string
+	TraceParent    string
 	RequestAt      int64 // 请求到达时间，Unix 毫秒时间戳
 	DurationMS     int64
 

@@ -10,6 +10,11 @@ import (
 	"github.com/hwwadmin/yomi-boot/component/common/db/dbtest"
 )
 
+const (
+	traceParent1 = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+	traceParent2 = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b8-01"
+)
+
 func TestRecordRepoCreateAndPage(t *testing.T) {
 	gormDB, cleanup := dbtest.New(t, dbtest.WithTables(&httpRecordModel{}))
 	defer cleanup()
@@ -21,7 +26,7 @@ func TestRecordRepoCreateAndPage(t *testing.T) {
 	first := &entity.Record{
 		ID:          1,
 		ServiceType: "yomi-admin-backend",
-		TraceID:     "trace-1",
+		TraceParent: traceParent1,
 		RequestAt:   base.UnixMilli(),
 		DurationMS:  12,
 		Method:      "GET",
@@ -41,14 +46,14 @@ func TestRecordRepoCreateAndPage(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("FindByID() ok=%v err=%v", ok, err)
 	}
-	if found.TraceID != "trace-1" || found.Method != "GET" || found.UserID != 100 {
+	if found.TraceParent != traceParent1 || found.Method != "GET" || found.UserID != 100 {
 		t.Fatalf("found = %+v", found)
 	}
 	if found.CreateTime == 0 {
 		t.Fatal("CreateTime 未回填")
 	}
 
-	// 同一 trace_id + request_at 重复投递应被忽略
+	// 同一 trace_parent + request_at 重复投递应被忽略
 	duplicate := *first
 	duplicate.ID = 2
 	if err := repo.Create(ctx, &duplicate); err != nil {
@@ -56,14 +61,14 @@ func TestRecordRepoCreateAndPage(t *testing.T) {
 	}
 
 	second := &entity.Record{
-		ID:         3,
-		TraceID:    "trace-2",
-		RequestAt:  base.Add(time.Second).UnixMilli(),
-		Method:     "POST",
-		Path:       "/api/auth/login",
-		ClientIP:   "10.0.0.1",
-		UserID:     200,
-		StatusCode: 500,
+		ID:          3,
+		TraceParent: traceParent2,
+		RequestAt:   base.Add(time.Second).UnixMilli(),
+		Method:      "POST",
+		Path:        "/api/auth/login",
+		ClientIP:    "10.0.0.1",
+		UserID:      200,
+		StatusCode:  500,
 	}
 	if err := repo.Create(ctx, second); err != nil {
 		t.Fatalf("Create() error = %v", err)
@@ -76,6 +81,7 @@ func TestRecordRepoCreateAndPage(t *testing.T) {
 	}{
 		{name: "全部", filter: repo_contract.RecordFilter{Page: 1, PageSize: 10}, want: 2},
 		{name: "关键字命中路径", filter: repo_contract.RecordFilter{Keyword: "user", Page: 1, PageSize: 10}, want: 1},
+		{name: "关键字命中 traceparent", filter: repo_contract.RecordFilter{Keyword: "00f067aa0ba902b8", Page: 1, PageSize: 10}, want: 1},
 		{name: "方法", filter: repo_contract.RecordFilter{Method: "POST", Page: 1, PageSize: 10}, want: 1},
 		{name: "状态分段", filter: repo_contract.RecordFilter{StatusClass: "5xx", Page: 1, PageSize: 10}, want: 1},
 		{name: "用户", filter: repo_contract.RecordFilter{UserID: 100, Page: 1, PageSize: 10}, want: 1},
@@ -98,7 +104,7 @@ func TestRecordRepoCreateAndPage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Page() error = %v", err)
 	}
-	if len(items) != 2 || items[0].TraceID != "trace-2" {
+	if len(items) != 2 || items[0].TraceParent != traceParent2 {
 		t.Fatalf("按请求时间倒序失败: %+v", items)
 	}
 }

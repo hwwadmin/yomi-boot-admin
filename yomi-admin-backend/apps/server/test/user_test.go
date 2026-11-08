@@ -6,8 +6,6 @@ import (
 	"net/url"
 	"testing"
 	"time"
-
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 type userItem struct {
@@ -30,7 +28,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	token := login(t, adminUsername, adminPassword)
 
 	// profile
-	body, ok := testclient.Get(API("/auth/profile"), token)
+	body, ok := Get(API("/auth/profile"), token)
 	if !ok {
 		t.Fatalf("profile 不可达: %s", body)
 	}
@@ -59,7 +57,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	}
 
 	// 初始分页
-	body, ok = testclient.Get(API("/system/user?page=1&pageSize=10"), token)
+	body, ok = Get(API("/system/user?page=1&pageSize=10"), token)
 	if !ok {
 		t.Fatalf("用户分页不可达: %s", body)
 	}
@@ -78,7 +76,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 		"phone":    "13800138000",
 		"status":   "ENABLED",
 	}
-	body, ok = testclient.Post(API("/system/user/create"), token, createReq)
+	body, ok = Post(API("/system/user/create"), token, createReq)
 	if !ok {
 		t.Fatalf("创建用户接口不可达: %s", body)
 	}
@@ -89,7 +87,7 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	query.Set("page", "1")
 	query.Set("pageSize", "10")
 	query.Set("keyword", username)
-	body, ok = testclient.Get(API("/system/user?"+query.Encode()), token)
+	body, ok = Get(API("/system/user?"+query.Encode()), token)
 	if !ok {
 		t.Fatalf("用户分页不可达: %s", body)
 	}
@@ -111,13 +109,13 @@ func TestProfileAndUserCRUD(t *testing.T) {
 		"phone":    "13900139000",
 		"status":   "ENABLED",
 	}
-	body, ok = testclient.Post(API("/system/user/update"), token, updateReq)
+	body, ok = Post(API("/system/user/update"), token, updateReq)
 	if !ok {
 		t.Fatalf("更新用户接口不可达: %s", body)
 	}
 	parseSuccess(t, body)
 
-	body, ok = testclient.Get(API("/system/user?"+query.Encode()), token)
+	body, ok = Get(API("/system/user?"+query.Encode()), token)
 	if !ok {
 		t.Fatalf("更新后分页不可达: %s", body)
 	}
@@ -128,13 +126,13 @@ func TestProfileAndUserCRUD(t *testing.T) {
 	}
 
 	// 删除用户
-	body, ok = testclient.Post(API("/system/user/delete"), token, map[string]any{"id": userID})
+	body, ok = Post(API("/system/user/delete"), token, map[string]any{"id": userID})
 	if !ok {
 		t.Fatalf("删除用户接口不可达: %s", body)
 	}
 	parseSuccess(t, body)
 
-	body, ok = testclient.Get(API("/system/user?"+query.Encode()), token)
+	body, ok = Get(API("/system/user?"+query.Encode()), token)
 	if !ok {
 		t.Fatalf("删除后分页不可达: %s", body)
 	}
@@ -148,7 +146,7 @@ func TestUpdateOwnProfile(t *testing.T) {
 	requireServer(t)
 	token := login(t, adminUsername, adminPassword)
 
-	body, ok := testclient.Get(API("/auth/profile"), token)
+	body, ok := Get(API("/auth/profile"), token)
 	if !ok {
 		t.Fatalf("profile 不可达: %s", body)
 	}
@@ -162,7 +160,7 @@ func TestUpdateOwnProfile(t *testing.T) {
 		t.Fatalf("解析 profile 失败: %v body=%s", err, body)
 	}
 	defer func() {
-		body, ok := testclient.Post(API("/auth/profile"), token, map[string]any{
+		body, ok := Post(API("/auth/profile"), token, map[string]any{
 			"nickname": before.Nickname,
 			"email":    before.Email,
 			"phone":    before.Phone,
@@ -172,7 +170,7 @@ func TestUpdateOwnProfile(t *testing.T) {
 		}
 	}()
 
-	body, ok = testclient.Post(API("/auth/profile"), token, map[string]any{
+	body, ok = Post(API("/auth/profile"), token, map[string]any{
 		"nickname": "资料更新测试",
 		"email":    "profile@example.com",
 		"phone":    "13900139001",
@@ -195,7 +193,7 @@ func TestUpdateOwnProfile(t *testing.T) {
 		t.Fatalf("个人资料更新结果不符合预期: %+v", after)
 	}
 
-	body, ok = testclient.Get(API("/auth/profile"), token)
+	body, ok = Get(API("/auth/profile"), token)
 	if !ok {
 		t.Fatalf("更新后 profile 不可达: %s", body)
 	}
@@ -221,14 +219,14 @@ func TestDisableUserRevokesToken(t *testing.T) {
 		"phone":    "",
 		"status":   "ENABLED",
 	}
-	body, ok := testclient.Post(API("/system/user/create"), adminToken, createReq)
+	body, ok := Post(API("/system/user/create"), adminToken, createReq)
 	if !ok {
 		t.Fatalf("创建用户接口不可达: %s", body)
 	}
 	parseSuccess(t, body)
 
 	userToken := login(t, username, "test1234")
-	body, ok = testclient.Get(API("/auth/profile"), userToken)
+	body, ok = Get(API("/auth/profile"), userToken)
 	if !ok {
 		t.Fatalf("用户 profile 不可达: %s", body)
 	}
@@ -236,7 +234,7 @@ func TestDisableUserRevokesToken(t *testing.T) {
 
 	userID := findUserID(t, adminToken, username)
 
-	body, ok = testclient.Post(API("/system/user/update"), adminToken, map[string]any{
+	body, ok = Post(API("/system/user/update"), adminToken, map[string]any{
 		"id":       userID,
 		"nickname": "待禁用用户",
 		"email":    "",
@@ -248,13 +246,13 @@ func TestDisableUserRevokesToken(t *testing.T) {
 	}
 	parseSuccess(t, body)
 
-	body, ok = testclient.Get(API("/auth/profile"), userToken)
+	body, ok = Get(API("/auth/profile"), userToken)
 	if !ok {
 		t.Fatalf("禁用后 profile 不可达: %s", body)
 	}
 	assertFailure(t, body)
 
-	body, ok = testclient.Post(API("/system/user/delete"), adminToken, map[string]any{"id": userID})
+	body, ok = Post(API("/system/user/delete"), adminToken, map[string]any{"id": userID})
 	if !ok {
 		t.Fatalf("删除用户接口不可达: %s", body)
 	}
@@ -265,13 +263,13 @@ func TestLogoutInvalidatesToken(t *testing.T) {
 	requireServer(t)
 	token := login(t, adminUsername, adminPassword)
 
-	body, ok := testclient.Post(API("/auth/logout"), token, nil)
+	body, ok := Post(API("/auth/logout"), token, nil)
 	if !ok {
 		t.Fatalf("登出接口不可达: %s", body)
 	}
 	parseSuccess(t, body)
 
-	body, ok = testclient.Get(API("/auth/profile"), token)
+	body, ok = Get(API("/auth/profile"), token)
 	if !ok {
 		t.Fatalf("登出后 profile 不可达: %s", body)
 	}
@@ -287,7 +285,7 @@ func findUserID(t *testing.T, token, username string) string {
 	query.Set("pageSize", "10")
 	query.Set("keyword", username)
 
-	body, ok := testclient.Get(API("/system/user?"+query.Encode()), token)
+	body, ok := Get(API("/system/user?"+query.Encode()), token)
 	if !ok {
 		t.Fatalf("用户分页不可达: %s", body)
 	}

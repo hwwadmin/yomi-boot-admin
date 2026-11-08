@@ -57,12 +57,16 @@ domains/rbac/       角色、权限组与权限
 domains/httprecord/ 访问记录
 domains/sysparam/   系统参数
 domains/auditlog/   操作审计日志
+persist/            各域共用的表字段与仓储辅助
 script/sql/         建库与种子 SQL
 script/dev/         开发脚本
 ```
 
 简单说：`handler` 只接参数；`usecase` 管流程、事务和鉴权；`domain` 管业务规则和存储；
 `support` 放多个模块共用的小规则，比如超管保护。五个 domain 都是独立的 Go module，可以单独复用。
+表的主键、审计字段和软删除列在 `persist/orm`，各域仓储嵌入它。
+
+访问记录字段 `traceParent` 存本跳 W3C `traceparent`。链路头是 `traceparent` / `tracestate`。
 
 装配按上下文拆分：`internal/bootstrap/wire.go` 只列模块与跨模块依赖，各上下文的 Handler 构造
 放在 `wire_<context>.go`；新增接口只改对应上下文文件，不要往中心函数里堆构造代码。
@@ -141,5 +145,5 @@ make cross-build  # 交叉编译
 ## 依赖
 
 - Go 1.26。
-- yomi-boot v1.0.1（github.com/hwwadmin/yomi-boot）。
-- `go.work` 包含 `apps/server` 和五个 domain module。
+- yomi-boot v1.0.2-rc.1（github.com/hwwadmin/yomi-boot）。
+- `go.work` 包含 `apps/server`、五个 domain module，以及 `persist`（各域共用的表字段与仓储辅助；boot 不再预置表结构）。

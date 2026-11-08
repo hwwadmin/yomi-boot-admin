@@ -4,7 +4,7 @@ package repo
 import (
 	"time"
 
-	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
+	"yomi-admin-backend/persist/orm"
 )
 
 // tableName 是 HTTP 访问记录表名
@@ -14,8 +14,8 @@ const tableName = "t_http_record"
 type httpRecordModel struct {
 	ServiceType    string    `gorm:"column:service_type;size:64"`
 	ServiceVersion string    `gorm:"column:service_version;size:32"`
-	TraceID        string    `gorm:"column:trace_id;size:64;uniqueIndex:uk_trace_request,priority:1"`
-	RequestAt      time.Time `gorm:"column:request_at;type:datetime(3);uniqueIndex:uk_trace_request,priority:2;index:idx_request_at"`
+	TraceParent    string    `gorm:"column:trace_parent;size:55;uniqueIndex:uk_traceparent_request,priority:1"`
+	RequestAt      time.Time `gorm:"column:request_at;type:datetime(3);uniqueIndex:uk_traceparent_request,priority:2;index:idx_request_at"`
 	DurationMS     int64     `gorm:"column:duration_ms"`
 
 	Method    string `gorm:"column:method;size:16"`

@@ -8,9 +8,9 @@ import (
 	"yomi-admin-backend/domains/auditlog/internal/repo_contract"
 	"yomi-admin-backend/domains/auditlog/pkg/shared/entity"
 
-	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
 	"github.com/hwwadmin/yomi-boot/component/common/db/tx"
 	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"yomi-admin-backend/persist/orm"
 
 	"gorm.io/gorm"
 )

@@ -17,7 +17,7 @@ var ErrInvalidRecord = errors.NewNoStack("HTTP_RECORD_INVALID")
 type SaveRecordInput struct {
 	ServiceType    string
 	ServiceVersion string
-	TraceID        string
+	TraceParent    string
 	RequestAt      int64 // 请求到达时间，Unix 毫秒时间戳
 	DurationMS     int64
 
@@ -57,7 +57,7 @@ func (uc *SaveRecordUsecase) Execute(ctx context.Context, in *SaveRecordInput) e
 	err := uc.records.Save(ctx, &domaininput.SaveRecordInput{
 		ServiceType:           in.ServiceType,
 		ServiceVersion:        in.ServiceVersion,
-		TraceID:               in.TraceID,
+		TraceParent:           in.TraceParent,
 		RequestAt:             in.RequestAt,
 		DurationMS:            in.DurationMS,
 		Method:                in.Method,

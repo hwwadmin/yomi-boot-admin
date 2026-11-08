@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 	authusecase "yomi-admin-backend/apps/server/internal/usecase/auth"
-
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 // TestAuditChangePassword 覆盖修改密码失败与成功的两段式审计
@@ -21,7 +19,7 @@ func TestAuditChangePassword(t *testing.T) {
 	operatorID := strconv.FormatInt(userID, 10)
 
 	// 原密码错误：结束记录失败，开始/结束共用 audit_id
-	body, _ := testclient.Post(API("/auth/password"), userToken, authusecase.ChangePasswordInput{
+	body, _ := Post(API("/auth/password"), userToken, authusecase.ChangePasswordInput{
 		OldPassword: "wrong-old",
 		NewPassword: "auditpass2",
 	})
@@ -47,7 +45,7 @@ func TestAuditChangePassword(t *testing.T) {
 	}
 
 	// 改密成功：结束记录成功
-	body, _ = testclient.Post(API("/auth/password"), userToken, authusecase.ChangePasswordInput{
+	body, _ = Post(API("/auth/password"), userToken, authusecase.ChangePasswordInput{
 		OldPassword: password,
 		NewPassword: "auditpass2",
 	})

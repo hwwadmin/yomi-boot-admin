@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 	"github.com/hwwadmin/yomi-boot/component/core/response"
 )
 
@@ -30,7 +29,7 @@ func TestUserSessionsListAndRevoke(t *testing.T) {
 	adminToken := login(t, adminUsername, adminPassword)
 
 	username := fmt.Sprintf("session_%d", time.Now().UnixNano())
-	body, ok := testclient.Post(API("/system/user/create"), adminToken, map[string]any{
+	body, ok := Post(API("/system/user/create"), adminToken, map[string]any{
 		"username": username,
 		"password": "test1234",
 		"nickname": "会话测试用户",
@@ -48,7 +47,7 @@ func TestUserSessionsListAndRevoke(t *testing.T) {
 	tokenB := login(t, username, "test1234")
 
 	t.Cleanup(func() {
-		testclient.Post(API("/system/user/delete"), adminToken, map[string]any{"id": userID})
+		Post(API("/system/user/delete"), adminToken, map[string]any{"id": userID})
 	})
 
 	sessions := listUserSessions(t, adminToken, userID)
@@ -68,7 +67,7 @@ func TestUserSessionsListAndRevoke(t *testing.T) {
 	}
 
 	// 单个下线：只应让其中一个令牌失效
-	body, ok = testclient.Post(API("/system/user/session/revoke"), adminToken, map[string]any{
+	body, ok = Post(API("/system/user/session/revoke"), adminToken, map[string]any{
 		"userId":    userID,
 		"sessionId": sessions[0].SessionID,
 	})
@@ -98,7 +97,7 @@ func TestUserSessionsListAndRevoke(t *testing.T) {
 	if currentSessionID == "" {
 		t.Fatal("管理员会话列表中应包含 current 会话")
 	}
-	body, _ = testclient.Post(API("/system/user/session/revoke"), adminToken, map[string]any{
+	body, _ = Post(API("/system/user/session/revoke"), adminToken, map[string]any{
 		"userId":    adminID,
 		"sessionId": currentSessionID,
 	})
@@ -107,7 +106,7 @@ func TestUserSessionsListAndRevoke(t *testing.T) {
 	}
 
 	// 全部下线：两个令牌都应失效
-	body, ok = testclient.Post(API("/system/user/session/revoke-all"), adminToken, map[string]any{
+	body, ok = Post(API("/system/user/session/revoke-all"), adminToken, map[string]any{
 		"userId": userID,
 	})
 	if !ok {
@@ -122,7 +121,7 @@ func TestUserSessionsListAndRevoke(t *testing.T) {
 	}
 
 	// 不能按用户踢自己
-	body, _ = testclient.Post(API("/system/user/session/revoke-all"), adminToken, map[string]any{
+	body, _ = Post(API("/system/user/session/revoke-all"), adminToken, map[string]any{
 		"userId": adminID,
 	})
 	if code := errorCode(t, body); code != "ADMIN_CANNOT_OPERATE_SELF" {
@@ -136,7 +135,7 @@ func listUserSessions(t *testing.T, token, userID string) []userSessionItem {
 
 	query := url.Values{}
 	query.Set("userId", userID)
-	body, ok := testclient.Get(API("/system/user/session?"+query.Encode()), token)
+	body, ok := Get(API("/system/user/session?"+query.Encode()), token)
 	if !ok {
 		t.Fatalf("会话列表接口不可达: %s", body)
 	}
@@ -151,7 +150,7 @@ func listUserSessions(t *testing.T, token, userID string) []userSessionItem {
 
 // profileOK 判断令牌是否仍可访问当前用户接口
 func profileOK(token string) bool {
-	body, ok := testclient.Get(API("/auth/profile"), token)
+	body, ok := Get(API("/auth/profile"), token)
 	if !ok {
 		return false
 	}

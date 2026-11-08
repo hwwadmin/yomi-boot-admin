@@ -1,6 +1,6 @@
 {
   "subtitle": "查看接口访问记录与响应结果",
-  "searchPlaceholder": "路径 / TraceID / 客户端 IP",
+  "searchPlaceholder": "路径 / Traceparent / 客户端 IP",
   "allMethods": "全部方法",
   "allStatus": "全部状态",
   "statusClass": {
@@ -36,7 +36,7 @@
     "userId": "用户 ID",
     "anonymous": "未登录",
     "createdAt": "落库时间",
-    "traceId": "TraceID",
+    "traceParent": "Traceparent",
     "path": "路径",
     "route": "路由模板",
     "query": "查询参数",

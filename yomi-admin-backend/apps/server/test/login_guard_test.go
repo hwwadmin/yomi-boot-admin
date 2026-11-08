@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 	"github.com/hwwadmin/yomi-boot/component/core/response"
 )
 
@@ -23,7 +22,7 @@ func TestLoginGuardLocksRepeatedFailures(t *testing.T) {
 	username := fmt.Sprintf("guard_probe_%d", time.Now().UnixNano())
 	lastCode := ""
 	for i := 0; i < 5; i++ {
-		body, ok := testclient.Post(API("/auth/login"), "", map[string]string{
+		body, ok := Post(API("/auth/login"), "", map[string]string{
 			"username": username,
 			"password": "wrong-password",
 		})

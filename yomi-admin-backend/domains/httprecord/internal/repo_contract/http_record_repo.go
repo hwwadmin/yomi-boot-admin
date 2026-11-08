@@ -20,7 +20,7 @@ type RecordFilter struct {
 
 // RecordRepo 访问记录仓储
 type RecordRepo interface {
-	// Create 写入访问记录；trace_id + request_at 重复时忽略
+	// Create 写入访问记录；trace_parent + request_at 重复时忽略
 	Create(ctx context.Context, record *entity.Record) error
 	// FindByID 按主键查询访问记录
 	FindByID(ctx context.Context, id int64) (*entity.Record, bool, error)

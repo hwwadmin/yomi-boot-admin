@@ -4,7 +4,7 @@ package repo
 import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/enums"
 
-	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
+	"yomi-admin-backend/persist/orm"
 )
 
 // 表名常量

@@ -6,8 +6,8 @@ type Record struct {
 	ID             int64
 	ServiceType    string
 	ServiceVersion string
-	TraceID        string
-	RequestAt      int64 // 请求到达时间，Unix 毫秒时间戳
+	TraceParent    string // 本跳 W3C traceparent
+	RequestAt      int64  // 请求到达时间，Unix 毫秒时间戳
 	DurationMS     int64
 
 	Method    string

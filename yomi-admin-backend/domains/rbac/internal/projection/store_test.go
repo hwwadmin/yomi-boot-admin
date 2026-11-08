@@ -245,10 +245,12 @@ func TestStoreRefreshRejectsOversizedProjection(t *testing.T) {
 }
 
 func TestStoreLoadFailsWhenRedisUnavailable(t *testing.T) {
-	addr, stopRedis := redistest.NewServer(t)
-	// 关闭重试并缩短拨号超时：Redis 停机场景应快速失败，避免拖慢用例
+	addr, db, _ := redistest.NewServer(t)
+	// 关闭重试并缩短拨号超时：Redis 故障场景应快速失败，避免拖慢用例。
+	// redistest 的清理只归还库号，不停止容器，关闭客户端让后续命令失败。
 	client := redisv9.NewClient(&redisv9.Options{
 		Addr:        addr,
+		DB:          db,
 		MaxRetries:  -1,
 		DialTimeout: 200 * time.Millisecond,
 	})
@@ -264,7 +266,7 @@ func TestStoreLoadFailsWhenRedisUnavailable(t *testing.T) {
 		t.Fatalf("创建投影存储失败: %v", err)
 	}
 
-	stopRedis()
+	_ = client.Close()
 
 	if _, err := store.Load(context.Background()); err == nil {
 		t.Fatal("Redis 不可用时应返回错误，由调用方降级")
@@ -462,9 +464,10 @@ func TestStoreMemorySyncPicksUpRedisChanges(t *testing.T) {
 // TestStoreMemorySyncKeepsOldOnRedisFailure 校验 Redis 不可用时同步失败但旧快照继续服务
 func TestStoreMemorySyncKeepsOldOnRedisFailure(t *testing.T) {
 	ctx := context.Background()
-	addr, stopRedis := redistest.NewServer(t)
+	addr, db, _ := redistest.NewServer(t)
 	client := redisv9.NewClient(&redisv9.Options{
 		Addr:        addr,
+		DB:          db,
 		MaxRetries:  -1,
 		DialTimeout: 200 * time.Millisecond,
 	})
@@ -487,7 +490,7 @@ func TestStoreMemorySyncKeepsOldOnRedisFailure(t *testing.T) {
 		t.Fatal("刷新后内存应持有快照")
 	}
 
-	stopRedis()
+	_ = client.Close()
 	if err := store.syncMemoryOnce(ctx); err == nil {
 		t.Fatal("Redis 不可用时同步应失败")
 	}

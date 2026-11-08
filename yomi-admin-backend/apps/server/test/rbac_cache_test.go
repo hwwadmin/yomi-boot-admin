@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 // cacheRefreshResult 是刷新鉴权缓存的返回结构
@@ -44,7 +42,7 @@ func TestRbacCacheRefresh(t *testing.T) {
 	suffix := time.Now().UnixNano()
 	code := fmt.Sprintf("cache:menu:m%d", suffix)
 	uiPath := fmt.Sprintf("/system/cache-test-%d", suffix)
-	body, ok := testclient.Post(API("/system/permission/create"), adminToken, map[string]any{
+	body, ok := Post(API("/system/permission/create"), adminToken, map[string]any{
 		"code":   code,
 		"name":   "缓存刷新测试菜单",
 		"type":   "MENU",
@@ -62,7 +60,7 @@ func TestRbacCacheRefresh(t *testing.T) {
 		t.Fatalf("解析权限 ID 失败: %v body=%s", err, body)
 	}
 	t.Cleanup(func() {
-		if _, ok := testclient.Post(API("/system/permission/delete"), adminToken, map[string]any{
+		if _, ok := Post(API("/system/permission/delete"), adminToken, map[string]any{
 			"id": permission.ID,
 		}); ok {
 			refreshRbacCache(t, adminToken)
@@ -95,7 +93,7 @@ func TestRbacCacheRefresh(t *testing.T) {
 func refreshRbacCache(t *testing.T, token string) cacheRefreshResult {
 	t.Helper()
 
-	body, ok := testclient.Post(API("/system/rbac-cache/refresh"), token, map[string]any{})
+	body, ok := Post(API("/system/rbac-cache/refresh"), token, map[string]any{})
 	if !ok {
 		t.Fatalf("刷新鉴权缓存接口不可达: %s", body)
 	}
@@ -112,7 +110,7 @@ func refreshRbacCache(t *testing.T, token string) cacheRefreshResult {
 func menuExists(t *testing.T, token, uiPath string) bool {
 	t.Helper()
 
-	body, ok := testclient.Get(API("/auth/profile"), token)
+	body, ok := Get(API("/auth/profile"), token)
 	if !ok {
 		t.Fatalf("当前用户接口不可达: %s", body)
 	}

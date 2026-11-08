@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/getkin/kin-openapi v0.152.0
 	github.com/gin-gonic/gin v1.12.0
-	github.com/hwwadmin/yomi-boot v1.0.1
+	github.com/hwwadmin/yomi-boot v1.0.2-rc.1
 	github.com/spf13/viper v1.20.1
 	yomi-admin-backend/domains/auditlog v0.0.0
 	yomi-admin-backend/domains/httprecord v0.0.0
@@ -128,7 +128,7 @@ require (
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
-	golang.org/x/time v0.10.0 // indirect
+	golang.org/x/time v0.11.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
@@ -136,6 +136,7 @@ require (
 	gorm.io/driver/mysql v1.6.0 // indirect
 	gorm.io/driver/postgres v1.6.0 // indirect
 	gorm.io/gorm v1.31.1 // indirect
+	yomi-admin-backend/persist v0.0.0 // indirect
 )
 
 replace yomi-admin-backend/domains/auditlog => ../../domains/auditlog
@@ -147,3 +148,5 @@ replace yomi-admin-backend/domains/rbac => ../../domains/rbac
 replace yomi-admin-backend/domains/sysparam => ../../domains/sysparam
 
 replace yomi-admin-backend/domains/user => ../../domains/user
+
+replace yomi-admin-backend/persist => ../../persist

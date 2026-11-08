@@ -8,18 +8,16 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 // httpRecordItem 是访问记录列表项
 type httpRecordItem struct {
-	ID         string `json:"id"`
-	TraceID    string `json:"traceId"`
-	Method     string `json:"method"`
-	Path       string `json:"path"`
-	StatusCode int    `json:"statusCode"`
-	RequestAt  int64  `json:"requestAt"`
+	ID          string `json:"id"`
+	TraceParent string `json:"traceParent"`
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+	StatusCode  int    `json:"statusCode"`
+	RequestAt   int64  `json:"requestAt"`
 }
 
 // TestHttpRecordPageAndDetail 覆盖访问记录落库后的分页查询与详情查询
@@ -37,7 +35,7 @@ func TestHttpRecordPageAndDetail(t *testing.T) {
 	var record httpRecordItem
 
 	for {
-		body, ok := testclient.Get(API("/system/http-record?page=1&pageSize=10&keyword="+keyword+rangeQuery), adminToken)
+		body, ok := Get(API("/system/http-record?page=1&pageSize=10&keyword="+keyword+rangeQuery), adminToken)
 		if !ok {
 			t.Fatalf("访问记录列表接口不可达: %s", body)
 		}
@@ -60,7 +58,7 @@ func TestHttpRecordPageAndDetail(t *testing.T) {
 		t.Fatalf("访问记录内容不符合预期: %+v", record)
 	}
 
-	body, ok := testclient.Get(API("/system/http-record/detail?id="+record.ID), adminToken)
+	body, ok := Get(API("/system/http-record/detail?id="+record.ID), adminToken)
 	if !ok {
 		t.Fatalf("访问记录详情接口不可达: %s", body)
 	}
@@ -92,7 +90,7 @@ func TestHttpRecordPageSkipsSelf(t *testing.T) {
 
 	// 访问记录页面的查询应被采集器跳过
 	for i := 0; i < 3; i++ {
-		body, ok := testclient.Get(API("/system/http-record?page=1&pageSize=1"+rangeQuery), adminToken)
+		body, ok := Get(API("/system/http-record?page=1&pageSize=1"+rangeQuery), adminToken)
 		if !ok {
 			t.Fatalf("访问记录列表接口不可达: %s", body)
 		}
@@ -102,7 +100,7 @@ func TestHttpRecordPageSkipsSelf(t *testing.T) {
 	keyword := url.QueryEscape("/api/system/http-record")
 	deadline := time.Now().Add(2 * time.Second)
 	for {
-		body, ok := testclient.Get(API("/system/http-record?page=1&pageSize=10&keyword="+keyword+rangeQuery), adminToken)
+		body, ok := Get(API("/system/http-record?page=1&pageSize=10&keyword="+keyword+rangeQuery), adminToken)
 		if !ok {
 			t.Fatalf("访问记录列表接口不可达: %s", body)
 		}
@@ -124,7 +122,7 @@ func TestHttpRecordPageRejectsInvalidStatusClass(t *testing.T) {
 
 	rangeQuery := fmt.Sprintf("&startTime=%d&endTime=%d",
 		time.Now().Add(-time.Hour).UnixMilli(), time.Now().Add(time.Minute).UnixMilli())
-	body, ok := testclient.Get(API("/system/http-record?statusClass=6xx"+rangeQuery), adminToken)
+	body, ok := Get(API("/system/http-record?statusClass=6xx"+rangeQuery), adminToken)
 	if !ok {
 		t.Fatalf("访问记录列表接口不可达: %s", body)
 	}

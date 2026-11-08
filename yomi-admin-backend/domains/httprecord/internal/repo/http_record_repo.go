@@ -9,9 +9,9 @@ import (
 	"yomi-admin-backend/domains/httprecord/pkg/shared/entity"
 	"yomi-admin-backend/domains/httprecord/pkg/shared/enums"
 
-	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
 	"github.com/hwwadmin/yomi-boot/component/common/db/tx"
 	"github.com/hwwadmin/yomi-boot/component/core/errors"
+	"yomi-admin-backend/persist/orm"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -29,7 +29,7 @@ func NewRecordRepo(d *gorm.DB) *RecordRepo {
 	return &RecordRepo{BaseRepository: orm.BaseRepository{DB: d}}
 }
 
-// Create 写入访问记录；trace_id + request_at 重复时忽略，保证消费者重投幂等
+// Create 写入访问记录；trace_parent + request_at 重复时忽略，保证消费者重投幂等
 func (r *RecordRepo) Create(ctx context.Context, record *entity.Record) error {
 	row := toRecordModel(record)
 	if row == nil {
@@ -84,7 +84,7 @@ func (r *RecordRepo) Page(ctx context.Context, filter *repo_contract.RecordFilte
 func applyRecordFilter(query *gorm.DB, filter *repo_contract.RecordFilter) *gorm.DB {
 	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
 		like := orm.LikeFull(keyword)
-		query = query.Where("path LIKE ? OR route LIKE ? OR trace_id LIKE ? OR client_ip LIKE ?",
+		query = query.Where("path LIKE ? OR route LIKE ? OR trace_parent LIKE ? OR client_ip LIKE ?",
 			like, like, like, like)
 	}
 	if method := strings.TrimSpace(filter.Method); method != "" {

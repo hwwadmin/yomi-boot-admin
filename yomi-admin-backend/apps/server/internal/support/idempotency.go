@@ -2,12 +2,17 @@ package support
 
 import (
 	"context"
+	"regexp"
 	"strings"
 
 	dbtx "github.com/hwwadmin/yomi-boot/component/common/db/tx"
 	frameworkidem "github.com/hwwadmin/yomi-boot/component/common/idempotency"
 	"github.com/hwwadmin/yomi-boot/component/core/errors"
 )
+
+// idempotencyPartPattern 与 yomi-boot idempotency.Key 的 biz_id / biz_sub_id 格式一致：
+// 1～100 位字母、数字、下划线或连字符，且不含冒号。
+var idempotencyPartPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,100}$`)
 
 const (
 	// IdempotencyKeyHeader 是调用方传递幂等键的请求头。
@@ -20,14 +25,14 @@ const (
 
 // IdempotencyKey 由请求头幂等键和操作类型构造框架幂等键。
 //
-// raw 为空表示调用方未提供幂等键，返回零值 Key，由 RunIdempotent 退化为一次性事务执行；
-// 超过 sys_biz 列宽时直接拒绝，避免写入时被数据库截断或报错。
+// raw 为空表示调用方未提供幂等键，返回零值 Key，由 RunIdempotent 退化为一次性事务执行。
+// 键与操作类型都必须是 1～100 位字母、数字、下划线或连字符，否则直接拒绝。
 func IdempotencyKey(raw, operation string) (frameworkidem.Key, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return frameworkidem.Key{}, nil
 	}
-	if len(raw) > maxIdempotencyKeyBytes {
+	if !idempotencyPartPattern.MatchString(raw) || !idempotencyPartPattern.MatchString(operation) {
 		return frameworkidem.Key{}, errors.Sentinel(ErrIdempotencyKeyInvalid)
 	}
 	// BizSubID 用操作类型而不是随机值：同一个键复用到不同操作时落在不同的幂等记录上，

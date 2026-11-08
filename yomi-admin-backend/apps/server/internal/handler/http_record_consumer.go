@@ -7,6 +7,7 @@ import (
 	"github.com/hwwadmin/yomi-boot/component/common/httprecord"
 	"github.com/hwwadmin/yomi-boot/component/core/errors"
 	"github.com/hwwadmin/yomi-boot/component/core/logger"
+	"github.com/hwwadmin/yomi-boot/component/core/traceid"
 )
 
 // recordSaver 保存一条访问记录；由 usecase/httprecord.SaveRecordUsecase 实现。
@@ -31,7 +32,7 @@ func newHttpRecordConsumer(save recordSaver) httprecord.RecordHandler {
 		err := save.Execute(ctx, &httprecoreusecase.SaveRecordInput{
 			ServiceType:           record.ServiceType,
 			ServiceVersion:        record.ServiceVersion,
-			TraceID:               record.TraceID,
+			TraceParent:           record.TraceParent,
 			RequestAt:             record.RequestAt.UnixMilli(),
 			DurationMS:            record.Duration.Milliseconds(),
 			Method:                record.Method,
@@ -54,7 +55,7 @@ func newHttpRecordConsumer(save recordSaver) httprecord.RecordHandler {
 		if err != nil {
 			if errors.Is(err, httprecoreusecase.ErrInvalidRecord) {
 				logger.Warn(ctx, "HTTP 访问记录不合法，已丢弃",
-					"traceId", record.TraceID,
+					traceid.Traceparent, record.TraceParent,
 					"method", record.Method,
 					"path", record.Path,
 				)
@@ -62,7 +63,7 @@ func newHttpRecordConsumer(save recordSaver) httprecord.RecordHandler {
 			}
 			logger.Warn(ctx, "HTTP 访问记录落库失败",
 				"error", err,
-				"traceId", record.TraceID,
+				traceid.Traceparent, record.TraceParent,
 				"method", record.Method,
 				"path", record.Path,
 			)

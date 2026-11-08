@@ -4,14 +4,12 @@ package test
 import (
 	"strings"
 	"testing"
-
-	"github.com/hwwadmin/yomi-boot/component/common/testclient"
 )
 
 func TestApiDocSchema(t *testing.T) {
 	requireServer(t)
 
-	body, ok := testclient.Get(API("/system/api-doc/schema"), "")
+	body, ok := Get(API("/system/api-doc/schema"), "")
 	if !ok {
 		t.Fatalf("API 文档 schema 接口不可达: %s", body)
 	}
@@ -26,7 +24,7 @@ func TestApiDocSchema(t *testing.T) {
 func TestApiDocPage(t *testing.T) {
 	requireServer(t)
 
-	body, ok := testclient.Get(API("/system/api-doc"), "")
+	body, ok := Get(API("/system/api-doc"), "")
 	if !ok {
 		t.Fatalf("API 文档页面不可达: %s", body)
 	}

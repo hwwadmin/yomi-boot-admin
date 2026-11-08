@@ -22,7 +22,7 @@ import (
 const (
 	maxServiceTypeBytes    = 64
 	maxServiceVersionBytes = 32
-	maxTraceIDBytes        = 64
+	maxTraceParentBytes    = 55 // 本跳 W3C traceparent：00-{32}-{16}-{2}
 	maxMethodBytes         = 16
 	maxPathBytes           = 512
 	maxRouteBytes          = 512
@@ -79,7 +79,7 @@ func (s *RecordService) Save(ctx context.Context, in *input.SaveRecordInput) err
 		ID:                    id,
 		ServiceType:           cutString(in.ServiceType, maxServiceTypeBytes),
 		ServiceVersion:        cutString(in.ServiceVersion, maxServiceVersionBytes),
-		TraceID:               cutString(in.TraceID, maxTraceIDBytes),
+		TraceParent:           cutString(in.TraceParent, maxTraceParentBytes),
 		RequestAt:             requestAt,
 		DurationMS:            in.DurationMS,
 		Method:                method,

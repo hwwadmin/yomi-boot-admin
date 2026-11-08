@@ -313,8 +313,8 @@ async function openDetail(row: HttpRecordItem) {
             <el-descriptions-item :label="t('system.httpRecord.drawer.createdAt')">
               {{ formatDateTime(detail.createTime) }}
             </el-descriptions-item>
-            <el-descriptions-item :label="t('system.httpRecord.drawer.traceId')" :span="2">
-              <span class="detail-mono">{{ detail.traceId || t('common.none') }}</span>
+            <el-descriptions-item :label="t('system.httpRecord.drawer.traceParent')" :span="2">
+              <span class="detail-mono">{{ detail.traceParent || t('common.none') }}</span>
             </el-descriptions-item>
             <el-descriptions-item :label="t('system.httpRecord.drawer.path')" :span="2">
               <span class="detail-mono">{{ detail.path }}</span>

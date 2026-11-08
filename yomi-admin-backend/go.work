@@ -7,4 +7,5 @@ use (
 	./domains/rbac
 	./domains/sysparam
 	./domains/user
+	./persist
 )

@@ -70,7 +70,7 @@ interface MockHttpRecord {
   id: string
   serviceType: string
   serviceVersion: string
-  traceId: string
+  traceParent: string
   requestAt: number
   durationMs: number
   method: string
@@ -133,8 +133,8 @@ const permissions: MockPermission[] = [
   { id: 'p32', code: 'system:permission:status', name: '权限启停', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/permission/:id/status', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p41', code: 'system:user:role:list', name: '用户角色查询', type: 'API', httpMethod: 'GET', httpPath: '/api/system/user/:id/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p42', code: 'system:user:role:bind', name: '用户角色绑定', type: 'API', httpMethod: 'PUT', httpPath: '/api/system/user/:id/role', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
-  { id: 'p51', code: 'system:http-record:list', name: '访问记录列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/http-records', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
-  { id: 'p52', code: 'system:http-record:detail', name: '访问记录详情', type: 'API', httpMethod: 'GET', httpPath: '/api/system/http-records/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p51', code: 'system:http-record:list', name: '访问记录列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/http-record', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
+  { id: 'p52', code: 'system:http-record:detail', name: '访问记录详情', type: 'API', httpMethod: 'GET', httpPath: '/api/system/http-record/detail', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p61', code: 'system:permission-group:list', name: '权限组列表', type: 'API', httpMethod: 'GET', httpPath: '/api/system/permission-group', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p62', code: 'system:permission-group:detail', name: '权限组详情', type: 'API', httpMethod: 'GET', httpPath: '/api/system/permission-group/:id', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
   { id: 'p63', code: 'system:permission-group:create', name: '创建权限组', type: 'API', httpMethod: 'POST', httpPath: '/api/system/permission-group', status: 'ENABLED', remark: '', createTime: now(), updateTime: now() },
@@ -260,9 +260,9 @@ const httpRecordSeeds = [
   { method: 'PUT', path: '/api/system/role/:id', statusCode: 200, bizCode: 'OK' },
   { method: 'DELETE', path: '/api/system/users/:id', statusCode: 200, bizCode: 'OK' },
   { method: 'GET', path: '/api/system/permission', statusCode: 404, bizCode: 'NOT_FOUND' },
-  { method: 'GET', path: '/api/system/http-records', statusCode: 200, bizCode: 'OK' },
+  { method: 'GET', path: '/api/system/http-record', statusCode: 200, bizCode: 'OK' },
   { method: 'POST', path: '/api/auth/login', statusCode: 200, bizCode: 'OK' },
-  { method: 'GET', path: '/api/system/http-records/:id', statusCode: 500, bizCode: 'INTERNAL_ERROR' },
+  { method: 'GET', path: '/api/system/http-record/detail', statusCode: 500, bizCode: 'INTERNAL_ERROR' },
   { method: 'GET', path: '/api/v1/health', statusCode: 200, bizCode: '' },
 ]
 
@@ -272,7 +272,7 @@ const httpRecords: MockHttpRecord[] = httpRecordSeeds.map((seed, index) => {
     id: String(100000000000010000n + BigInt(index + 1)),
     serviceType: 'yomi-admin-backend',
     serviceVersion: 'v0.1.0',
-    traceId: `mock-trace-${index + 1}`,
+    traceParent: `00-4bf92f3577b34da6a3ce929d0e0e4736-${String(index + 1).padStart(16, '0')}-01`,
     requestAt,
     durationMs: 8 + index * 3,
     method: seed.method,
@@ -963,7 +963,7 @@ const routes: MockRoute[] = [
   },
   {
     method: 'GET',
-    pattern: /^\/api\/system\/http-records$/,
+    pattern: /^\/api\/system\/http-record$/,
     handler: async ({ req, res, query }) => {
       if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
       const keyword = (query.get('keyword') ?? '').trim().toLowerCase()
@@ -976,7 +976,7 @@ const routes: MockRoute[] = [
         const matchKeyword =
           !keyword ||
           record.path.toLowerCase().includes(keyword) ||
-          record.traceId.toLowerCase().includes(keyword) ||
+          record.traceParent.toLowerCase().includes(keyword) ||
           record.clientIp.toLowerCase().includes(keyword)
         const matchStatusClass =
           !statusClass || String(Math.floor(record.statusCode / 100)) === statusClass.charAt(0)
@@ -989,10 +989,10 @@ const routes: MockRoute[] = [
   },
   {
     method: 'GET',
-    pattern: /^\/api\/system\/http-records\/([^/]+)$/,
-    handler: async ({ req, res, params }) => {
+    pattern: /^\/api\/system\/http-record\/detail$/,
+    handler: async ({ req, res, query }) => {
       if (!currentUser(req)) return sendJson(res, fail('登录已过期，请重新登录', 'TOKEN_REQUIRED'))
-      const record = httpRecords.find((item) => item.id === params[0])
+      const record = httpRecords.find((item) => item.id === (query.get('id') ?? ''))
       if (!record) return sendJson(res, fail('访问记录不存在', 'ADMIN_HTTP_RECORD_NOT_FOUND'))
       sendJson(res, ok(record))
     },

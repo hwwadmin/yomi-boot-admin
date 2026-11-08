@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS `t_http_record` (
     `id`                      BIGINT       NOT NULL COMMENT '主键（雪花ID）',
     `service_type`            VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '来源服务名',
     `service_version`         VARCHAR(32)  NOT NULL DEFAULT '' COMMENT '来源服务版本',
-    `trace_id`                VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '链路追踪ID',
+    `trace_parent`            VARCHAR(55)  NOT NULL DEFAULT '' COMMENT '本跳 W3C traceparent',
     `request_at`              DATETIME(3)  NOT NULL COMMENT '请求到达时间',
     `duration_ms`             BIGINT       NOT NULL DEFAULT 0 COMMENT '处理耗时（毫秒）',
     `method`                  VARCHAR(16)  NOT NULL COMMENT 'HTTP 方法',
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `t_http_record` (
     `delete_time`             DATETIME     DEFAULT NULL COMMENT '删除时间',
     `delete_by`               BIGINT       DEFAULT NULL COMMENT '删除人ID',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_trace_request` (`trace_id`, `request_at`),
+    UNIQUE KEY `uk_traceparent_request` (`trace_parent`, `request_at`),
     KEY `idx_request_at` (`request_at`),
     KEY `idx_user_id` (`user_id`),
     KEY `idx_delete_time` (`delete_time`)

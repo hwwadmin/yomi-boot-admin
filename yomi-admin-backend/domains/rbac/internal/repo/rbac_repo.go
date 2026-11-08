@@ -9,11 +9,11 @@ import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/enums"
 
 	yomidb "github.com/hwwadmin/yomi-boot/component/common/db"
-	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
 	"github.com/hwwadmin/yomi-boot/component/common/db/tx"
 	"github.com/hwwadmin/yomi-boot/component/core/errors"
 	sharedenums "github.com/hwwadmin/yomi-boot/component/core/shared/enums"
 	"github.com/hwwadmin/yomi-boot/component/core/utils/ptrutil"
+	"yomi-admin-backend/persist/orm"
 
 	"gorm.io/gorm"
 )

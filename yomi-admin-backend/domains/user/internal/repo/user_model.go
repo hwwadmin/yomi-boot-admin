@@ -4,7 +4,7 @@ package repo
 import (
 	"yomi-admin-backend/domains/user/pkg/shared/enums"
 
-	"github.com/hwwadmin/yomi-boot/component/common/db/orm"
+	"yomi-admin-backend/persist/orm"
 )
 
 // tableName 是用户表名
