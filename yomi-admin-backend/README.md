@@ -10,10 +10,11 @@ Yomi 管理后台后端：Go 1.26 + [yomi-boot](https://github.com/hwwadmin/yomi
 
 ## 启动
 
-1. 初始化数据库（建库、建表、灌种子数据，按文件名顺序执行）：
+1. 初始化数据库（先自行建库，库名与 `dev.yml` 的 `database` 一致，建议 utf8mb4；脚本不指定库名，执行时选中它。`init.sql` 建表，`seed_*.sql` 按领域灌种子数据，按文件名顺序执行，可重复执行）：
 
 ```bash
-for f in script/sql/*.sql; do mysql -uroot -p < "$f"; done
+mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS yomi_admin DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+for f in script/sql/*.sql; do mysql -uroot -p -D yomi_admin < "$f"; done
 ```
 
 2. 按需修改 `apps/server/config/dev.yml` 里的 MySQL / Redis 连接，默认是 `127.0.0.1:3306` 和 `127.0.0.1:6379`。

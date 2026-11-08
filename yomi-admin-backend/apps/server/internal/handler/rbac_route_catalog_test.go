@@ -65,7 +65,7 @@ func TestRBACRouteCatalogCoverage(t *testing.T) {
 	}
 	sort.Strings(missing)
 	if len(missing) > 0 {
-		t.Fatalf("以下路由既不是公开路由、也没有权限种子（请在 biz.auth.public_paths 或 020_rbac.sql 中登记）: %v", missing)
+		t.Fatalf("以下路由既不是公开路由、也没有权限种子（请在 biz.auth.public_paths 或 script/sql/seed_20_rbac.sql 中登记）: %v", missing)
 	}
 
 	var stale []string
@@ -210,7 +210,7 @@ func readRBACSeed(t *testing.T) string {
 	if !ok {
 		t.Fatal("获取测试文件路径失败")
 	}
-	sqlPath := filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "script", "sql", "020_rbac.sql")
+	sqlPath := filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "script", "sql", "seed_20_rbac.sql")
 	content, err := os.ReadFile(sqlPath)
 	if err != nil {
 		t.Fatalf("读取 RBAC 种子失败: %v", err)

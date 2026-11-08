@@ -1,115 +1,12 @@
--- RBAC 角色、权限组、权限目录，以及内置超管与种子数据
+-- RBAC 域种子数据（先执行 init.sql 建表、seed_10_user.sql 灌内置管理员）
+-- 角色、权限目录、权限组及关系，以及内置超管绑定
 SET NAMES utf8mb4;
-USE yomi_admin;
 
 -- 后端统一使用 UTC，种子时间也按 UTC 写入
 SET time_zone = '+00:00';
 
 -- 角色直连权限的旧关系表已废弃，权限一律经权限组授予
 DROP TABLE IF EXISTS `t_rbac_role_permission_rel`;
-
-CREATE TABLE IF NOT EXISTS `t_rbac_role` (
-    `id`          BIGINT       NOT NULL COMMENT '主键（雪花ID）',
-    `code`        VARCHAR(64)  NOT NULL COMMENT '角色编码，全局唯一；super_admin 为内置超管',
-    `name`        VARCHAR(64)  NOT NULL COMMENT '角色名称',
-    `builtin`     TINYINT      NOT NULL DEFAULT 0 COMMENT '是否内置：0-否，1-是',
-    `status`      VARCHAR(20)  NOT NULL DEFAULT 'ENABLED' COMMENT '状态：ENABLED-启用，DISABLED-禁用',
-    `remark`      VARCHAR(255) NOT NULL DEFAULT '' COMMENT '备注',
-    `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   BIGINT       DEFAULT NULL COMMENT '创建人ID',
-    `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   BIGINT       DEFAULT NULL COMMENT '更新人ID',
-    `delete_time` DATETIME     DEFAULT NULL COMMENT '删除时间',
-    `delete_by`   BIGINT       DEFAULT NULL COMMENT '删除人ID',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_code` (`code`),
-    KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色';
-
-CREATE TABLE IF NOT EXISTS `t_rbac_permission` (
-    `id`              BIGINT       NOT NULL COMMENT '主键（雪花ID）',
-    `code`            VARCHAR(96)  NOT NULL COMMENT '权限编码，全局唯一',
-    `name`            VARCHAR(64)  NOT NULL COMMENT '权限名称',
-    `permission_type` VARCHAR(20)  NOT NULL COMMENT '权限类型：MENU-菜单，API-接口',
-    `ui_path`         VARCHAR(191) DEFAULT NULL COMMENT '菜单路径，permission_type=MENU 时必填',
-    `http_method`     VARCHAR(16)  DEFAULT NULL COMMENT 'HTTP 方法，permission_type=API 时必填',
-    `http_path`       VARCHAR(191) DEFAULT NULL COMMENT 'gin 路由模板（以 / 开头，通常含 /api），permission_type=API 时必填',
-    `status`          VARCHAR(20)  NOT NULL DEFAULT 'ENABLED' COMMENT '状态：ENABLED-启用，DISABLED-禁用',
-    `remark`          VARCHAR(255) NOT NULL DEFAULT '' COMMENT '备注',
-    `create_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`       BIGINT       DEFAULT NULL COMMENT '创建人ID',
-    `update_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`       BIGINT       DEFAULT NULL COMMENT '更新人ID',
-    `delete_time`     DATETIME     DEFAULT NULL COMMENT '删除时间',
-    `delete_by`       BIGINT       DEFAULT NULL COMMENT '删除人ID',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_code` (`code`),
-    UNIQUE KEY `uk_http_route` (`http_method`, `http_path`),
-    UNIQUE KEY `uk_ui_path` (`ui_path`),
-    KEY `idx_permission_type_status` (`permission_type`, `status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权限目录';
-
-CREATE TABLE IF NOT EXISTS `t_rbac_permission_group` (
-    `id`          BIGINT       NOT NULL COMMENT '主键（雪花ID）',
-    `code`        VARCHAR(64)  NOT NULL COMMENT '权限组编码，全局唯一',
-    `name`        VARCHAR(64)  NOT NULL COMMENT '权限组名称',
-    `status`      VARCHAR(20)  NOT NULL DEFAULT 'ENABLED' COMMENT '状态：ENABLED-启用，DISABLED-禁用',
-    `remark`      VARCHAR(255) NOT NULL DEFAULT '' COMMENT '备注',
-    `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   BIGINT       DEFAULT NULL COMMENT '创建人ID',
-    `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   BIGINT       DEFAULT NULL COMMENT '更新人ID',
-    `delete_time` DATETIME     DEFAULT NULL COMMENT '删除时间',
-    `delete_by`   BIGINT       DEFAULT NULL COMMENT '删除人ID',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_code` (`code`),
-    KEY `idx_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权限组';
-
-CREATE TABLE IF NOT EXISTS `t_rbac_user_role_rel` (
-    `id`          BIGINT   NOT NULL COMMENT '主键（雪花ID）',
-    `user_id`     BIGINT   NOT NULL COMMENT '用户ID（t_user.id）',
-    `role_id`     BIGINT   NOT NULL COMMENT '角色ID',
-    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   BIGINT   DEFAULT NULL COMMENT '创建人ID',
-    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   BIGINT   DEFAULT NULL COMMENT '更新人ID',
-    `delete_time` DATETIME DEFAULT NULL COMMENT '删除时间',
-    `delete_by`   BIGINT   DEFAULT NULL COMMENT '删除人ID',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_user_role` (`user_id`, `role_id`),
-    KEY `idx_role_id` (`role_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户-角色关系';
-
-CREATE TABLE IF NOT EXISTS `t_rbac_role_group_rel` (
-    `id`          BIGINT   NOT NULL COMMENT '主键（雪花ID）',
-    `role_id`     BIGINT   NOT NULL COMMENT '角色ID',
-    `group_id`    BIGINT   NOT NULL COMMENT '权限组ID',
-    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   BIGINT   DEFAULT NULL COMMENT '创建人ID',
-    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   BIGINT   DEFAULT NULL COMMENT '更新人ID',
-    `delete_time` DATETIME DEFAULT NULL COMMENT '删除时间',
-    `delete_by`   BIGINT   DEFAULT NULL COMMENT '删除人ID',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_role_group` (`role_id`, `group_id`),
-    KEY `idx_group_id` (`group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色-权限组关系';
-
-CREATE TABLE IF NOT EXISTS `t_rbac_group_permission_rel` (
-    `id`            BIGINT   NOT NULL COMMENT '主键（雪花ID）',
-    `group_id`      BIGINT   NOT NULL COMMENT '权限组ID',
-    `permission_id` BIGINT   NOT NULL COMMENT '权限ID',
-    `create_time`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`     BIGINT   DEFAULT NULL COMMENT '创建人ID',
-    `update_time`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`     BIGINT   DEFAULT NULL COMMENT '更新人ID',
-    `delete_time`   DATETIME DEFAULT NULL COMMENT '删除时间',
-    `delete_by`     BIGINT   DEFAULT NULL COMMENT '删除人ID',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_group_permission` (`group_id`, `permission_id`),
-    KEY `idx_permission_id` (`permission_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权限组-权限关系';
 
 -- 内置超管角色
 INSERT IGNORE INTO `t_rbac_role` (`id`, `code`, `name`, `builtin`, `status`, `remark`)
@@ -284,7 +181,8 @@ VALUES (100000000000005093, 100000000000003001, 100000000000001018);
 
 -- 角色管理组
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
-VALUES (100000000000005011, 100000000000003002, 100000000000001002);INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
+VALUES (100000000000005011, 100000000000003002, 100000000000001002);
+INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
 VALUES (100000000000005012, 100000000000003002, 100000000000001021);
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
 VALUES (100000000000005013, 100000000000003002, 100000000000001022);
@@ -380,7 +278,7 @@ VALUES (100000000000005117, 100000000000003005, 100000000000000981);
 INSERT IGNORE INTO `t_rbac_group_permission_rel` (`id`, `group_id`, `permission_id`)
 VALUES (100000000000005118, 100000000000003006, 100000000000000981);
 
--- 内置管理员绑定超管角色
+-- 内置管理员绑定超管角色（依赖 seed_10_user.sql 已灌入 admin）
 INSERT IGNORE INTO `t_rbac_user_role_rel` (`id`, `user_id`, `role_id`, `create_by`, `update_by`)
 SELECT 100000000000002001, u.id, r.id, u.id, u.id
 FROM `t_user` u
