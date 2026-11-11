@@ -3,7 +3,6 @@ package repo
 
 import (
 	"yomi-admin-backend/domains/auditlog/pkg/shared/enums"
-
 	"yomi-admin-backend/persist/orm"
 )
 

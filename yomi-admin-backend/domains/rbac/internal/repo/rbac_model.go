@@ -3,7 +3,6 @@ package repo
 
 import (
 	"yomi-admin-backend/domains/rbac/pkg/shared/enums"
-
 	"yomi-admin-backend/persist/orm"
 )
 

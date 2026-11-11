@@ -3,7 +3,7 @@ module yomi-admin-backend/domains/user
 go 1.26.0
 
 require (
-	github.com/hwwadmin/yomi-boot v1.0.2-rc.2
+	github.com/hwwadmin/yomi-boot v1.0.2-rc.3
 	gorm.io/gorm v1.31.1
 	yomi-admin-backend/persist v0.0.0
 )

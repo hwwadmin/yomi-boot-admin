@@ -7,13 +7,13 @@ import (
 	"time"
 	"yomi-admin-backend/domains/user/internal/repo_contract"
 	"yomi-admin-backend/domains/user/pkg/shared/entity"
+	"yomi-admin-backend/persist/orm"
 
 	yomidb "github.com/hwwadmin/yomi-boot/component/common/db"
 	"github.com/hwwadmin/yomi-boot/component/common/db/tx"
 	"github.com/hwwadmin/yomi-boot/component/core/errors"
 	sharedenums "github.com/hwwadmin/yomi-boot/component/core/shared/enums"
 	"github.com/hwwadmin/yomi-boot/component/core/utils/ptrutil"
-	"yomi-admin-backend/persist/orm"
 
 	"gorm.io/gorm"
 )
