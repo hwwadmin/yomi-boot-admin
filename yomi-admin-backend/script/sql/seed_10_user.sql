@@ -1,4 +1,4 @@
--- 用户域种子数据（先执行 init.sql 建表）
+-- 用户域种子数据（先执行 schema_mysql.sql 建表）
 SET NAMES utf8mb4;
 
 -- 后端统一使用 UTC，种子时间也按 UTC 写入

@@ -1,4 +1,4 @@
--- RBAC 域种子数据（先执行 init.sql 建表、seed_10_user.sql 灌内置管理员）
+-- RBAC 域种子数据（先执行 schema_mysql.sql 建表、seed_10_user.sql 灌内置管理员）
 -- 角色、权限目录、权限组及关系，以及内置超管绑定
 SET NAMES utf8mb4;
 

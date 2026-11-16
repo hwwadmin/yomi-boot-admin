@@ -1,9 +1,10 @@
--- yomi-admin-backend 表结构初始化：只含 DDL，可重复执行
--- 种子数据按领域拆在 seed_*.sql，按文件名顺序在 init.sql 之后执行：
+-- yomi-admin-backend 表结构初始化（MySQL 版）：只含 DDL，可重复执行
+-- PostgreSQL 版见 schema_pgsql.sql，两份字段口径一致。
+-- 种子数据按领域拆在 seed_*.sql，按文件名顺序在本文件之后执行：
 --   seed_10_user.sql  用户域（内置管理员）
 --   seed_20_rbac.sql  RBAC 域（角色 / 权限目录 / 权限组及关系）
 -- 不在此指定库名：先自行建库（utf8mb4 / utf8mb4_unicode_ci，库名与 dev.yml 的 database 一致），
--- 执行时选中它，例如：mysql -uroot -p -D yomi_admin < script/sql/init.sql
+-- 执行时选中它，例如：mysql -uroot -p -D yomi_admin < script/sql/schema_mysql.sql
 SET NAMES utf8mb4;
 
 -- ============================================================
