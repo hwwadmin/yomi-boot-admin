@@ -39,10 +39,6 @@
   --el-table-tr-bg-color: var(--app-surface);
   --el-table-expanded-cell-bg-color: var(--app-surface);
 
-  /* 分页 */
-  --el-pagination-border-radius: var(--app-radius-base);
-  --el-pagination-text-color: var(--app-text-2);
-  --el-pagination-button-color: var(--app-text-2);
 }
 
 html.dark {
@@ -89,21 +85,6 @@ html.dark .el-table {
 
 .el-table .el-table__row:last-child td.el-table__cell {
   border-bottom: none;
-}
-
-/* ———————— 分页 ———————— */
-.el-pagination.is-background .el-pager li {
-  border-radius: var(--app-radius-base);
-  font-weight: 500;
-}
-
-.el-pagination.is-background .el-pager li.is-active {
-  font-weight: 600;
-}
-
-.el-pagination .el-pagination__total {
-  color: var(--app-text-3);
-  font-size: 13px;
 }
 
 /* ———————— 按钮 ———————— */

@@ -6,6 +6,7 @@ import { getAuditLogPage } from '@/api/auditLog'
 import type { AuditLogItem, AuditLogQuery } from '@/api/types'
 import PageCard from '@/components/PageCard.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import PagePagination from '@/components/PagePagination.vue'
 import { formatDateTime } from '@/utils/datetime'
 
 defineOptions({ name: 'SystemAuditLogPage' })
@@ -313,16 +314,11 @@ function targetText(row: AuditLogItem): string {
       </el-table>
 
       <template #footer>
-        <el-pagination
-          v-model:current-page="query.page"
+        <PagePagination
+          v-model:page="query.page"
           v-model:page-size="query.pageSize"
-          class="page-pagination"
-          background
-          layout="total, sizes, prev, pager, next, jumper"
           :total="total"
-          :page-sizes="[10, 20, 50]"
-          @current-change="fetchList"
-          @size-change="handleSearch"
+          @change="fetchList"
         />
       </template>
     </PageCard>

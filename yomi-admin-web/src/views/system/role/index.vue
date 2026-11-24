@@ -21,6 +21,7 @@ import type { PermissionGroupItem, PermissionItem, RoleItem, Status } from '@/ap
 import NameCell from '@/components/NameCell.vue'
 import PageCard from '@/components/PageCard.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import PagePagination from '@/components/PagePagination.vue'
 import { confirmAction } from '@/utils/confirm'
 import { formatDateTime } from '@/utils/datetime'
 import { newIdempotencyKey } from '@/utils/idempotency'
@@ -391,16 +392,11 @@ async function saveGroups() {
       </el-table>
 
       <template #footer>
-        <el-pagination
-          v-model:current-page="query.page"
+        <PagePagination
+          v-model:page="query.page"
           v-model:page-size="query.pageSize"
-          class="page-pagination"
-          background
-          layout="total, sizes, prev, pager, next, jumper"
           :total="total"
-          :page-sizes="[10, 20, 50]"
-          @current-change="fetchList"
-          @size-change="handleSearch"
+          @change="fetchList"
         />
       </template>
     </PageCard>

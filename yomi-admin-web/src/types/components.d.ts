@@ -56,6 +56,7 @@ declare module 'vue' {
     NameCell: typeof import('./../components/NameCell.vue')['default']
     PageCard: typeof import('./../components/PageCard.vue')['default']
     PageHeader: typeof import('./../components/PageHeader.vue')['default']
+    PagePagination: typeof import('./../components/PagePagination.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

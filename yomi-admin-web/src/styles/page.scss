@@ -1,6 +1,6 @@
 /**
- * 列表页共享的布局原语：工具栏、表格单元格语义、分页。
- * 供各页面以固定 class 组合使用，避免六份重复样式。
+ * 列表页共享的布局原语：工具栏、表格单元格语义。
+ * 供各页面以固定 class 组合使用，避免多份重复样式。
  */
 .page-toolbar {
   display: flex;
@@ -101,15 +101,6 @@
   color: var(--app-text-3);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
-}
-
-/* 分页：总数靠左，控件靠右 */
-.page-pagination.el-pagination {
-  width: 100%;
-}
-
-.page-pagination .el-pagination__total {
-  margin-right: auto;
 }
 
 @media (max-width: 960px) {
