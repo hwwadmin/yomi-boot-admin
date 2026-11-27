@@ -30,6 +30,8 @@ type captchaVerifier interface {
 // loginGuard 负责登录失败预算与临时锁定
 type loginGuard interface {
 	BeforeAttempt(ctx context.Context, account, clientIP string) (loginguard.Decision, error)
+	ReserveAttempt(ctx context.Context, account, clientIP string) (loginguard.Decision, error)
+	ReleaseAttempt(ctx context.Context, account, clientIP string) error
 	RecordFailure(ctx context.Context, account, clientIP string) (loginguard.Decision, error)
 	RecordSuccess(ctx context.Context, account, clientIP string) error
 }
@@ -99,30 +101,48 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP, u
 		return nil, err
 	}
 
+	// 验密前先原子预占失败预算：锁定检查与占位在同一脚本内完成，
+	// 并发请求无法同时越过阈值，验证码通过后的验密次数被严格限制。
+	reservation, err := uc.guard.ReserveAttempt(ctx, in.Username, clientIP)
+	if err != nil {
+		return nil, errors.WrapBiz(err, ErrLoginGuardUnavailable.Code, ErrLoginGuardUnavailable.Message)
+	}
+	switch reservation.Outcome {
+	case loginguard.OutcomeRateLimited:
+		return nil, errors.Sentinel(ErrLoginRateLimited)
+	case loginguard.OutcomeLocked:
+		return nil, loginLockedError(reservation.RetryAfter)
+	}
+
 	out, err := uc.users.Authenticate(ctx, &userinput.AuthenticateInput{
 		Username: in.Username,
 		Password: in.Password,
 	})
 	if err != nil {
-		if errors.Is(err, service_contract.ErrInvalidCredential) {
+		switch {
+		case errors.Is(err, service_contract.ErrInvalidCredential):
+			// 预占转为正式失败计数
 			failure, guardErr := uc.guard.RecordFailure(ctx, in.Username, clientIP)
 			if guardErr != nil {
 				logger.Warn(ctx, "记录登录失败计数失败", "error", guardErr)
 			} else if failure.Outcome == loginguard.OutcomeLocked {
 				return nil, loginLockedError(failure.RetryAfter)
 			}
-		}
-		if errors.Is(err, service_contract.ErrUserDisabled) {
-			// 密码正确但账号被禁用，不计失败；清空该账号的历史失败计数
+		case errors.Is(err, service_contract.ErrUserDisabled):
+			// 密码正确但账号被禁用，不计失败；释放预占并清空该账号的历史失败计数
 			if guardErr := uc.guard.RecordSuccess(ctx, in.Username, clientIP); guardErr != nil {
 				logger.Warn(ctx, "清空账号登录失败计数失败", "error", guardErr)
 			}
+		default:
+			// 非凭证错误不改变预算，只释放预占
+			uc.releaseReservation(ctx, in.Username, clientIP)
 		}
 		return nil, err
 	}
 
 	identity, err := buildIdentityView(ctx, out.User, uc.auth)
 	if err != nil {
+		uc.releaseReservation(ctx, in.Username, clientIP)
 		return nil, err
 	}
 
@@ -137,6 +157,7 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP, u
 
 	tokenValue, err := uc.token.Issue(ctx, session)
 	if err != nil {
+		uc.releaseReservation(ctx, in.Username, clientIP)
 		return nil, errors.Wrap(err, "签发令牌失败")
 	}
 
@@ -147,6 +168,13 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in *LoginInput, clientIP, u
 	}
 
 	return &LoginOutput{Token: tokenValue, User: identity}, nil
+}
+
+// releaseReservation 释放失败预算预占；仅用于不走失败计数、也不清空预算的出口
+func (uc *LoginUsecase) releaseReservation(ctx context.Context, account, clientIP string) {
+	if err := uc.guard.ReleaseAttempt(ctx, account, clientIP); err != nil {
+		logger.Warn(ctx, "释放登录失败预算预占失败", "error", err)
+	}
 }
 
 // truncateUserAgent 按字节截断 User-Agent；仅用于会话展示，不参与鉴权判断

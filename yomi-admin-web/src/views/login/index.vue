@@ -371,7 +371,7 @@ onMounted(async () => {
 .captcha-image {
   position: relative;
   display: flex;
-  flex: 0 0 122px;
+  flex: 0 0 150px;
   align-items: center;
   justify-content: center;
   height: 44px;

@@ -22,14 +22,16 @@ const maxCaptchaRefreshIntervalSeconds = 3600
 
 // CaptchaConfig 是登录图像验证码配置；零值字段按默认值处理
 type CaptchaConfig struct {
-	Enabled                *bool  `mapstructure:"enabled"`                  // Enabled 是登录是否强制校验图像验证码，未配置默认 true
-	Driver                 string `mapstructure:"driver"`                   // Driver 是验证码驱动：digit / string / math，空则 digit
-	Length                 int    `mapstructure:"length"`                   // Length 是答案字符数，digit/string 有效，0 则 4
-	Width                  int    `mapstructure:"width"`                    // Width 是图片宽度（像素），0 则 240
-	Height                 int    `mapstructure:"height"`                   // Height 是图片高度（像素），0 则 80
-	TTLSeconds             int    `mapstructure:"ttl_seconds"`              // TTLSeconds 是验证码有效期（秒），0 则 300
-	KeyPrefix              string `mapstructure:"key_prefix"`               // KeyPrefix 是 Redis 键前缀，空则 yomi:captcha:login
-	RefreshIntervalSeconds *int   `mapstructure:"refresh_interval_seconds"` // RefreshIntervalSeconds 是同 IP 生成验证码的最小间隔（秒），未配置默认 1，0 表示不限流
+	Enabled                *bool    `mapstructure:"enabled"`                  // Enabled 是登录是否强制校验图像验证码，未配置默认 true
+	Driver                 string   `mapstructure:"driver"`                   // Driver 是验证码驱动：digit / string / math，空则 digit
+	Length                 int      `mapstructure:"length"`                   // Length 是答案字符数，digit/string 有效，0 则 4
+	Width                  int      `mapstructure:"width"`                    // Width 是图片宽度（像素），0 则 240
+	Height                 int      `mapstructure:"height"`                   // Height 是图片高度（像素），0 则 80
+	NoiseCount             int      `mapstructure:"noise_count"`              // NoiseCount 是背景干扰字符数，string/math 有效，0..100
+	Lines                  []string `mapstructure:"lines"`                    // Lines 是干扰线组合：hollow / slime / sine
+	TTLSeconds             int      `mapstructure:"ttl_seconds"`              // TTLSeconds 是验证码有效期（秒），0 则 300
+	KeyPrefix              string   `mapstructure:"key_prefix"`               // KeyPrefix 是 Redis 键前缀，空则 yomi:captcha:login
+	RefreshIntervalSeconds *int     `mapstructure:"refresh_interval_seconds"` // RefreshIntervalSeconds 是同 IP 生成验证码的最小间隔（秒），未配置默认 1，0 表示不限流
 }
 
 // EnabledOrDefault 返回登录是否强制校验图像验证码，未配置默认 true
@@ -57,12 +59,30 @@ func (c CaptchaConfig) KeyPrefixOrDefault() string {
 // ToConfig 转换为 yomi-boot captcha 运行时配置；零值字段由 captcha 包填默认值
 func (c CaptchaConfig) ToConfig() captcha.Config {
 	return captcha.Config{
-		Driver: captcha.Driver(c.Driver),
-		Length: c.Length,
-		Width:  c.Width,
-		Height: c.Height,
-		TTL:    time.Duration(c.TTLSeconds) * time.Second,
+		Driver:     captcha.Driver(c.Driver),
+		Length:     c.Length,
+		Width:      c.Width,
+		Height:     c.Height,
+		NoiseCount: c.NoiseCount,
+		Lines:      c.lineOptions(),
+		TTL:        time.Duration(c.TTLSeconds) * time.Second,
 	}
+}
+
+// lineOptions 把干扰线名称转换为位掩码；未知名称由 Validate 拒绝
+func (c CaptchaConfig) lineOptions() captcha.LineOption {
+	var lines captcha.LineOption
+	for _, name := range c.Lines {
+		switch strings.ToLower(strings.TrimSpace(name)) {
+		case "hollow":
+			lines |= captcha.LineHollow
+		case "slime":
+			lines |= captcha.LineSlime
+		case "sine":
+			lines |= captcha.LineSine
+		}
+	}
+	return lines
 }
 
 // Validate 校验验证码配置语义
@@ -71,6 +91,13 @@ func (c CaptchaConfig) Validate() error {
 		seconds := *c.RefreshIntervalSeconds
 		if seconds < 0 || seconds > maxCaptchaRefreshIntervalSeconds {
 			return errors.Newf("%s.captcha: refresh_interval_seconds 必须在 0..%d 之间", SectionKey, maxCaptchaRefreshIntervalSeconds)
+		}
+	}
+	for _, name := range c.Lines {
+		switch strings.ToLower(strings.TrimSpace(name)) {
+		case "hollow", "slime", "sine":
+		default:
+			return errors.Newf("%s.captcha: lines 仅支持 hollow / slime / sine，实际为 %q", SectionKey, name)
 		}
 	}
 	if err := c.ToConfig().Validate(); err != nil {

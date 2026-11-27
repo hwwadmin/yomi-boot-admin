@@ -16,14 +16,20 @@ const (
 	attemptKeyPrefix = "loginguard:ip:"
 	// maxLogRunes 限制日志中的账号长度，避免超长输入放大日志
 	maxLogRunes = 64
+	// attemptReservationTTL 是预占槽位的存活时间；验密通常远小于该值，进程异常退出时最多占用这么久
+	attemptReservationTTL = 30 * time.Second
+	// reserveAllowed 表示预算充足，本次尝试已完成预占
+	reserveAllowed int64 = 0
+	// reserveLocked 表示命中已有锁定
+	reserveLocked int64 = 1
+	// reserveExhausted 表示预算已被已提交失败与在途预占占满
+	reserveExhausted int64 = 2
 )
 
 // ScriptExecutor 是登录保护需要的 Redis 原子脚本能力
 type ScriptExecutor interface {
 	// OpsScript4Eval 执行 Lua 脚本，keys 与 args 分别映射为 KEYS 与 ARGV
 	OpsScript4Eval(ctx context.Context, script string, keys []string, args ...any) (any, error)
-	// OpsKey4Delete 删除一个或多个 key
-	OpsKey4Delete(ctx context.Context, keys ...string) error
 }
 
 // Limiter 是 IP 尝试配额需要的限流能力
@@ -51,7 +57,7 @@ func New(redis ScriptExecutor, limiter Limiter, policy Policy) *Guard {
 	return &Guard{redis: redis, limiter: limiter, policy: policy, prefix: policy.normalizedKeyPrefix()}
 }
 
-// BeforeAttempt 在验证码与验密之前执行：先消耗 IP 尝试配额，再检查三层锁定。
+// BeforeAttempt 在验证码之前执行：消耗 IP 尝试配额并检查三层锁定。
 //
 // 校验码错误也会消耗尝试配额；锁定检查放在验证码之前，被锁用户不必再解验证码。
 func (g *Guard) BeforeAttempt(ctx context.Context, account, clientIP string) (Decision, error) {
@@ -82,6 +88,64 @@ func (g *Guard) BeforeAttempt(ctx context.Context, account, clientIP string) (De
 	return Decision{Outcome: OutcomeAllowed}, nil
 }
 
+// ReserveAttempt 在验密前原子预占一次失败预算。
+//
+// 锁定检查与预占在同一脚本内完成：并发请求按「已提交失败 + 在途预占」共同判定，
+// 只有未触顶的请求能进入验密，因此阈值不会因为并发而失效。
+// 验密后必须调用 RecordFailure、RecordSuccess 或 ReleaseAttempt 释放预占。
+func (g *Guard) ReserveAttempt(ctx context.Context, account, clientIP string) (Decision, error) {
+	if !g.policy.Enabled {
+		return Decision{Outcome: OutcomeAllowed}, nil
+	}
+
+	keys, dimensions := g.budgetKeys(account, clientIP)
+	args := []any{attemptReservationTTL.Milliseconds(), g.policy.IPFailures}
+	if dimensions == 3 {
+		args = append(args, g.policy.PairFailures, g.policy.AccountFailures)
+	}
+	result, err := g.redis.OpsScript4Eval(ctx, reserveAttemptScript, keys, args...)
+	if err != nil {
+		return Decision{}, err
+	}
+
+	values, ok := result.([]any)
+	if !ok || len(values) != 2 {
+		return Decision{}, errors.Newf("loginguard: 预占脚本返回类型异常 %T", result)
+	}
+	kind, err := scriptInt64(values[0])
+	if err != nil {
+		return Decision{}, err
+	}
+	ttlMs, err := scriptInt64(values[1])
+	if err != nil {
+		return Decision{}, err
+	}
+	switch kind {
+	case reserveAllowed:
+		return Decision{Outcome: OutcomeAllowed}, nil
+	case reserveLocked:
+		return Decision{Outcome: OutcomeLocked, RetryAfter: time.Duration(ttlMs) * time.Millisecond}, nil
+	case reserveExhausted:
+		return Decision{Outcome: OutcomeRateLimited, RetryAfter: time.Duration(ttlMs) * time.Millisecond}, nil
+	default:
+		return Decision{}, errors.Newf("loginguard: 预占脚本返回未知状态 %d", kind)
+	}
+}
+
+// ReleaseAttempt 释放验密前预占的失败预算，不改变失败计数。
+func (g *Guard) ReleaseAttempt(ctx context.Context, account, clientIP string) error {
+	if !g.policy.Enabled {
+		return nil
+	}
+	keys, _ := g.budgetKeys(account, clientIP)
+	pendingKeys := make([]string, 0, len(keys)/3)
+	for i := 2; i < len(keys); i += 3 {
+		pendingKeys = append(pendingKeys, keys[i])
+	}
+	_, err := g.redis.OpsScript4Eval(ctx, releaseAttemptScript, pendingKeys)
+	return err
+}
+
 // dimensionLocks 是一次失败记账后各维度的锁时长；0 表示该维度未触发锁定
 type dimensionLocks struct {
 	ip      time.Duration
@@ -91,8 +155,8 @@ type dimensionLocks struct {
 
 // RecordFailure 记录一次凭证失败，返回本次是否触发锁定。
 //
-// 涉及的维度在单次 Redis 往返内原子记账：三个维度都会记账，命中任意一个维度即视为锁定；
-// 账号为空时只记 IP 维度。不存在"部分维度记上、部分丢失"的中间态。
+// 把 ReserveAttempt 的预占转为正式失败计数：涉及的维度在单次 Redis 往返内原子记账，
+// 三个维度都会记账，命中任意一个维度即视为锁定；账号为空时只记 IP 维度。
 func (g *Guard) RecordFailure(ctx context.Context, account, clientIP string) (Decision, error) {
 	if !g.policy.Enabled {
 		return Decision{Outcome: OutcomeAllowed}, nil
@@ -119,9 +183,9 @@ func (g *Guard) RecordFailure(ctx context.Context, account, clientIP string) (De
 	return decision, nil
 }
 
-// RecordSuccess 清空账号维度与 IP+账号维度的状态。
+// RecordSuccess 释放预占，并清空账号维度与 IP+账号维度的失败计数与锁定。
 //
-// 不清 IP 维度：IP 失败计数跨账号，成功登录不能把 IP 的喷洒记录洗白。
+// 不清 IP 失败计数：IP 失败计数跨账号，成功登录不能把 IP 的喷洒记录洗白。
 func (g *Guard) RecordSuccess(ctx context.Context, account, clientIP string) error {
 	if !g.policy.Enabled {
 		return nil
@@ -131,39 +195,33 @@ func (g *Guard) RecordSuccess(ctx context.Context, account, clientIP string) err
 		return nil
 	}
 	ip := ipID(clientIP)
-	return g.redis.OpsKey4Delete(ctx,
-		g.pairKey(id, ip, "fail"), g.pairKey(id, ip, "lock"),
-		g.accountKey(id, "fail"), g.accountKey(id, "lock"), g.accountKey(id, "level"),
-	)
+	keys := []string{
+		g.ipKey(ip, "pending"),
+		g.pairKey(id, ip, "pending"), g.pairKey(id, ip, "fail"), g.pairKey(id, ip, "lock"),
+		g.accountKey(id, "pending"), g.accountKey(id, "fail"), g.accountKey(id, "lock"), g.accountKey(id, "level"),
+	}
+	_, err := g.redis.OpsScript4Eval(ctx, recordSuccessScript, keys)
+	return err
 }
 
-// recordFailure 在单次 Redis 往返内累加一次凭证失败涉及的全部维度。
+// recordFailure 在单次 Redis 往返内把预占转为失败计数。
 //
 // 账号为空只记 IP 维度；否则 IP、IP+账号、账号三个维度在同一个 Lua 脚本内原子生效，
 // 脚本失败时三个维度都不会落账，由调用方按"保护不可用"统一处理。
 func (g *Guard) recordFailure(ctx context.Context, account, clientIP string) (dimensionLocks, error) {
-	ip := ipID(clientIP)
-	id := accountID(account)
+	keys, dimensions := g.budgetKeys(account, clientIP)
 
-	var keys []string
 	var args []any
-	if id == "" {
-		keys = []string{g.ipKey(ip, "fail"), g.ipKey(ip, "lock")}
-		args = []any{
-			g.policy.IPFailWindow.Milliseconds(), g.policy.IPFailures, g.policy.IPLock.Milliseconds(),
-		}
-	} else {
-		keys = []string{
-			g.ipKey(ip, "fail"), g.ipKey(ip, "lock"),
-			g.pairKey(id, ip, "fail"), g.pairKey(id, ip, "lock"),
-			g.accountKey(id, "fail"), g.accountKey(id, "lock"), g.accountKey(id, "level"),
-		}
-		args = []any{
-			g.policy.IPFailWindow.Milliseconds(), g.policy.IPFailures, g.policy.IPLock.Milliseconds(),
+	args = append(args,
+		g.policy.IPFailWindow.Milliseconds(), g.policy.IPFailures, g.policy.IPLock.Milliseconds(),
+	)
+	if dimensions == 3 {
+		keys = append(keys, g.accountKey(accountID(account), "level"))
+		args = append(args,
 			g.policy.PairWindow.Milliseconds(), g.policy.PairFailures, g.policy.PairLock.Milliseconds(),
 			g.policy.AccountWindow.Milliseconds(), g.policy.AccountFailures, g.policy.AccountLock.Milliseconds(),
 			g.policy.AccountMaxLock.Milliseconds(), g.policy.LevelTTL.Milliseconds(),
-		}
+		)
 	}
 
 	locks, err := g.evalLocks(ctx, recordFailureScript, keys, args...)
@@ -177,6 +235,25 @@ func (g *Guard) recordFailure(ctx context.Context, account, clientIP string) (di
 		return dimensionLocks{ip: locks[0], pair: locks[1], account: locks[2]}, nil
 	}
 	return dimensionLocks{ip: locks[0]}, nil
+}
+
+// budgetKeys 返回失败预算涉及维度的 key，按每个维度 lock、fail、pending 的顺序交错排列。
+//
+// 返回的 dimensions 为 1（仅 IP）或 3（IP、IP+账号、账号）。
+func (g *Guard) budgetKeys(account, clientIP string) ([]string, int) {
+	ip := ipID(clientIP)
+	keys := []string{
+		g.ipKey(ip, "lock"), g.ipKey(ip, "fail"), g.ipKey(ip, "pending"),
+	}
+	id := accountID(account)
+	if id == "" {
+		return keys, 1
+	}
+	keys = append(keys,
+		g.pairKey(id, ip, "lock"), g.pairKey(id, ip, "fail"), g.pairKey(id, ip, "pending"),
+		g.accountKey(id, "lock"), g.accountKey(id, "fail"), g.accountKey(id, "pending"),
+	)
+	return keys, 3
 }
 
 // evalInt64 执行返回整数的 Lua 脚本

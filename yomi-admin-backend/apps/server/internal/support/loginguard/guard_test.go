@@ -22,7 +22,6 @@ type fakeScriptExecutor struct {
 	results []any
 	err     error
 	calls   []scriptCall
-	deleted [][]string
 }
 
 func (f *fakeScriptExecutor) OpsScript4Eval(_ context.Context, script string, keys []string, args ...any) (any, error) {
@@ -40,11 +39,6 @@ func (f *fakeScriptExecutor) OpsScript4Eval(_ context.Context, script string, ke
 	result := f.results[0]
 	f.results = f.results[1:]
 	return result, nil
-}
-
-func (f *fakeScriptExecutor) OpsKey4Delete(_ context.Context, keys ...string) error {
-	f.deleted = append(f.deleted, append([]string(nil), keys...))
-	return f.err
 }
 
 // fakeLimiter 是 IP 尝试配额测试桩
@@ -97,6 +91,13 @@ func TestPolicyDisabledSkipsValidation(t *testing.T) {
 	decision, err := guard.BeforeAttempt(context.Background(), "admin", "10.0.0.1")
 	if err != nil || decision.Outcome != OutcomeAllowed {
 		t.Fatalf("关闭时应直接放行: decision=%+v err=%v", decision, err)
+	}
+	if err := guard.ReleaseAttempt(context.Background(), "admin", "10.0.0.1"); err != nil {
+		t.Fatalf("关闭时释放预占不应报错: %v", err)
+	}
+	decision, err = guard.ReserveAttempt(context.Background(), "admin", "10.0.0.1")
+	if err != nil || decision.Outcome != OutcomeAllowed {
+		t.Fatalf("关闭时预占应直接放行: decision=%+v err=%v", decision, err)
 	}
 }
 
@@ -193,6 +194,129 @@ func TestBeforeAttemptLimiterFailure(t *testing.T) {
 	}
 }
 
+func TestReserveAttemptAllowed(t *testing.T) {
+	redis := &fakeScriptExecutor{results: []any{[]any{int64(0), int64(0)}}}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	decision, err := guard.ReserveAttempt(context.Background(), "admin", "10.0.0.1")
+	if err != nil {
+		t.Fatalf("预占失败: %v", err)
+	}
+	if decision.Outcome != OutcomeAllowed {
+		t.Fatalf("期望放行: %+v", decision)
+	}
+	if len(redis.calls) != 1 {
+		t.Fatalf("预占应一次脚本调用完成: %d", len(redis.calls))
+	}
+
+	call := redis.calls[0]
+	if call.script != reserveAttemptScript {
+		t.Fatal("应使用预占脚本")
+	}
+
+	ip := ipID("10.0.0.1")
+	id := accountID("admin")
+	wantKeys := []string{
+		guard.ipKey(ip, "lock"), guard.ipKey(ip, "fail"), guard.ipKey(ip, "pending"),
+		guard.pairKey(id, ip, "lock"), guard.pairKey(id, ip, "fail"), guard.pairKey(id, ip, "pending"),
+		guard.accountKey(id, "lock"), guard.accountKey(id, "fail"), guard.accountKey(id, "pending"),
+	}
+	assertKeys(t, call.keys, wantKeys)
+
+	policy := DefaultPolicy()
+	wantArgs := []any{
+		attemptReservationTTL.Milliseconds(), policy.IPFailures, policy.PairFailures, policy.AccountFailures,
+	}
+	assertArgs(t, call.args, wantArgs)
+}
+
+func TestReserveAttemptWithoutAccountUsesIPOnly(t *testing.T) {
+	redis := &fakeScriptExecutor{results: []any{[]any{int64(0), int64(0)}}}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	if _, err := guard.ReserveAttempt(context.Background(), " ", "10.0.0.1"); err != nil {
+		t.Fatalf("预占失败: %v", err)
+	}
+	if len(redis.calls[0].keys) != 3 {
+		t.Fatalf("空账号只应预占 IP 维度: %+v", redis.calls[0].keys)
+	}
+	assertArgs(t, redis.calls[0].args, []any{attemptReservationTTL.Milliseconds(), DefaultPolicy().IPFailures})
+}
+
+func TestReserveAttemptLocked(t *testing.T) {
+	redis := &fakeScriptExecutor{results: []any{[]any{int64(1), int64(1500)}}}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	decision, err := guard.ReserveAttempt(context.Background(), "admin", "10.0.0.1")
+	if err != nil {
+		t.Fatalf("预占失败: %v", err)
+	}
+	if decision.Outcome != OutcomeLocked || decision.RetryAfter != 1500*time.Millisecond {
+		t.Fatalf("期望锁定 1.5s: %+v", decision)
+	}
+}
+
+func TestReserveAttemptBudgetExhausted(t *testing.T) {
+	redis := &fakeScriptExecutor{results: []any{[]any{int64(2), int64(30000)}}}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	decision, err := guard.ReserveAttempt(context.Background(), "admin", "10.0.0.1")
+	if err != nil {
+		t.Fatalf("预占失败: %v", err)
+	}
+	if decision.Outcome != OutcomeRateLimited || decision.RetryAfter != 30*time.Second {
+		t.Fatalf("预算占满应返回限流: %+v", decision)
+	}
+}
+
+func TestReserveAttemptUnexpectedResult(t *testing.T) {
+	cases := []any{int64(0), []any{int64(0)}, []any{int64(9), int64(0)}}
+	for _, result := range cases {
+		redis := &fakeScriptExecutor{results: []any{result}}
+		guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+		if _, err := guard.ReserveAttempt(context.Background(), "admin", "10.0.0.1"); err == nil {
+			t.Fatalf("异常返回应报错: %#v", result)
+		}
+	}
+}
+
+func TestReserveAttemptRedisError(t *testing.T) {
+	redis := &fakeScriptExecutor{err: errors.New("redis down")}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	if _, err := guard.ReserveAttempt(context.Background(), "admin", "10.0.0.1"); err == nil {
+		t.Fatal("Redis 故障应向上传播")
+	}
+}
+
+func TestReleaseAttemptReleasesPendingKeys(t *testing.T) {
+	redis := &fakeScriptExecutor{}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	if err := guard.ReleaseAttempt(context.Background(), "admin", "10.0.0.1"); err != nil {
+		t.Fatalf("释放预占失败: %v", err)
+	}
+	if len(redis.calls) != 1 || redis.calls[0].script != releaseAttemptScript {
+		t.Fatalf("应使用释放脚本: %+v", redis.calls)
+	}
+	ip := ipID("10.0.0.1")
+	id := accountID("admin")
+	assertKeys(t, redis.calls[0].keys, []string{
+		guard.ipKey(ip, "pending"),
+		guard.pairKey(id, ip, "pending"),
+		guard.accountKey(id, "pending"),
+	})
+}
+
+func TestReleaseAttemptRedisError(t *testing.T) {
+	redis := &fakeScriptExecutor{err: errors.New("redis down")}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	if err := guard.ReleaseAttempt(context.Background(), "admin", "10.0.0.1"); err == nil {
+		t.Fatal("Redis 故障应向上传播")
+	}
+}
+
 func TestRecordFailureReturnsMaxLock(t *testing.T) {
 	redis := &fakeScriptExecutor{results: []any{[]any{int64(0), int64(600000), int64(900000)}}}
 	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
@@ -206,7 +330,7 @@ func TestRecordFailureReturnsMaxLock(t *testing.T) {
 	}
 }
 
-// TestRecordFailureSingleRoundTrip 校验三个维度在单次脚本调用内原子记账
+// TestRecordFailureSingleRoundTrip 校验三个维度在单次脚本调用内原子记账并释放预占
 func TestRecordFailureSingleRoundTrip(t *testing.T) {
 	redis := &fakeScriptExecutor{results: []any{[]any{int64(0), int64(600000), int64(900000)}}}
 	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
@@ -226,18 +350,12 @@ func TestRecordFailureSingleRoundTrip(t *testing.T) {
 	ip := ipID("10.0.0.1")
 	id := accountID("admin")
 	wantKeys := []string{
-		guard.ipKey(ip, "fail"), guard.ipKey(ip, "lock"),
-		guard.pairKey(id, ip, "fail"), guard.pairKey(id, ip, "lock"),
-		guard.accountKey(id, "fail"), guard.accountKey(id, "lock"), guard.accountKey(id, "level"),
+		guard.ipKey(ip, "lock"), guard.ipKey(ip, "fail"), guard.ipKey(ip, "pending"),
+		guard.pairKey(id, ip, "lock"), guard.pairKey(id, ip, "fail"), guard.pairKey(id, ip, "pending"),
+		guard.accountKey(id, "lock"), guard.accountKey(id, "fail"), guard.accountKey(id, "pending"),
+		guard.accountKey(id, "level"),
 	}
-	if len(call.keys) != len(wantKeys) {
-		t.Fatalf("key 数量不符: %d", len(call.keys))
-	}
-	for i, want := range wantKeys {
-		if call.keys[i] != want {
-			t.Fatalf("keys[%d] = %s, want %s", i, call.keys[i], want)
-		}
-	}
+	assertKeys(t, call.keys, wantKeys)
 
 	policy := DefaultPolicy()
 	wantArgs := []any{
@@ -246,14 +364,7 @@ func TestRecordFailureSingleRoundTrip(t *testing.T) {
 		policy.AccountWindow.Milliseconds(), policy.AccountFailures, policy.AccountLock.Milliseconds(),
 		policy.AccountMaxLock.Milliseconds(), policy.LevelTTL.Milliseconds(),
 	}
-	if len(call.args) != len(wantArgs) {
-		t.Fatalf("argv 数量不符: %d", len(call.args))
-	}
-	for i, want := range wantArgs {
-		if call.args[i] != want {
-			t.Fatalf("args[%d] = %v, want %v", i, call.args[i], want)
-		}
-	}
+	assertArgs(t, call.args, wantArgs)
 }
 
 func TestRecordFailureWithoutAccountRecordsIPOnly(t *testing.T) {
@@ -270,11 +381,11 @@ func TestRecordFailureWithoutAccountRecordsIPOnly(t *testing.T) {
 	if len(redis.calls) != 1 {
 		t.Fatalf("空账号只应记录 IP 维度: %d", len(redis.calls))
 	}
-	if len(redis.calls[0].keys) != 2 {
-		t.Fatalf("空账号只应有 IP 两个 key: %+v", redis.calls[0].keys)
+	if len(redis.calls[0].keys) != 3 {
+		t.Fatalf("空账号应有 IP 的 lock/fail/pending 三个 key: %+v", redis.calls[0].keys)
 	}
-	if redis.calls[0].keys[0] != guard.ipKey(ipID("10.0.0.1"), "fail") {
-		t.Fatalf("key 不是 IP 失败计数: %s", redis.calls[0].keys[0])
+	if redis.calls[0].keys[1] != guard.ipKey(ipID("10.0.0.1"), "fail") {
+		t.Fatalf("key 不是 IP 失败计数: %s", redis.calls[0].keys[1])
 	}
 }
 
@@ -301,30 +412,29 @@ func TestRecordFailureRedisError(t *testing.T) {
 	}
 }
 
-func TestRecordSuccessDeletesAccountScopedKeys(t *testing.T) {
+func TestRecordSuccessReleasesPendingAndClearsAccountKeys(t *testing.T) {
 	redis := &fakeScriptExecutor{}
 	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
 
 	if err := guard.RecordSuccess(context.Background(), " Admin ", "10.0.0.1"); err != nil {
 		t.Fatalf("清零失败: %v", err)
 	}
-	if len(redis.deleted) != 1 || len(redis.deleted[0]) != 5 {
-		t.Fatalf("应删除组合与账号维度共 5 个 key: %+v", redis.deleted)
+	if len(redis.calls) != 1 || redis.calls[0].script != recordSuccessScript {
+		t.Fatalf("应使用成功清零脚本: %+v", redis.calls)
 	}
-	var pairCount, accountCount int
-	for _, key := range redis.deleted[0] {
-		if strings.Contains(key, ":ip:") {
-			t.Fatalf("成功登录不能清 IP 维度: %s", key)
+
+	ip := ipID("10.0.0.1")
+	id := accountID("admin")
+	keys := redis.calls[0].keys
+	assertKeys(t, keys, []string{
+		guard.ipKey(ip, "pending"),
+		guard.pairKey(id, ip, "pending"), guard.pairKey(id, ip, "fail"), guard.pairKey(id, ip, "lock"),
+		guard.accountKey(id, "pending"), guard.accountKey(id, "fail"), guard.accountKey(id, "lock"), guard.accountKey(id, "level"),
+	})
+	for _, key := range keys {
+		if strings.HasSuffix(key, ":fail") && strings.Contains(key, ":ip:") {
+			t.Fatalf("成功登录不能清 IP 失败计数: %s", key)
 		}
-		if strings.Contains(key, ":pair:") {
-			pairCount++
-		}
-		if strings.Contains(key, ":user:") {
-			accountCount++
-		}
-	}
-	if pairCount != 2 || accountCount != 3 {
-		t.Fatalf("key 维度数量不符: pair=%d account=%d", pairCount, accountCount)
 	}
 }
 
@@ -335,8 +445,17 @@ func TestRecordSuccessSkipsEmptyAccount(t *testing.T) {
 	if err := guard.RecordSuccess(context.Background(), "", "10.0.0.1"); err != nil {
 		t.Fatalf("空账号不应报错: %v", err)
 	}
-	if len(redis.deleted) != 0 {
-		t.Fatalf("空账号不应删除 key: %+v", redis.deleted)
+	if len(redis.calls) != 0 {
+		t.Fatalf("空账号不应调用脚本: %+v", redis.calls)
+	}
+}
+
+func TestRecordSuccessRedisError(t *testing.T) {
+	redis := &fakeScriptExecutor{err: errors.New("redis down")}
+	guard := New(redis, &fakeLimiter{}, DefaultPolicy())
+
+	if err := guard.RecordSuccess(context.Background(), "admin", "10.0.0.1"); err == nil {
+		t.Fatal("Redis 故障应向上传播")
 	}
 }
 
@@ -383,5 +502,29 @@ func TestTruncate(t *testing.T) {
 	}
 	if truncate(" admin ", maxLogRunes) != "admin" {
 		t.Fatal("应去掉首尾空白")
+	}
+}
+
+func assertKeys(t *testing.T, got, want []string) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("key 数量不符: got=%d want=%d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("keys[%d] = %s, want %s", i, got[i], want[i])
+		}
+	}
+}
+
+func assertArgs(t *testing.T, got, want []any) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("argv 数量不符: got=%d want=%d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("args[%d] = %v, want %v", i, got[i], want[i])
+		}
 	}
 }

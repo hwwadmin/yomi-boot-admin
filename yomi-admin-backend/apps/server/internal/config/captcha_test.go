@@ -22,12 +22,33 @@ func TestCaptchaConfigDefaults(t *testing.T) {
 }
 
 func TestCaptchaConfigToConfig(t *testing.T) {
-	cfg := CaptchaConfig{Driver: "string", Length: 5, Width: 160, Height: 60, TTLSeconds: 180}
+	cfg := CaptchaConfig{
+		Driver: "string", Length: 5, Width: 160, Height: 60,
+		NoiseCount: 30, Lines: []string{"slime", "sine", " Sine "}, TTLSeconds: 180,
+	}
 
 	runtime := cfg.ToConfig()
 	if runtime.Driver != captcha.DriverString || runtime.Length != 5 ||
 		runtime.Width != 160 || runtime.Height != 60 || runtime.TTL != 180*time.Second {
 		t.Fatalf("运行时配置不符: %+v", runtime)
+	}
+	if runtime.NoiseCount != 30 {
+		t.Fatalf("干扰字符数不符: %d", runtime.NoiseCount)
+	}
+	wantLines := captcha.LineSlime | captcha.LineSine
+	if runtime.Lines != wantLines {
+		t.Fatalf("干扰线组合不符: %d, want %d", runtime.Lines, wantLines)
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("配置应合法: %v", err)
+	}
+}
+
+func TestCaptchaConfigRejectsUnknownLine(t *testing.T) {
+	cfg := CaptchaConfig{Driver: "string", Lines: []string{"zigzag"}}
+
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("未知干扰线名称应校验失败")
 	}
 }
 

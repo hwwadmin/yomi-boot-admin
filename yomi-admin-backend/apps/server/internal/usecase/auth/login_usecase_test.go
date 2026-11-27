@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"yomi-admin-backend/apps/server/internal/support/loginguard"
 
+	"yomi-admin-backend/apps/server/internal/support/loginguard"
 	rbacentity "yomi-admin-backend/domains/rbac/pkg/shared/entity"
 	rbaccontract "yomi-admin-backend/domains/rbac/service_contract"
 	userentity "yomi-admin-backend/domains/user/pkg/shared/entity"
@@ -88,11 +88,16 @@ func (f *fakeCaptchaVerifier) Verify(_ context.Context, id, code string) error {
 type fakeLoginGuard struct {
 	beforeDecision  loginguard.Decision
 	beforeErr       error
+	reserveDecision loginguard.Decision
+	reserveErr      error
 	failureDecision loginguard.Decision
 	failureErr      error
 	successErr      error
+	releaseErr      error
 
 	beforeCalls  int
+	reserveCalls int
+	releaseCalls int
 	failureCalls int
 	successCalls int
 	gotAccount   string
@@ -104,6 +109,20 @@ func (f *fakeLoginGuard) BeforeAttempt(_ context.Context, account, clientIP stri
 	f.gotAccount = account
 	f.gotIP = clientIP
 	return f.beforeDecision, f.beforeErr
+}
+
+func (f *fakeLoginGuard) ReserveAttempt(_ context.Context, account, clientIP string) (loginguard.Decision, error) {
+	f.reserveCalls++
+	f.gotAccount = account
+	f.gotIP = clientIP
+	return f.reserveDecision, f.reserveErr
+}
+
+func (f *fakeLoginGuard) ReleaseAttempt(_ context.Context, account, clientIP string) error {
+	f.releaseCalls++
+	f.gotAccount = account
+	f.gotIP = clientIP
+	return f.releaseErr
 }
 
 func (f *fakeLoginGuard) RecordFailure(_ context.Context, account, clientIP string) (loginguard.Decision, error) {
@@ -156,6 +175,9 @@ func TestLoginVerifiesCaptchaThenIssuesToken(t *testing.T) {
 	if users.calls != 1 || users.got == nil || users.got.Username != "admin" || users.got.Password != "secret" {
 		t.Fatalf("领域鉴权入参不符: calls=%d got=%+v", users.calls, users.got)
 	}
+	if guard.reserveCalls != 1 {
+		t.Fatalf("验密前应预占失败预算: %d", guard.reserveCalls)
+	}
 	if guard.successCalls != 1 {
 		t.Fatalf("登录成功应清空失败计数: %d", guard.successCalls)
 	}
@@ -194,8 +216,8 @@ func TestLoginStopsWhenCaptchaFails(t *testing.T) {
 	if users.calls != 0 {
 		t.Fatalf("验证码失败不应继续鉴权: %d", users.calls)
 	}
-	if guard.failureCalls != 0 {
-		t.Fatalf("验证码失败不应计入账号失败: %d", guard.failureCalls)
+	if guard.reserveCalls != 0 || guard.failureCalls != 0 {
+		t.Fatalf("验证码失败不应预占或计入失败: reserve=%d failure=%d", guard.reserveCalls, guard.failureCalls)
 	}
 }
 
@@ -253,6 +275,9 @@ func TestLoginCountsInvalidCredential(t *testing.T) {
 	if guard.failureCalls != 1 || guard.successCalls != 0 {
 		t.Fatalf("凭证失败应记账且不清零: failure=%d success=%d", guard.failureCalls, guard.successCalls)
 	}
+	if guard.reserveCalls != 1 {
+		t.Fatalf("凭证失败前应已预占: %d", guard.reserveCalls)
+	}
 }
 
 func TestLoginReturnsLockedWhenFailureTriggersLock(t *testing.T) {
@@ -293,6 +318,9 @@ func TestLoginInternalErrorDoesNotCountFailure(t *testing.T) {
 	if guard.failureCalls != 0 || guard.successCalls != 0 {
 		t.Fatalf("内部错误不应影响失败计数: failure=%d success=%d", guard.failureCalls, guard.successCalls)
 	}
+	if guard.releaseCalls != 1 {
+		t.Fatalf("内部错误应释放预占: %d", guard.releaseCalls)
+	}
 }
 
 func TestLoginIgnoresGuardResetFailure(t *testing.T) {
@@ -329,6 +357,54 @@ func TestLoginKeepsFailureBudgetWhenIssueFails(t *testing.T) {
 	}
 	if guard.successCalls != 0 {
 		t.Fatalf("签发令牌失败时不应清空失败预算: %d", guard.successCalls)
+	}
+	if guard.releaseCalls != 1 {
+		t.Fatalf("签发令牌失败时应释放预占: %d", guard.releaseCalls)
+	}
+}
+
+// TestLoginStopsWhenReserveBudgetExhausted 校验验密前的预占会拦截并发占满的预算
+func TestLoginStopsWhenReserveBudgetExhausted(t *testing.T) {
+	users := &fakeUserService{}
+	guard := &fakeLoginGuard{
+		reserveDecision: loginguard.Decision{Outcome: loginguard.OutcomeRateLimited},
+	}
+
+	uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{}, &fakeCaptchaVerifier{}, guard)
+	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1", "test-agent")
+	if !errors.Is(err, ErrLoginRateLimited) {
+		t.Fatalf("期望 ErrLoginRateLimited，实际 %v", err)
+	}
+	if users.calls != 0 {
+		t.Fatalf("预算占满不应进入验密: %d", users.calls)
+	}
+}
+
+// TestLoginStopsWhenReserveLocked 校验预占脚本发现锁定后不再验密
+func TestLoginStopsWhenReserveLocked(t *testing.T) {
+	users := &fakeUserService{}
+	guard := &fakeLoginGuard{
+		reserveDecision: loginguard.Decision{Outcome: loginguard.OutcomeLocked, RetryAfter: time.Minute},
+	}
+
+	uc := NewLoginUsecase(users, &fakeAuthService{}, &fakeTokenService{}, &fakeCaptchaVerifier{}, guard)
+	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1", "test-agent")
+	if !errors.Is(err, ErrLoginLocked) {
+		t.Fatalf("期望 ErrLoginLocked，实际 %v", err)
+	}
+	if users.calls != 0 {
+		t.Fatalf("锁定时不应进入验密: %d", users.calls)
+	}
+}
+
+// TestLoginFailsClosedWhenReserveUnavailable 校验预占链路故障时按保护不可用拒绝
+func TestLoginFailsClosedWhenReserveUnavailable(t *testing.T) {
+	guard := &fakeLoginGuard{reserveErr: errors.New("redis down")}
+
+	uc := NewLoginUsecase(&fakeUserService{}, &fakeAuthService{}, &fakeTokenService{}, &fakeCaptchaVerifier{}, guard)
+	_, err := uc.Execute(context.Background(), &LoginInput{Username: "admin", Password: "secret"}, "10.0.0.1", "test-agent")
+	if !errors.Is(err, ErrLoginGuardUnavailable) {
+		t.Fatalf("期望 ErrLoginGuardUnavailable，实际 %v", err)
 	}
 }
 

@@ -87,10 +87,12 @@ snowflake:
 biz:
   captcha:
     enabled: ${YOMI_ADMIN_BIZ_CAPTCHA_ENABLED:true}
-    driver: digit
-    length: 4
-    width: 160
+    # 5 位字母数字 + 干扰线：提高 OCR 成本；不加背景噪字，避免人眼误读
+    driver: string
+    length: 5
+    width: 200
     height: 60
+    lines: [slime, sine]
     ttl_seconds: 180
     key_prefix: yomi:captcha:login
     refresh_interval_seconds: 1
